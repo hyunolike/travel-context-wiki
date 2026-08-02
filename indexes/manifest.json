@@ -1,0 +1,43 @@
+{
+  "version": "2026-08-03",
+  "description": "Retrieval manifest for Travel Context Wiki MVP. Static local retrieval comes before vector search.",
+  "canonicalPages": [
+    {
+      "id": "concept:travel-context-layer",
+      "path": "concepts/travel-context-layer.md",
+      "tags": ["travel-context", "llm-rag", "weather-aware-recommendation"],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/public-tourism-api/2026-openapi-briefing.txt"
+      ]
+    },
+    {
+      "id": "concept:weather-aware-travel-recommendation",
+      "path": "concepts/weather-aware-travel-recommendation.md",
+      "tags": ["weather", "seasonality", "travel-context"],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "query:why-this-place-today",
+      "path": "queries/why-this-place-today.md",
+      "tags": ["course-explanation", "llm-rag", "recommendation-policy"],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/course-recommendation.md"
+      ]
+    }
+  ],
+  "records": [
+    "records/places/gyeongbokgung.json",
+    "records/weather/rules.json",
+    "records/congestion/grade-policy.json",
+    "records/regions/seoul-jongno.json"
+  ],
+  "packages": [
+    "packages/generic-travel/context-bundle.json",
+    "packages/hanjeok/context-bundle.json"
+  ]
+}
+

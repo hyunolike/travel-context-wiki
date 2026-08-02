@@ -1,0 +1,21 @@
+{
+  "version": "2026-08-03",
+  "sourcePolicy": "Rules are derived records. They must be backed by raw weather API records or tourism research before being used as evidence.",
+  "rules": [
+    {
+      "id": "weather:rain:outdoor-limited",
+      "condition": "RAIN",
+      "effect": "Prefer indoor or short-walk alternatives when backend weather context marks outdoor suitability as limited.",
+      "explanationTags": ["weather", "indoor-alternative", "short-walk"],
+      "requiredBackendFacts": ["condition", "outdoorSuitability"]
+    },
+    {
+      "id": "weather:heat:duration-shortening",
+      "condition": "HEAT",
+      "effect": "Explain shorter outdoor stays, shade, indoor breaks, or late-afternoon scheduling when heat is material.",
+      "explanationTags": ["weather", "heat", "seasonality"],
+      "requiredBackendFacts": ["temperatureC", "heatRisk"]
+    }
+  ]
+}
+

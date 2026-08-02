@@ -1,0 +1,29 @@
+{
+  "version": "2026-08-03",
+  "source": "raw/service-snapshots/hanjeok/design-v3.md",
+  "grades": [
+    {
+      "grade": "RELAXED",
+      "percentileMaxExclusive": 50,
+      "labelKo": "여유"
+    },
+    {
+      "grade": "NORMAL",
+      "percentileMinInclusive": 50,
+      "percentileMaxExclusive": 75,
+      "labelKo": "보통"
+    },
+    {
+      "grade": "CROWDED",
+      "percentileMinInclusive": 75,
+      "percentileMaxExclusive": 90,
+      "labelKo": "혼잡"
+    },
+    {
+      "grade": "VERY_CROWDED",
+      "percentileMinInclusive": 90,
+      "labelKo": "매우혼잡"
+    }
+  ]
+}
+

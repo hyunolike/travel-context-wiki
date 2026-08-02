@@ -39,29 +39,120 @@ Layer 3: Operation Metadata
   log.md                      append-only operation history
 ```
 
+## Data Layers
+
+이 구조는 `hyunolike/2nd-brain-template`의 Evidence → Canonical Memory → Discovery → Human Decision 흐름을 따르되, 여행 서비스 연동을 위해 정규화 레코드와 서비스 패키지를 추가합니다.
+
+```mermaid
+flowchart TD
+    Inbox["inbox/\n임시 수집"] --> Raw["raw/\n불변 원천 증거"]
+    Raw --> Records["records/\n정규화된 파생 레코드"]
+    Raw --> Canonical["canonical pages\nentities / concepts / comparisons / queries / decisions"]
+    Canonical --> Indexes["indexes/\nmanifest + chunks + source map"]
+    Records --> Indexes
+    Indexes --> Packages["packages/\n서비스별 context bundle + prompt"]
+    Packages --> Services["consumer services\nHanjeok / generic travel apps"]
+    Services --> Explanation["LLM explanation\n추천 설명, 날씨/혼잡 근거, 정책 문장"]
+
+    Raw -. "source paths" .-> Canonical
+    Raw -. "provenance" .-> Records
+    Canonical -. "index.md + log.md" .-> Indexes
+```
+
+### Layer Meaning
+
+| Layer | Path | Purpose |
+| --- | --- | --- |
+| Temporary intake | `inbox/` | 아직 출처와 형식이 확정되지 않은 입력 |
+| Raw evidence | `raw/` | 수정하지 않는 원천 자료, API 응답, PDF 추출본, 서비스 스냅샷 |
+| Normalized records | `records/` | 서비스가 읽기 쉬운 JSON 파생 데이터 |
+| Canonical memory | `concepts/`, `entities/`, `queries/`, `decisions/`, `comparisons/` | 사람이 읽고 LLM이 검색하는 지식 |
+| Retrieval indexes | `indexes/` | 정적 RAG manifest, chunk, source map |
+| Service packages | `packages/` | 서비스별 context bundle과 prompt |
+
 ## Service Integration Model
 
-```text
-User input
-  destination, date, time slot, radius, preferences
-        |
-        v
-Travel service backend
-  place candidates, weather context, congestion context, route generation
-        |
-        v
-Travel context wiki retrieval
-  tourism policy, weather effects, congestion research, data-source constraints
-        |
-        v
-LLM explanation
-  source-grounded travel explanation for users and service documentation
+```mermaid
+sequenceDiagram
+    participant User
+    participant Service as Travel Service Backend
+    participant Package as packages/<service>
+    participant Index as indexes/manifest.json
+    participant Wiki as Canonical Wiki
+    participant LLM
+
+    User->>Service: destination + date + time slot + radius + preferences
+    Service->>Service: calculate candidates, weather context, congestion context, route
+    Service->>Package: load context-bundle.json and prompt.md
+    Package->>Index: read retrieval policy and eligible pages
+    Index->>Wiki: select canonical pages and normalized records
+    Wiki-->>Service: source-grounded context
+    Service->>LLM: backend facts + retrieved context + prompt
+    LLM-->>Service: explanation only, no ranking changes
+    Service-->>User: recommendation + weather/congestion/context explanation
+```
+
+## Operating Workflow
+
+```mermaid
+flowchart LR
+    Capture["1. Capture\nPDF, API response, research, service snapshot"] --> Validate["2. Validate\nsource path, format, JSON, frontmatter"]
+    Validate --> Compile["3. Compile\ncanonical pages with sources"]
+    Compile --> Sync["4. Sync\nindex.md + log.md"]
+    Sync --> Index["5. Build static retrieval\nindexes/*.json, chunks.jsonl"]
+    Index --> Package["6. Package\npackages/<service>/context-bundle.json"]
+    Package --> Review["7. Human review\naccept / contest / revise"]
+```
+
+## Mermaid Architecture
+
+```mermaid
+flowchart TB
+    subgraph Evidence["Layer 1: Evidence"]
+      R1["raw/public-tourism-api"]
+      R2["raw/weather-api"]
+      R3["raw/tourism-research"]
+      R4["raw/service-snapshots"]
+      R5["raw/experiments"]
+    end
+
+    subgraph Derived["Layer 2: Derived Data"]
+      P["records/places"]
+      W["records/weather"]
+      C["records/congestion"]
+      G["records/regions"]
+    end
+
+    subgraph Memory["Layer 3: Canonical Memory"]
+      Concepts["concepts"]
+      Entities["entities"]
+      Queries["queries"]
+      Decisions["decisions"]
+    end
+
+    subgraph Retrieval["Layer 4: Retrieval"]
+      Manifest["indexes/manifest.json"]
+      Chunks["indexes/chunks.jsonl"]
+      SourceMap["indexes/source-map.json"]
+    end
+
+    subgraph Service["Layer 5: Service Context"]
+      Generic["packages/generic-travel"]
+      Hanjeok["packages/hanjeok"]
+    end
+
+    Evidence --> Derived
+    Evidence --> Memory
+    Derived --> Retrieval
+    Memory --> Retrieval
+    Retrieval --> Service
 ```
 
 ## MVP Scope
 
 - Preserve the initial tourism OpenAPI briefing extract and first consumer-service snapshots as raw evidence.
 - Maintain canonical wiki pages for tourism data, weather-aware recommendation, congestion-aware routing, and LLM explanation boundaries.
+- Maintain normalized `records/`, retrieval `indexes/`, and service `packages/` as derived artifacts.
 - Provide a deterministic smoke script that checks frontmatter, source paths, index entries, log entries, and Spec Kit files.
 - Use Spec Kit for future feature work through `$speckit-specify`, `$speckit-plan`, `$speckit-tasks`, and `$speckit-implement`.
 
@@ -100,6 +191,18 @@ New runtime integration features must start with a scenario under `harness/scena
 - `raw/service-snapshots/hanjeok/design-v3.md`
 - `raw/service-snapshots/hanjeok/course-recommendation.md`
 - `raw/service-snapshots/hanjeok/attractions.fixture.json`
+
+## Initial Data Artifacts
+
+- `records/places/gyeongbokgung.json`
+- `records/weather/rules.json`
+- `records/congestion/grade-policy.json`
+- `records/regions/seoul-jongno.json`
+- `indexes/manifest.json`
+- `indexes/chunks.jsonl`
+- `indexes/source-map.json`
+- `packages/generic-travel/context-bundle.json`
+- `packages/hanjeok/context-bundle.json`
 
 ## Recommended Repository Name
 

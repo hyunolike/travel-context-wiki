@@ -1,0 +1,12 @@
+{
+  "id": "tourapi:<content-id-or-stable-id>",
+  "name": "<place-name>",
+  "regionId": "region:<region-slug>",
+  "contentType": "attraction",
+  "indoorOutdoor": "outdoor",
+  "weatherSensitivity": [],
+  "congestionCoverage": "unknown",
+  "source": "raw/<source-kind>/<source-file>",
+  "notes": ""
+}
+

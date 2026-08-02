@@ -1,0 +1,12 @@
+{
+  "id": "tourapi:sample-gyeongbokgung",
+  "name": "경복궁",
+  "regionId": "region:seoul-jongno",
+  "contentType": "attraction",
+  "indoorOutdoor": "outdoor",
+  "weatherSensitivity": ["rain", "heat", "cold"],
+  "congestionCoverage": "expected",
+  "source": "raw/service-snapshots/hanjeok/attractions.fixture.json",
+  "notes": "Seed record copied from the first consumer-service fixture. Replace sample id after public API spike validation."
+}
+

@@ -9,8 +9,11 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 ## Layers
 
 1. **Evidence:** immutable or append-only source snapshots under `raw/`.
-2. **Canonical Memory:** curated pages under `entities/`, `concepts/`, `comparisons/`, `queries/`, and `decisions/`.
-3. **Operation Metadata:** `SCHEMA.md`, `index.md`, `log.md`, harness assets, and Spec Kit artifacts.
+2. **Normalized Records:** derived JSON records under `records/` for places, weather, congestion, events, regions, and papers.
+3. **Canonical Memory:** curated pages under `entities/`, `concepts/`, `comparisons/`, `queries/`, and `decisions/`.
+4. **Retrieval Artifacts:** static retrieval manifests, chunks, and source maps under `indexes/`.
+5. **Service Context Packages:** service-specific bundles and prompts under `packages/`.
+6. **Operation Metadata:** `SCHEMA.md`, `index.md`, `log.md`, harness assets, and Spec Kit artifacts.
 
 ## Directory Roles
 
@@ -22,12 +25,20 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | `raw/tourism-research/` | Tourism, congestion, weather, seasonality, and regional travel research records. |
 | `raw/service-snapshots/` | Design, harness, and fixture snapshots from services that consume this wiki. |
 | `raw/experiments/` | Public API verification results and response samples. |
+| `records/places/` | Derived place records normalized for service context. |
+| `records/weather/` | Derived weather interpretation rules and backend fact requirements. |
+| `records/congestion/` | Derived congestion grade and interpretation policies. |
+| `records/events/` | Derived event and festival context records. |
+| `records/regions/` | Derived regional context records. |
+| `records/papers/` | Derived paper metadata and claim summaries. |
 | `entities/` | Canonical pages whose `type` is `entity`. |
 | `concepts/` | Canonical pages whose `type` is `concept`. |
 | `comparisons/` | Canonical pages whose `type` is `comparison`. |
 | `queries/` | Canonical pages whose `type` is `query`. |
 | `decisions/` | Canonical pages whose `type` is `decision`. |
 | `research/` | Staging area for human-reviewed research drafts. Not canonical. |
+| `indexes/` | Static retrieval manifests, chunks, source maps, and retrieval policy. |
+| `packages/` | Service-specific context bundles and prompts. |
 | `harness/` | Scenarios, fixtures, and smoke checks for this wiki. |
 | `.specify/` | Spec Kit SDD templates, scripts, and workflow metadata. |
 
@@ -90,6 +101,21 @@ Rules:
 - Raw text, Markdown, JSON, and copied public documents are allowed if registered under `raw/`.
 - Canonical pages may synthesize raw sources, but must not cite generated docs, templates, or other canonical pages as `sources`.
 - If a canonical claim needs precise attribution, include an inline marker such as `^[raw/public-tourism-api/2026-openapi-briefing.txt]`.
+
+## Normalized Record Rules
+
+- `records/` files are derived data. They may support retrieval and packaging, but they are not raw evidence.
+- Every record with a `source` field must point to an existing file under `raw/`.
+- Weather records must separate backend facts from explanation rules. They must not invent live weather values.
+- Region and place records may contain service-friendly classifications such as `indoorOutdoor`, `weatherSensitivity`, and `travelContext`.
+
+## Retrieval And Package Rules
+
+- `indexes/manifest.json` lists canonical pages, records, and packages available for static retrieval.
+- `indexes/chunks.jsonl` is JSON Lines: one valid JSON object per line.
+- `indexes/source-map.json` maps raw source records to derived and canonical consumers.
+- `packages/<service>/context-bundle.json` lists the canonical and record context a service may load.
+- Packages must not include secrets, user travel history, or private location traces.
 
 ## Link Rules
 

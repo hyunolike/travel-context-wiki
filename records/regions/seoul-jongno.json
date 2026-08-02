@@ -1,0 +1,9 @@
+{
+  "id": "region:seoul-jongno",
+  "name": "서울 종로구",
+  "country": "KR",
+  "travelContext": ["palace", "history", "walkable", "high-visitor-density"],
+  "weatherNotes": ["Outdoor palace routes are sensitive to rain, heat, and cold."],
+  "source": "raw/service-snapshots/hanjeok/design-v3.md"
+}
+

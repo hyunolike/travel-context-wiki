@@ -12,3 +12,9 @@
 - Reframed the repository from a Hanjeok-only evidence wiki into a general travel, tourism, weather, congestion, and regional-context wiki.
 - Moved initial Hanjeok files under `raw/service-snapshots/hanjeok/` as first consumer-service snapshots.
 - Replaced Hanjeok-specific canonical names with Travel Context Wiki concepts and queries.
+
+## 2026-08-03 - update - add data layer and mermaid workflow
+
+- Added `records/`, `indexes/`, and `packages/` as derived data layers inspired by the 2nd Brain template's evidence-to-canonical workflow.
+- Added README Mermaid diagrams for data layers, service integration, operating workflow, and architecture.
+- Extended smoke validation to check JSON records, JSONL chunks, manifest paths, package references, and record source paths.

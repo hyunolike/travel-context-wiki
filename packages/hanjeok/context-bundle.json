@@ -1,0 +1,28 @@
+{
+  "service": "hanjeok",
+  "version": "2026-08-03",
+  "role": "First consumer-service package. Hanjeok remains an example consumer, not the repository boundary.",
+  "retrievalPolicy": "indexes/retrieval-policy.md",
+  "requiredBackendFacts": [
+    "destination",
+    "visitDate",
+    "timeSlot",
+    "congestionDiagnosis",
+    "alternatives",
+    "courseItems",
+    "weather"
+  ],
+  "canonicalContext": [
+    "concepts/travel-context-layer.md",
+    "concepts/alternative-scoring.md",
+    "concepts/course-generation-policy.md",
+    "concepts/weather-aware-travel-recommendation.md",
+    "queries/why-this-place-today.md"
+  ],
+  "recordContext": [
+    "records/places/gyeongbokgung.json",
+    "records/congestion/grade-policy.json",
+    "records/weather/rules.json"
+  ]
+}
+

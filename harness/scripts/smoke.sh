@@ -36,11 +36,32 @@ require_dir concepts
 require_dir entities
 require_dir queries
 require_dir decisions
+require_dir records/places
+require_dir records/weather
+require_dir records/congestion
+require_dir records/events
+require_dir records/regions
+require_dir records/papers
+require_dir indexes
+require_dir packages/generic-travel
+require_dir packages/hanjeok
 
 require_file raw/public-tourism-api/2026-openapi-briefing.txt
 require_file raw/service-snapshots/hanjeok/design-v3.md
 require_file raw/service-snapshots/hanjeok/course-recommendation.md
 require_file raw/service-snapshots/hanjeok/attractions.fixture.json
+require_file records/places/gyeongbokgung.json
+require_file records/weather/rules.json
+require_file records/congestion/grade-policy.json
+require_file records/regions/seoul-jongno.json
+require_file indexes/manifest.json
+require_file indexes/chunks.jsonl
+require_file indexes/source-map.json
+require_file indexes/retrieval-policy.md
+require_file packages/generic-travel/context-bundle.json
+require_file packages/generic-travel/prompt.md
+require_file packages/hanjeok/context-bundle.json
+require_file packages/hanjeok/prompt.md
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -75,5 +96,26 @@ done
 
 grep -q 'initial evidence wiki scaffold' log.md || fail "log.md missing initial scaffold entry"
 grep -q 'Travel context explanation' harness/scenarios/travel-context-explanation.md || fail "scenario missing expected title"
+
+find records indexes packages harness/fixtures -type f -name '*.json' | while IFS= read -r json_file; do
+  jq empty "$json_file" >/dev/null || fail "$json_file is not valid JSON"
+done
+
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  printf '%s\n' "$line" | jq empty >/dev/null || fail "indexes/chunks.jsonl contains invalid JSON line"
+done < indexes/chunks.jsonl
+
+jq -r '.canonicalPages[]?.path, .records[]?, .packages[]?' indexes/manifest.json | while IFS= read -r manifest_path; do
+  [ -f "$manifest_path" ] || fail "indexes/manifest.json references missing path $manifest_path"
+done
+
+jq -r '.. | objects | .source? // empty' records/places/*.json records/congestion/*.json records/regions/*.json | while IFS= read -r source_path; do
+  [ -f "$source_path" ] || fail "record references missing source $source_path"
+done
+
+jq -r '.canonicalContext[]?, .recordContext[]?, .retrievalPolicy? // empty' packages/*/context-bundle.json | while IFS= read -r package_path; do
+  [ -f "$package_path" ] || fail "package references missing path $package_path"
+done
 
 printf 'smoke passed: %s canonical pages checked\n' "$canonical_count"

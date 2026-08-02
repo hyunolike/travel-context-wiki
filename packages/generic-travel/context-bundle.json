@@ -1,0 +1,25 @@
+{
+  "service": "generic-travel",
+  "version": "2026-08-03",
+  "retrievalPolicy": "indexes/retrieval-policy.md",
+  "requiredBackendFacts": [
+    "destination",
+    "visitDate",
+    "timeSlot",
+    "recommendationResult",
+    "weather",
+    "congestion"
+  ],
+  "canonicalContext": [
+    "concepts/travel-context-layer.md",
+    "concepts/weather-aware-travel-recommendation.md",
+    "concepts/congestion-diagnosis.md",
+    "decisions/keep-llm-out-of-ranking.md",
+    "queries/why-this-place-today.md"
+  ],
+  "recordContext": [
+    "records/weather/rules.json",
+    "records/congestion/grade-policy.json"
+  ]
+}
+
