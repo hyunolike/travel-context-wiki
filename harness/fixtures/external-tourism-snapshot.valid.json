@@ -1,0 +1,21 @@
+{
+  "snapshotId": "tourapi-sample-jongno-20260803",
+  "sourceKind": "public-tourism-api",
+  "sourceUrl": "https://apis.data.go.kr/B551011/KorService2",
+  "license": "public-data",
+  "collectedAt": "2026-08-03T09:00:00+09:00",
+  "collector": "harness-fixture",
+  "payload": {
+    "areaCode": "1",
+    "sigunguCode": "23",
+    "contentTypeId": "12",
+    "items": [
+      {
+        "contentId": "sample-gyeongbokgung",
+        "title": "경복궁",
+        "area": "서울 종로구",
+        "indoorOutdoor": "outdoor"
+      }
+    ]
+  }
+}

@@ -25,6 +25,8 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | `raw/tourism-research/` | Tourism, congestion, weather, seasonality, and regional travel research records. |
 | `raw/service-snapshots/` | Design, harness, and fixture snapshots from services that consume this wiki. |
 | `raw/experiments/` | Public API verification results and response samples. |
+| `raw/user-input/` | Sanitized, consented user-input captures only. No private history or precise private traces. |
+| `raw/external-snapshots/` | File-based external API, document, or research snapshots captured by repo-local batch scripts. |
 | `records/places/` | Derived place records normalized for service context. |
 | `records/weather/` | Derived weather interpretation rules and backend fact requirements. |
 | `records/congestion/` | Derived congestion grade and interpretation policies. |
@@ -108,6 +110,14 @@ Rules:
 - Every record with a `source` field must point to an existing file under `raw/`.
 - Weather records must separate backend facts from explanation rules. They must not invent live weather values.
 - Region and place records may contain service-friendly classifications such as `indoorOutdoor`, `weatherSensitivity`, and `travelContext`.
+
+## Batch Collection Rules
+
+- Repo-local batch scripts live under `scripts/` and must be runnable without secrets.
+- `scripts/collect-user-input.sh` may only capture sanitized inputs with `consentForWiki: true` and `containsPersonalData: false`.
+- `scripts/collect-external-snapshot.sh` may only capture source-backed snapshots with `sourceUrl`, `license`, `collectedAt`, and `payload`.
+- Live authenticated API polling, private user history, and operational recommendation logs belong in a consumer service backend, not in this public wiki.
+- Batch-generated index artifacts must be checked with `scripts/build-index.sh --check`.
 
 ## Retrieval And Package Rules
 

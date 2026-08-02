@@ -1,0 +1,26 @@
+name: Wiki Batch Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 0"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check jq
+        run: jq --version
+
+      - name: Run wiki smoke
+        run: ./harness/scripts/smoke.sh
+
+      - name: Check retrieval indexes
+        run: scripts/build-index.sh --check

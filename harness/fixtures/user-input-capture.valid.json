@@ -1,0 +1,24 @@
+{
+  "captureId": "sample-family-rainy-day",
+  "capturedAt": "2026-08-03T09:00:00+09:00",
+  "source": "harness-fixture",
+  "consentForWiki": true,
+  "containsPersonalData": false,
+  "request": {
+    "destination": "서울 종로구",
+    "date": "2026-08-15",
+    "timeSlot": "afternoon",
+    "companions": "family",
+    "mobility": "public-transit",
+    "preferences": [
+      "indoor-friendly",
+      "low-congestion",
+      "short-walking"
+    ],
+    "constraints": [
+      "avoid-heavy-rain",
+      "avoid-peak-crowds"
+    ]
+  },
+  "notes": "Synthetic fixture. No private user trace or account data."
+}

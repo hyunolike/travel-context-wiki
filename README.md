@@ -92,6 +92,57 @@ sequenceDiagram
     Service-->>User: recommendation + weather/congestion/context explanation
 ```
 
+## Batch Collection Model
+
+처음 단계에서는 별도 백엔드 배치 서버를 두지 않습니다. 이 repo의 배치는 **sanitized evidence capture**와 **static index build**까지만 담당합니다. 실시간 날씨, 실시간 혼잡도, 사용자별 추천 이력처럼 빠르게 바뀌거나 개인적인 데이터는 소비 서비스 백엔드가 관리합니다.
+
+```mermaid
+flowchart TD
+    subgraph WikiBatch["Wiki Repo Batch"]
+      UserFixture["sanitized user input JSON"] --> UserCapture["scripts/collect-user-input.sh"]
+      ExternalFixture["external API/document snapshot JSON"] --> ExternalCapture["scripts/collect-external-snapshot.sh"]
+      UserCapture --> RawUser["raw/user-input/"]
+      ExternalCapture --> RawExternal["raw/external-snapshots/"]
+      RawUser --> Records["records/"]
+      RawExternal --> Records
+      Records --> BuildIndex["scripts/build-index.sh"]
+      Canonical["canonical pages"] --> BuildIndex
+      BuildIndex --> Indexes["indexes/"]
+      Indexes --> Packages["packages/"]
+    end
+
+    subgraph BackendBatch["Consumer Backend Batch"]
+      LiveWeather["live weather"]
+      LiveCongestion["live congestion"]
+      UserHistory["private user history"]
+      RuntimeDB["service DB"]
+      LiveWeather --> RuntimeDB
+      LiveCongestion --> RuntimeDB
+      UserHistory --> RuntimeDB
+    end
+
+    Packages --> ContextLoader["service context loader"]
+    RuntimeDB --> ContextLoader
+    ContextLoader --> LLM["LLM explanation"]
+```
+
+### Batch Commands
+
+```bash
+scripts/collect-user-input.sh harness/fixtures/user-input-capture.valid.json /tmp/wiki-user-input
+scripts/collect-external-snapshot.sh harness/fixtures/external-tourism-snapshot.valid.json /tmp/wiki-external
+scripts/build-index.sh
+scripts/build-index.sh --check
+./harness/scripts/smoke.sh
+```
+
+Rules:
+
+- `collect-user-input.sh` rejects input unless `consentForWiki` is `true` and `containsPersonalData` is `false`.
+- `collect-external-snapshot.sh` requires source URL, license, collection time, and payload.
+- `build-index.sh --check` is the CI-safe mode; it fails if committed retrieval artifacts are stale.
+- Authenticated live API polling should be added later in a service backend or secret-managed scheduled job, not directly in this public wiki repo.
+
 ## Operating Workflow
 
 ```mermaid

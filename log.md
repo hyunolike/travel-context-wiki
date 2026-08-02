@@ -18,3 +18,9 @@
 - Added `records/`, `indexes/`, and `packages/` as derived data layers inspired by the 2nd Brain template's evidence-to-canonical workflow.
 - Added README Mermaid diagrams for data layers, service integration, operating workflow, and architecture.
 - Extended smoke validation to check JSON records, JSONL chunks, manifest paths, package references, and record source paths.
+
+## 2026-08-03 - update - add repo-local batch pipeline
+
+- Added sanitized user-input and external snapshot capture contracts.
+- Added repo-local batch scripts for user input capture, external snapshot capture, and deterministic retrieval index generation.
+- Added GitHub Actions smoke/index workflow for scheduled and PR validation without secrets.

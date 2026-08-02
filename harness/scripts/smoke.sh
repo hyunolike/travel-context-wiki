@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -32,6 +34,8 @@ require_dir raw/service-snapshots
 require_dir raw/weather-api
 require_dir raw/tourism-research
 require_dir raw/experiments
+require_dir raw/user-input
+require_dir raw/external-snapshots
 require_dir concepts
 require_dir entities
 require_dir queries
@@ -45,11 +49,15 @@ require_dir records/papers
 require_dir indexes
 require_dir packages/generic-travel
 require_dir packages/hanjeok
+require_dir scripts
+require_dir .github/workflows
 
 require_file raw/public-tourism-api/2026-openapi-briefing.txt
 require_file raw/service-snapshots/hanjeok/design-v3.md
 require_file raw/service-snapshots/hanjeok/course-recommendation.md
 require_file raw/service-snapshots/hanjeok/attractions.fixture.json
+require_file harness/fixtures/user-input-capture.valid.json
+require_file harness/fixtures/external-tourism-snapshot.valid.json
 require_file records/places/gyeongbokgung.json
 require_file records/weather/rules.json
 require_file records/congestion/grade-policy.json
@@ -62,6 +70,14 @@ require_file packages/generic-travel/context-bundle.json
 require_file packages/generic-travel/prompt.md
 require_file packages/hanjeok/context-bundle.json
 require_file packages/hanjeok/prompt.md
+require_file scripts/collect-user-input.sh
+require_file scripts/collect-external-snapshot.sh
+require_file scripts/build-index.sh
+require_file .github/workflows/wiki-batch.yml
+
+[ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
+[ -x scripts/collect-external-snapshot.sh ] || fail "scripts/collect-external-snapshot.sh is not executable"
+[ -x scripts/build-index.sh ] || fail "scripts/build-index.sh is not executable"
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -100,6 +116,14 @@ grep -q 'Travel context explanation' harness/scenarios/travel-context-explanatio
 find records indexes packages harness/fixtures -type f -name '*.json' | while IFS= read -r json_file; do
   jq empty "$json_file" >/dev/null || fail "$json_file is not valid JSON"
 done
+
+scripts/collect-user-input.sh harness/fixtures/user-input-capture.valid.json "$TMP_DIR/user-input" >/dev/null
+[ -f "$TMP_DIR/user-input/sample-family-rainy-day.json" ] || fail "user input capture script did not create expected output"
+
+scripts/collect-external-snapshot.sh harness/fixtures/external-tourism-snapshot.valid.json "$TMP_DIR/external" >/dev/null
+[ -f "$TMP_DIR/external/public-tourism-api-tourapi-sample-jongno-20260803.json" ] || fail "external snapshot script did not create expected output"
+
+scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do
   [ -z "$line" ] && continue

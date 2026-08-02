@@ -2,19 +2,48 @@
   "raw/public-tourism-api/2026-openapi-briefing.txt": {
     "kind": "public-tourism-api",
     "usedBy": [
+      "concepts/raw-derived-data-separation.md",
       "concepts/travel-context-layer.md",
-      "entities/tourapi-korservice2.md",
-      "concepts/raw-derived-data-separation.md"
+      "decisions/keep-llm-out-of-ranking.md",
+      "entities/congestion-forecast-api.md",
+      "entities/related-attraction-api.md",
+      "entities/tourapi-korservice2.md"
+    ]
+  },
+  "raw/service-snapshots/hanjeok/attractions.fixture.json": {
+    "kind": "service-snapshots",
+    "usedBy": [
+      "concepts/alternative-scoring.md",
+      "records/places/gyeongbokgung.json"
+    ]
+  },
+  "raw/service-snapshots/hanjeok/course-recommendation.md": {
+    "kind": "service-snapshots",
+    "usedBy": [
+      "concepts/alternative-scoring.md",
+      "concepts/congestion-diagnosis.md",
+      "concepts/course-generation-policy.md",
+      "decisions/separate-context-wiki-from-services.md",
+      "queries/why-this-place-today.md"
     ]
   },
   "raw/service-snapshots/hanjeok/design-v3.md": {
-    "kind": "consumer-service-snapshot",
+    "kind": "service-snapshots",
     "usedBy": [
+      "concepts/alternative-scoring.md",
+      "concepts/congestion-diagnosis.md",
+      "concepts/course-generation-policy.md",
+      "concepts/raw-derived-data-separation.md",
       "concepts/travel-context-layer.md",
       "concepts/weather-aware-travel-recommendation.md",
+      "decisions/keep-llm-out-of-ranking.md",
+      "decisions/separate-context-wiki-from-services.md",
+      "entities/congestion-forecast-api.md",
+      "entities/related-attraction-api.md",
+      "entities/tourapi-korservice2.md",
+      "queries/why-this-place-today.md",
       "records/congestion/grade-policy.json",
       "records/regions/seoul-jongno.json"
     ]
   }
 }
-

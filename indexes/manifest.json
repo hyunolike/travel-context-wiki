@@ -1,11 +1,86 @@
 {
-  "version": "2026-08-03",
-  "description": "Retrieval manifest for Travel Context Wiki MVP. Static local retrieval comes before vector search.",
+  "version": "static",
+  "generatedBy": "scripts/build-index.sh",
+  "description": "Retrieval manifest for Travel Context Wiki. Static local retrieval comes before vector search.",
+  "retrievalPolicy": "indexes/retrieval-policy.md",
   "canonicalPages": [
+    {
+      "id": "concept:alternative-scoring",
+      "path": "concepts/alternative-scoring.md",
+      "type": "concept",
+      "title": "Alternative Scoring",
+      "confidence": "medium",
+      "tags": [
+        "recommendation-policy",
+        "fallback-policy",
+        "congestion"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/course-recommendation.md",
+        "raw/service-snapshots/hanjeok/attractions.fixture.json"
+      ]
+    },
+    {
+      "id": "concept:congestion-diagnosis",
+      "path": "concepts/congestion-diagnosis.md",
+      "type": "concept",
+      "title": "Congestion Diagnosis",
+      "confidence": "medium",
+      "tags": [
+        "congestion",
+        "recommendation-policy",
+        "public-data"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/course-recommendation.md"
+      ]
+    },
+    {
+      "id": "concept:course-generation-policy",
+      "path": "concepts/course-generation-policy.md",
+      "type": "concept",
+      "title": "Course Generation Policy",
+      "confidence": "medium",
+      "tags": [
+        "course-generation",
+        "recommendation-policy",
+        "course-explanation"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/course-recommendation.md"
+      ]
+    },
+    {
+      "id": "concept:raw-derived-data-separation",
+      "path": "concepts/raw-derived-data-separation.md",
+      "type": "concept",
+      "title": "Raw Derived Data Separation",
+      "confidence": "high",
+      "tags": [
+        "data-lineage",
+        "api-compliance",
+        "public-data"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/public-tourism-api/2026-openapi-briefing.txt"
+      ]
+    },
     {
       "id": "concept:travel-context-layer",
       "path": "concepts/travel-context-layer.md",
-      "tags": ["travel-context", "llm-rag", "weather-aware-recommendation"],
+      "type": "concept",
+      "title": "Travel Context Layer",
+      "confidence": "medium",
+      "tags": [
+        "travel-context",
+        "course-explanation",
+        "llm-rag",
+        "weather-aware-recommendation"
+      ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
         "raw/public-tourism-api/2026-openapi-briefing.txt"
@@ -14,15 +89,109 @@
     {
       "id": "concept:weather-aware-travel-recommendation",
       "path": "concepts/weather-aware-travel-recommendation.md",
-      "tags": ["weather", "seasonality", "travel-context"],
+      "type": "concept",
+      "title": "Weather Aware Travel Recommendation",
+      "confidence": "low",
+      "tags": [
+        "weather",
+        "seasonality",
+        "weather-aware-recommendation",
+        "travel-context"
+      ],
       "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "decision:keep-llm-out-of-ranking",
+      "path": "decisions/keep-llm-out-of-ranking.md",
+      "type": "decision",
+      "title": "Keep LLM Out Of Ranking",
+      "confidence": "medium",
+      "tags": [
+        "llm-rag",
+        "recommendation-policy",
+        "api-compliance"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/public-tourism-api/2026-openapi-briefing.txt"
+      ]
+    },
+    {
+      "id": "decision:separate-context-wiki-from-services",
+      "path": "decisions/separate-context-wiki-from-services.md",
+      "type": "decision",
+      "title": "Separate Context Wiki From Services",
+      "confidence": "medium",
+      "tags": [
+        "travel-context",
+        "sdd"
+      ],
+      "sources": [
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/course-recommendation.md"
+      ]
+    },
+    {
+      "id": "entity:congestion-forecast-api",
+      "path": "entities/congestion-forecast-api.md",
+      "type": "entity",
+      "title": "Congestion Forecast API",
+      "confidence": "low",
+      "tags": [
+        "congestion",
+        "openapi",
+        "public-data"
+      ],
+      "sources": [
+        "raw/public-tourism-api/2026-openapi-briefing.txt",
+        "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "entity:related-attraction-api",
+      "path": "entities/related-attraction-api.md",
+      "type": "entity",
+      "title": "Related Attraction API",
+      "confidence": "low",
+      "tags": [
+        "openapi",
+        "public-data",
+        "recommendation-policy"
+      ],
+      "sources": [
+        "raw/public-tourism-api/2026-openapi-briefing.txt",
+        "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "entity:tourapi-korservice2",
+      "path": "entities/tourapi-korservice2.md",
+      "type": "entity",
+      "title": "TourAPI KorService2",
+      "confidence": "medium",
+      "tags": [
+        "tourapi",
+        "openapi",
+        "public-data"
+      ],
+      "sources": [
+        "raw/public-tourism-api/2026-openapi-briefing.txt",
         "raw/service-snapshots/hanjeok/design-v3.md"
       ]
     },
     {
       "id": "query:why-this-place-today",
       "path": "queries/why-this-place-today.md",
-      "tags": ["course-explanation", "llm-rag", "recommendation-policy"],
+      "type": "query",
+      "title": "Why This Place Today",
+      "confidence": "medium",
+      "tags": [
+        "course-explanation",
+        "llm-rag",
+        "recommendation-policy"
+      ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
         "raw/service-snapshots/hanjeok/course-recommendation.md"
@@ -30,14 +199,13 @@
     }
   ],
   "records": [
-    "records/places/gyeongbokgung.json",
-    "records/weather/rules.json",
     "records/congestion/grade-policy.json",
-    "records/regions/seoul-jongno.json"
+    "records/places/gyeongbokgung.json",
+    "records/regions/seoul-jongno.json",
+    "records/weather/rules.json"
   ],
   "packages": [
     "packages/generic-travel/context-bundle.json",
     "packages/hanjeok/context-bundle.json"
   ]
 }
-
