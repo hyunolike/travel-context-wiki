@@ -8,8 +8,8 @@ tags:
   - recommendation-policy
   - public-data
 sources:
-  - raw/hanjeok-design/design-v3.md
-  - raw/harness/course-recommendation.md
+  - raw/service-snapshots/hanjeok/design-v3.md
+  - raw/service-snapshots/hanjeok/course-recommendation.md
 confidence: medium
 contested: true
 contradictions: []
@@ -19,7 +19,7 @@ contradictions: []
 
 Congestion Diagnosis converts public congestion forecast data into a user-facing crowding grade for a selected attraction and visit time.
 
-The Hanjeok design defines the primary input as attraction id, visit date, and time slot. The backend first checks whether the attraction has congestion coverage. If not, it returns a diagnosis-unavailable response and nearby diagnosable attractions as fallback.
+The initial consumer-service design defines the primary input as attraction id, visit date, and time slot. A backend first checks whether the attraction has congestion coverage. If not, it returns a diagnosis-unavailable response and nearby diagnosable attractions as fallback.
 
 ## Grade Policy
 
@@ -37,4 +37,3 @@ This page is contested because the exact congestion API identifier and time gran
 - [[congestion-forecast-api]]
 - [[alternative-scoring]]
 - [[course-generation-policy]]
-

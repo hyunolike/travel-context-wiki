@@ -1,17 +1,17 @@
 {
   "query": "왜 이 코스를 추천했나요?",
   "expectedPages": [
-    "concepts/evidence-backed-course-explanation.md",
+    "concepts/travel-context-layer.md",
     "concepts/congestion-diagnosis.md",
+    "concepts/weather-aware-travel-recommendation.md",
     "concepts/alternative-scoring.md",
     "concepts/course-generation-policy.md",
     "decisions/keep-llm-out-of-ranking.md",
-    "queries/why-this-course.md"
+    "queries/why-this-place-today.md"
   ],
   "forbiddenBehavior": [
     "LLM changes course order",
     "LLM invents attraction",
-    "LLM claims unsupported public API fact"
+    "LLM claims unsupported public API or weather fact"
   ]
 }
-

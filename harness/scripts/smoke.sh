@@ -27,18 +27,20 @@ require_file .specify/templates/spec-template.md
 require_file .specify/templates/plan-template.md
 require_file .specify/templates/tasks-template.md
 
-require_dir raw/openapi-briefing
-require_dir raw/hanjeok-design
-require_dir raw/harness
+require_dir raw/public-tourism-api
+require_dir raw/service-snapshots
+require_dir raw/weather-api
+require_dir raw/tourism-research
+require_dir raw/experiments
 require_dir concepts
 require_dir entities
 require_dir queries
 require_dir decisions
 
-require_file raw/openapi-briefing/2026-openapi-briefing.txt
-require_file raw/hanjeok-design/design-v3.md
-require_file raw/harness/course-recommendation.md
-require_file raw/harness/attractions.fixture.json
+require_file raw/public-tourism-api/2026-openapi-briefing.txt
+require_file raw/service-snapshots/hanjeok/design-v3.md
+require_file raw/service-snapshots/hanjeok/course-recommendation.md
+require_file raw/service-snapshots/hanjeok/attractions.fixture.json
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -72,7 +74,6 @@ find concepts entities comparisons queries decisions -type f -name '*.md' | whil
 done
 
 grep -q 'initial evidence wiki scaffold' log.md || fail "log.md missing initial scaffold entry"
-grep -q 'Evidence-backed course explanation' harness/scenarios/evidence-backed-course-explanation.md || fail "scenario missing expected title"
+grep -q 'Travel context explanation' harness/scenarios/travel-context-explanation.md || fail "scenario missing expected title"
 
 printf 'smoke passed: %s canonical pages checked\n' "$canonical_count"
-

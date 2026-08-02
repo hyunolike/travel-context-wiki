@@ -8,8 +8,8 @@ tags:
   - recommendation-policy
   - api-compliance
 sources:
-  - raw/hanjeok-design/design-v3.md
-  - raw/openapi-briefing/2026-openapi-briefing.txt
+  - raw/service-snapshots/hanjeok/design-v3.md
+  - raw/public-tourism-api/2026-openapi-briefing.txt
 confidence: medium
 contested: false
 contradictions: []
@@ -19,7 +19,7 @@ contradictions: []
 
 ## Decision
 
-Hanjeok will not let an LLM decide attraction ranking or course order in MVP.
+Travel Context Wiki will not let an LLM decide attraction ranking or course order for consuming services.
 
 ## Reason
 
@@ -33,7 +33,6 @@ The service needs deterministic behavior, public-data traceability, and reproduc
 
 ## Related Pages
 
-- [[evidence-backed-course-explanation]]
-- [[why-this-course]]
+- [[travel-context-layer]]
+- [[why-this-place-today]]
 - [[alternative-scoring]]
-

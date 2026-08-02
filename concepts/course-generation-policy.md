@@ -8,8 +8,8 @@ tags:
   - recommendation-policy
   - course-explanation
 sources:
-  - raw/hanjeok-design/design-v3.md
-  - raw/harness/course-recommendation.md
+  - raw/service-snapshots/hanjeok/design-v3.md
+  - raw/service-snapshots/hanjeok/course-recommendation.md
 confidence: medium
 contested: true
 contradictions: []
@@ -23,15 +23,14 @@ The MVP policy is intentionally simple: assign each place to the time slot where
 
 ## Why Not Full Optimization
 
-The Hanjeok design avoids TSP-style optimization for MVP because the course has roughly four slots. Greedy placement plus local swapping is easier to explain and verify.
+The initial consumer-service design avoids TSP-style optimization for MVP because the course has roughly four slots. Greedy placement plus local swapping is easier to explain and verify.
 
 ## Explanation Use
 
-[[evidence-backed-course-explanation]] can say that a crowded destination was delayed instead of removed, or that a quieter alternative was placed earlier because its predicted congestion was lower in that slot.
+[[travel-context-layer]] can say that a crowded destination was delayed instead of removed, that a quieter alternative was placed earlier, or that [[weather-aware-travel-recommendation]] changed the explanation for indoor/outdoor suitability.
 
 ## Related Pages
 
 - [[congestion-diagnosis]]
 - [[alternative-scoring]]
-- [[why-this-course]]
-
+- [[why-this-place-today]]

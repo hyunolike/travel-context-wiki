@@ -17,11 +17,11 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | Path | Role |
 | --- | --- |
 | `inbox/` | Temporary intake awaiting classification. Not evidence and not canonical. |
-| `raw/openapi-briefing/` | Extracted source records from the 2026 OpenAPI briefing. |
-| `raw/hanjeok-design/` | Snapshots copied from Hanjeok design documents. |
-| `raw/harness/` | Snapshots copied from Hanjeok scenarios and fixtures. |
-| `raw/api-spikes/` | Public API verification results and response samples. |
-| `raw/competition/` | Competition submission, review, and compliance source records. |
+| `raw/public-tourism-api/` | Tourism public API briefings, manuals, policy notes, and response contracts. |
+| `raw/weather-api/` | Weather API manuals, response samples, and weather-risk interpretation notes. |
+| `raw/tourism-research/` | Tourism, congestion, weather, seasonality, and regional travel research records. |
+| `raw/service-snapshots/` | Design, harness, and fixture snapshots from services that consume this wiki. |
+| `raw/experiments/` | Public API verification results and response samples. |
 | `entities/` | Canonical pages whose `type` is `entity`. |
 | `concepts/` | Canonical pages whose `type` is `concept`. |
 | `comparisons/` | Canonical pages whose `type` is `comparison`. |
@@ -42,9 +42,9 @@ created: 2026-08-03
 updated: 2026-08-03
 type: concept
 tags:
-  - recommendation-policy
+  - travel-context
 sources:
-  - raw/hanjeok-design/design-v3.md
+  - raw/service-snapshots/hanjeok/design-v3.md
 confidence: medium
 contested: false
 contradictions: []
@@ -78,14 +78,18 @@ Rules:
 - `public-data`
 - `recommendation-policy`
 - `sdd`
+- `seasonality`
 - `tourapi`
+- `travel-context`
+- `weather`
+- `weather-aware-recommendation`
 
 ## Source Rules
 
 - Do not edit raw source bodies after capture. Add a new source snapshot instead.
 - Raw text, Markdown, JSON, and copied public documents are allowed if registered under `raw/`.
 - Canonical pages may synthesize raw sources, but must not cite generated docs, templates, or other canonical pages as `sources`.
-- If a canonical claim needs precise attribution, include an inline marker such as `^[raw/openapi-briefing/2026-openapi-briefing.txt]`.
+- If a canonical claim needs precise attribution, include an inline marker such as `^[raw/public-tourism-api/2026-openapi-briefing.txt]`.
 
 ## Link Rules
 
@@ -100,4 +104,3 @@ For every canonical create, update, archive, or delete:
 1. Update `index.md`.
 2. Append one entry to `log.md`.
 3. Run `./harness/scripts/smoke.sh`.
-

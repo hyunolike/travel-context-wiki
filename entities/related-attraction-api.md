@@ -8,8 +8,8 @@ tags:
   - public-data
   - recommendation-policy
 sources:
-  - raw/openapi-briefing/2026-openapi-briefing.txt
-  - raw/hanjeok-design/design-v3.md
+  - raw/public-tourism-api/2026-openapi-briefing.txt
+  - raw/service-snapshots/hanjeok/design-v3.md
 confidence: low
 contested: true
 contradictions: []
@@ -19,7 +19,7 @@ contradictions: []
 
 The Related Attraction API provides attraction-to-attraction relationship information used to build alternative candidate sets.
 
-Hanjeok uses it before distance filtering and congestion filtering in [[alternative-scoring]].
+Travel services can use it before distance filtering, congestion filtering, and weather suitability checks in [[alternative-scoring]].
 
 ## Spike Requirements
 
@@ -32,4 +32,3 @@ Hanjeok uses it before distance filtering and congestion filtering in [[alternat
 - [[alternative-scoring]]
 - [[tourapi-korservice2]]
 - [[congestion-forecast-api]]
-

@@ -8,8 +8,8 @@ tags:
   - openapi
   - public-data
 sources:
-  - raw/openapi-briefing/2026-openapi-briefing.txt
-  - raw/hanjeok-design/design-v3.md
+  - raw/public-tourism-api/2026-openapi-briefing.txt
+  - raw/service-snapshots/hanjeok/design-v3.md
 confidence: low
 contested: true
 contradictions: []
@@ -19,7 +19,7 @@ contradictions: []
 
 The Congestion Forecast API provides visitor concentration trend prediction information for tourist attractions.
 
-Hanjeok uses this API as the source for [[congestion-diagnosis]]. The design records an important coverage risk: the briefing lists 10,731 congestion records, far fewer than the full Korean tourism information service.
+Travel services can use this API as the source for [[congestion-diagnosis]]. The first consumer snapshot records an important coverage risk: the briefing lists 10,731 congestion records, far fewer than the full Korean tourism information service.
 
 ## Spike Requirements
 
@@ -32,4 +32,3 @@ Hanjeok uses this API as the source for [[congestion-diagnosis]]. The design rec
 - [[tourapi-korservice2]]
 - [[congestion-diagnosis]]
 - [[raw-derived-data-separation]]
-

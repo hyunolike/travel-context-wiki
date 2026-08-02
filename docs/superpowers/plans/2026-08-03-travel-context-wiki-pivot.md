@@ -1,8 +1,8 @@
-# Hanjeok Evidence Wiki Scaffold Implementation Plan
+# Travel Context Wiki Pivot Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create a separate Hanjeok Evidence Wiki repository with README, raw evidence snapshots, canonical seed pages, harness validation, and Spec Kit SDD scaffolding.
+**Goal:** Pivot the repository into a general Travel Context Wiki with README, raw evidence snapshots, canonical seed pages, harness validation, and Spec Kit SDD scaffolding.
 
 **Architecture:** The repository is a Markdown/Git knowledge base. Raw evidence lives under `raw/`, canonical pages live under domain directories, and `index.md` plus `log.md` track active memory and changes. A shell smoke script validates consistency without external dependencies.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Do not modify the Hanjeok product repository while scaffolding this wiki.
+- Do not modify consumer-service repositories while curating this wiki.
 - Do not commit API keys, tokens, user travel history, or private location data.
 - The LLM wiki explains backend recommendations but does not decide ranking.
 - Run `./harness/scripts/smoke.sh` before considering the scaffold complete.
@@ -38,16 +38,16 @@
 ### Task 2: Evidence Snapshots
 
 **Files:**
-- Create: `raw/openapi-briefing/2026-openapi-briefing.txt`
-- Create: `raw/hanjeok-design/design-v3.md`
-- Create: `raw/harness/course-recommendation.md`
-- Create: `raw/harness/attractions.fixture.json`
+- Create: `raw/public-tourism-api/2026-openapi-briefing.txt`
+- Create: `raw/service-snapshots/hanjeok/design-v3.md`
+- Create: `raw/service-snapshots/hanjeok/course-recommendation.md`
+- Create: `raw/service-snapshots/hanjeok/attractions.fixture.json`
 
 **Interfaces:**
 - Produces: raw source paths used by canonical `sources` frontmatter.
 
 - [x] Extract OpenAPI PDF text.
-- [x] Copy Hanjeok design and harness snapshots.
+- [x] Copy first consumer-service design and harness snapshots.
 
 ### Task 3: Canonical Seed Pages
 
@@ -68,12 +68,12 @@
 ### Task 4: Harness And SDD
 
 **Files:**
-- Create: `harness/scenarios/evidence-backed-course-explanation.md`
+- Create: `harness/scenarios/travel-context-explanation.md`
 - Create: `harness/fixtures/course-explanation-request.json`
 - Create: `harness/fixtures/wiki-retrieval-context.json`
 - Create: `harness/scripts/smoke.sh`
 - Modify: `.specify/memory/constitution.md`
-- Create: `specs/001-evidence-backed-course-explanation/*`
+- Create: `specs/001-travel-context-layer/*`
 
 **Interfaces:**
 - Produces: deterministic verification entrypoint.
@@ -96,4 +96,3 @@
 - [ ] Run `git init`.
 - [ ] Run `git add .`.
 - [ ] Run `git commit -m "feat: scaffold hanjeok evidence wiki"`.
-

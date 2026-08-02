@@ -7,6 +7,11 @@
     "preferences": ["quiet", "walkable", "culture"]
   },
   "backendResult": {
+    "weather": {
+      "condition": "RAIN",
+      "temperatureC": 27,
+      "outdoorSuitability": "LIMITED"
+    },
     "diagnosis": {
       "grade": "VERY_CROWDED",
       "percentile": 92,
@@ -42,4 +47,3 @@
     ]
   }
 }
-

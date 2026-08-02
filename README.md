@@ -1,37 +1,37 @@
-# Hanjeok Evidence Wiki
+# Travel Context Wiki
 
-한적 서비스의 공공데이터 활용 근거, 추천 정책, API 검증 기록을 보존하는 LLM wiki 레포지토리입니다.
+여행지, 관광 공공데이터, 날씨, 혼잡도, 지역 맥락, 연구 자료를 연결하는 범용 LLM wiki 레포지토리입니다.
 
-이 레포는 한적 본 서비스의 코드를 대체하지 않습니다. 한적 백엔드는 집중률, 연관 관광지, TourAPI, PostGIS 기반으로 결정적인 추천을 수행하고, 이 wiki는 그 추천을 설명하고 검증하는 증거 레이어로 사용합니다.
+이 레포는 특정 서비스의 코드를 대체하지 않습니다. 여행 서비스는 각자의 백엔드에서 결정적인 추천을 수행하고, 이 wiki는 그 추천을 설명하고 검증하는 컨텍스트 레이어로 사용합니다. 한적은 이 wiki를 사용하는 첫 번째 소비 서비스일 뿐, 유일한 목적이 아닙니다.
 
 ## Concept
 
-**Evidence-backed Course Explanation**
+**Travel Context Layer**
 
-사용자가 한적 서비스에 목적지, 날짜, 시간대, 이동 반경, 여행 선호를 입력하면 한적 백엔드는 규칙 기반으로 혼잡도 진단과 우회 코스를 생성합니다. 이후 LLM은 이 레포의 canonical wiki를 검색해 다음 설명을 만듭니다.
+사용자가 여행 서비스에 목적지, 날짜, 시간대, 이동 반경, 여행 선호를 입력하면 서비스 백엔드는 관광지, 날씨, 혼잡도, 이동 조건을 기반으로 후보와 코스를 계산합니다. 이후 LLM은 이 레포의 canonical wiki를 검색해 다음 설명을 만듭니다.
 
-- 왜 이 장소가 혼잡하다고 판단됐는가
-- 왜 이 대안지가 추천됐는가
-- 왜 이 시간대 순서가 선택됐는가
-- 공공 API 제약 때문에 어떤 폴백이 적용됐는가
-- 원천 데이터와 파생 데이터가 어떻게 분리되는가
+- 오늘 이 여행지가 왜 적합한가
+- 날씨가 코스 선택에 어떤 영향을 주는가
+- 혼잡하면 어떤 대안지가 적합한가
+- 실내/실외 대안은 어떤 기준으로 갈리는가
+- 공공 API와 연구 자료의 근거는 어디에 있는가
 
 ## Knowledge Layers
 
 ```text
 Layer 1: Evidence
-  raw/openapi-briefing/       2026 OpenAPI 설명회 자료 추출본
-  raw/hanjeok-design/         한적 설계문서 스냅샷
-  raw/harness/                한적 하네스 시나리오와 fixture 스냅샷
-  raw/api-spikes/             공공 API 실호출 검증 결과
-  raw/competition/            공모전 제출 및 운영계정 관련 자료
+  raw/public-tourism-api/     관광 공공 API 설명회, 매뉴얼, 정책 자료
+  raw/weather-api/            날씨 API 문서와 검증 자료
+  raw/tourism-research/       관광, 혼잡, 날씨 영향 관련 논문/리포트
+  raw/service-snapshots/      이 wiki를 소비하는 서비스의 설계/하네스 스냅샷
+  raw/experiments/            API 실호출 검증 결과
 
 Layer 2: Canonical Memory
-  entities/                   공공 API, 도구, 기관, 주요 시스템
-  concepts/                   혼잡도 진단, 대안지 스코어링, 코스 정책
-  comparisons/                설계 대안 비교
+  entities/                   관광/날씨 API, 기관, 데이터셋, 주요 시스템
+  concepts/                   날씨 인지 추천, 혼잡 회피, 계절성, 지역 맥락
+  comparisons/                API/데이터소스/추천 정책 비교
   queries/                    재사용 가능한 근거 기반 질의응답
-  decisions/                  한적 서비스의 ADR 형태 의사결정
+  decisions/                  LLM wiki 운영과 서비스 연동 의사결정
 
 Layer 3: Operation Metadata
   SCHEMA.md                   wiki 계약
@@ -46,22 +46,22 @@ User input
   destination, date, time slot, radius, preferences
         |
         v
-Hanjeok backend
-  congestion diagnosis, alternative scoring, route generation
+Travel service backend
+  place candidates, weather context, congestion context, route generation
         |
         v
-Evidence wiki retrieval
-  policy, API constraints, research notes, decision records
+Travel context wiki retrieval
+  tourism policy, weather effects, congestion research, data-source constraints
         |
         v
 LLM explanation
-  source-grounded course explanation for users and competition docs
+  source-grounded travel explanation for users and service documentation
 ```
 
 ## MVP Scope
 
-- Preserve the OpenAPI briefing extract, Hanjeok design snapshot, and harness scenario as raw evidence.
-- Maintain canonical wiki pages for the recommendation policy and OpenAPI compliance decisions.
+- Preserve the initial tourism OpenAPI briefing extract and first consumer-service snapshots as raw evidence.
+- Maintain canonical wiki pages for tourism data, weather-aware recommendation, congestion-aware routing, and LLM explanation boundaries.
 - Provide a deterministic smoke script that checks frontmatter, source paths, index entries, log entries, and Spec Kit files.
 - Use Spec Kit for future feature work through `$speckit-specify`, `$speckit-plan`, `$speckit-tasks`, and `$speckit-implement`.
 
@@ -70,7 +70,7 @@ LLM explanation
 - Letting an LLM decide the actual travel course.
 - Real-time paper search per user request.
 - Storing API keys, public-data service keys, Telegram tokens, or user travel history in Git.
-- Replacing the Hanjeok backend's deterministic recommendation logic.
+- Replacing each consumer service's deterministic recommendation logic.
 
 ## Quick Start
 
@@ -96,12 +96,11 @@ New runtime integration features must start with a scenario under `harness/scena
 
 ## Initial Source Snapshots
 
-- `raw/openapi-briefing/2026-openapi-briefing.txt`
-- `raw/hanjeok-design/design-v3.md`
-- `raw/harness/course-recommendation.md`
-- `raw/harness/attractions.fixture.json`
+- `raw/public-tourism-api/2026-openapi-briefing.txt`
+- `raw/service-snapshots/hanjeok/design-v3.md`
+- `raw/service-snapshots/hanjeok/course-recommendation.md`
+- `raw/service-snapshots/hanjeok/attractions.fixture.json`
 
 ## Recommended Repository Name
 
-`hanjeok-evidence-wiki`
-
+`travel-context-wiki`

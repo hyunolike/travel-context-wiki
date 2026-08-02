@@ -1,4 +1,4 @@
-# Tasks: Evidence-backed Course Explanation
+# Tasks: Travel Context Layer
 
 ## Phase 1: Scaffold
 
@@ -8,13 +8,13 @@
 
 ## Phase 2: Evidence
 
-- [x] Copy OpenAPI briefing text extract into `raw/openapi-briefing/`.
-- [x] Copy Hanjeok design snapshot into `raw/hanjeok-design/`.
-- [x] Copy Hanjeok harness scenario and fixture snapshot into `raw/harness/`.
+- [x] Copy OpenAPI briefing text extract into `raw/public-tourism-api/`.
+- [x] Copy first consumer-service design snapshot into `raw/service-snapshots/hanjeok/`.
+- [x] Copy first consumer-service harness scenario and fixture snapshot into `raw/service-snapshots/hanjeok/`.
 
 ## Phase 3: Canonical Wiki
 
-- [x] Add concept pages for explanation, congestion diagnosis, alternative scoring, course policy, and raw/derived separation.
+- [x] Add concept pages for travel context explanation, weather-aware recommendation, congestion diagnosis, alternative scoring, course policy, and raw/derived separation.
 - [x] Add entity pages for TourAPI, congestion forecast API, and related attraction API.
 - [x] Add query page for "why this course".
 - [x] Add decision pages for LLM ranking boundary and separate evidence repo.

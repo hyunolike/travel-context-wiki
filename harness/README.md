@@ -1,10 +1,10 @@
 # Harness
 
-This harness fixes the expected behavior of Hanjeok Evidence Wiki before automation is added.
+This harness fixes the expected behavior of Travel Context Wiki before automation is added.
 
 ## Assets
 
-- `scenarios/evidence-backed-course-explanation.md`: user-facing service scenario.
+- `scenarios/travel-context-explanation.md`: user-facing service scenario.
 - `fixtures/course-explanation-request.json`: sample backend output and user preferences.
 - `fixtures/wiki-retrieval-context.json`: expected wiki pages to retrieve.
 - `scripts/smoke.sh`: deterministic repository health check.
@@ -24,4 +24,3 @@ The smoke check verifies:
 - `index.md` count matches the filesystem
 - `log.md` has an initial operation entry
 - Spec Kit files exist
-
