@@ -1,0 +1,38 @@
+{
+  "attractions": [
+    {
+      "id": "attr-gyeongbokgung",
+      "name": "경복궁",
+      "area": "서울 종로구",
+      "category": "historic",
+      "latitude": 37.5796,
+      "longitude": 126.977,
+      "relatedAttractionIds": [
+        "attr-seochon",
+        "attr-bukchon"
+      ]
+    },
+    {
+      "id": "attr-seochon",
+      "name": "서촌 골목길",
+      "area": "서울 종로구",
+      "category": "walk",
+      "latitude": 37.5787,
+      "longitude": 126.9696,
+      "relatedAttractionIds": [
+        "attr-gyeongbokgung"
+      ]
+    },
+    {
+      "id": "attr-bukchon",
+      "name": "북촌 한옥마을",
+      "area": "서울 종로구",
+      "category": "historic",
+      "latitude": 37.5826,
+      "longitude": 126.983,
+      "relatedAttractionIds": [
+        "attr-gyeongbokgung"
+      ]
+    }
+  ]
+}

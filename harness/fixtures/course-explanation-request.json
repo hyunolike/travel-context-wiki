@@ -1,0 +1,45 @@
+{
+  "userInput": {
+    "destination": "경복궁",
+    "visitDate": "2026-08-15",
+    "timeSlot": "AFTERNOON",
+    "radiusKm": 5,
+    "preferences": ["quiet", "walkable", "culture"]
+  },
+  "backendResult": {
+    "diagnosis": {
+      "grade": "VERY_CROWDED",
+      "percentile": 92,
+      "hasCongestionData": true
+    },
+    "alternatives": [
+      {
+        "name": "북촌한옥마을",
+        "grade": "NORMAL",
+        "distanceKm": 1.4,
+        "score": 0.82
+      },
+      {
+        "name": "정동길",
+        "grade": "RELAXED",
+        "distanceKm": 2.1,
+        "score": 0.78
+      }
+    ],
+    "courseItems": [
+      {
+        "name": "북촌한옥마을",
+        "slot": "MORNING"
+      },
+      {
+        "name": "정동길",
+        "slot": "LUNCH"
+      },
+      {
+        "name": "경복궁",
+        "slot": "LATE_AFTERNOON"
+      }
+    ]
+  }
+}
+

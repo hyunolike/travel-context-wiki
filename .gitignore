@@ -1,0 +1,25 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Agent and local runtime state
+.codex/
+.claude/
+.playwright-mcp/
+.ua/
+
+# Generated caches
+node_modules/
+.next/
+dist/
+build/
+coverage/
+tmp/
+
+# Local secrets and large private captures
+*.key
+*.pem
+*.token
+raw/private/
+
