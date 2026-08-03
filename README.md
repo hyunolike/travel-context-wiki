@@ -143,6 +143,25 @@ Rules:
 - `build-index.sh --check` is the CI-safe mode; it fails if committed retrieval artifacts are stale.
 - Authenticated live API polling should be added later in a service backend or secret-managed scheduled job, not directly in this public wiki repo.
 
+## Project Artifact Links
+
+오픈소스 AI 자동화 에이전트 프로젝트 자료의 요구를 반영해, 이 wiki는 서비스 데이터뿐 아니라 포트폴리오 산출물도 연결 가능한 artifact로 관리합니다. PRD, GitHub Issue/PR, RAGAS 평가 보고서, 배포 URL, service package, GraphRAG export는 `records/project-artifacts/`에 기록하고 canonical page와 source-map으로 역추적합니다.
+
+```mermaid
+flowchart TD
+    Guide["project guide / PRD"] --> RawGuide["raw/project-guides/"]
+    Issues["GitHub issues / PRs"] --> Artifacts["records/project-artifacts/"]
+    Eval["RAGAS report"] --> Artifacts
+    Deploy["deployed URL"] --> Artifacts
+    RawGuide --> Canonical["concepts/project-artifact-linking.md"]
+    Artifacts --> Canonical
+    Canonical --> Index["indexes/source-map.json"]
+    Index --> Package["packages/<service>"]
+    Package --> Loader["Context Loader / Hermes Agent"]
+```
+
+This makes the deployed AI service explainable as a portfolio asset: the user can trace from service URL to issue, implementation, evaluation, prompt package, retrieval rule, and original project requirement.
+
 ## Operating Workflow
 
 ```mermaid
@@ -249,6 +268,7 @@ New runtime integration features must start with a scenario under `harness/scena
 - `records/weather/rules.json`
 - `records/congestion/grade-policy.json`
 - `records/regions/seoul-jongno.json`
+- `records/project-artifacts/portfolio-deliverables.json`
 - `indexes/manifest.json`
 - `indexes/chunks.jsonl`
 - `indexes/source-map.json`

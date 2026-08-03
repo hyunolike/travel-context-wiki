@@ -27,12 +27,14 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | `raw/experiments/` | Public API verification results and response samples. |
 | `raw/user-input/` | Sanitized, consented user-input captures only. No private history or precise private traces. |
 | `raw/external-snapshots/` | File-based external API, document, or research snapshots captured by repo-local batch scripts. |
+| `raw/project-guides/` | Captured notes from project guides, PRDs, mentoring material, and delivery requirements. Do not commit proprietary PDF bodies without permission. |
 | `records/places/` | Derived place records normalized for service context. |
 | `records/weather/` | Derived weather interpretation rules and backend fact requirements. |
 | `records/congestion/` | Derived congestion grade and interpretation policies. |
 | `records/events/` | Derived event and festival context records. |
 | `records/regions/` | Derived regional context records. |
 | `records/papers/` | Derived paper metadata and claim summaries. |
+| `records/project-artifacts/` | Derived records for PRDs, GitHub issues, pull requests, evaluation reports, deployment URLs, and service packages. |
 | `entities/` | Canonical pages whose `type` is `entity`. |
 | `concepts/` | Canonical pages whose `type` is `concept`. |
 | `comparisons/` | Canonical pages whose `type` is `comparison`. |
@@ -110,6 +112,7 @@ Rules:
 - Every record with a `source` field must point to an existing file under `raw/`.
 - Weather records must separate backend facts from explanation rules. They must not invent live weather values.
 - Region and place records may contain service-friendly classifications such as `indoorOutdoor`, `weatherSensitivity`, and `travelContext`.
+- Project artifact records must link portfolio-relevant artifacts back to source evidence, canonical pages, and service packages when available.
 
 ## Batch Collection Rules
 

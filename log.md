@@ -24,3 +24,9 @@
 - Added sanitized user-input and external snapshot capture contracts.
 - Added repo-local batch scripts for user input capture, external snapshot capture, and deterministic retrieval index generation.
 - Added GitHub Actions smoke/index workflow for scheduled and PR validation without secrets.
+
+## 2026-08-03 - update - add project artifact linking model
+
+- Added captured notes from the open source AI automation agent project guide.
+- Added canonical project artifact linking rules for PRD, GitHub Issue/PR, RAGAS report, deployment URL, and service packages.
+- Added project artifact records so portfolio deliverables can be traced through source evidence, canonical pages, indexes, and packages.

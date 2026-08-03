@@ -12,6 +12,7 @@
   ],
   "canonicalContext": [
     "concepts/travel-context-layer.md",
+    "concepts/project-artifact-linking.md",
     "concepts/weather-aware-travel-recommendation.md",
     "concepts/congestion-diagnosis.md",
     "decisions/keep-llm-out-of-ranking.md",
@@ -19,7 +20,7 @@
   ],
   "recordContext": [
     "records/weather/rules.json",
-    "records/congestion/grade-policy.json"
+    "records/congestion/grade-policy.json",
+    "records/project-artifacts/portfolio-deliverables.json"
   ]
 }
-

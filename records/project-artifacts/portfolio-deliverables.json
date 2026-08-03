@@ -1,0 +1,36 @@
+{
+  "id": "project-artifacts:open-source-ai-agent-portfolio",
+  "source": "raw/project-guides/open-source-ai-agent-project-guide.md",
+  "artifactSet": "open-source-ai-agent-project",
+  "requiredArtifacts": [
+    {
+      "artifactType": "prd",
+      "description": "Product requirements or project requirements document explaining the AI service goal and scope."
+    },
+    {
+      "artifactType": "github-issue",
+      "description": "Issue records for Context Loader, Hermes Agent API, batch automation, evaluation, and deployment work."
+    },
+    {
+      "artifactType": "pull-request",
+      "description": "Implementation and documentation pull requests linked to the relevant issue."
+    },
+    {
+      "artifactType": "ragas-report",
+      "description": "Evaluation report for retrieval quality and source-grounded explanation behavior."
+    },
+    {
+      "artifactType": "deployment-url",
+      "description": "Public URL for the deployed AI demo service."
+    },
+    {
+      "artifactType": "service-package",
+      "description": "LLM Wiki package consumed by Context Loader or Hermes Agent."
+    }
+  ],
+  "canonicalRefs": [
+    "concepts/project-artifact-linking.md",
+    "concepts/travel-context-layer.md",
+    "concepts/raw-derived-data-separation.md"
+  ]
+}

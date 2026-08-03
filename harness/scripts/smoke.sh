@@ -36,6 +36,7 @@ require_dir raw/tourism-research
 require_dir raw/experiments
 require_dir raw/user-input
 require_dir raw/external-snapshots
+require_dir raw/project-guides
 require_dir concepts
 require_dir entities
 require_dir queries
@@ -46,6 +47,7 @@ require_dir records/congestion
 require_dir records/events
 require_dir records/regions
 require_dir records/papers
+require_dir records/project-artifacts
 require_dir indexes
 require_dir packages/generic-travel
 require_dir packages/hanjeok
@@ -58,10 +60,12 @@ require_file raw/service-snapshots/hanjeok/course-recommendation.md
 require_file raw/service-snapshots/hanjeok/attractions.fixture.json
 require_file harness/fixtures/user-input-capture.valid.json
 require_file harness/fixtures/external-tourism-snapshot.valid.json
+require_file raw/project-guides/open-source-ai-agent-project-guide.md
 require_file records/places/gyeongbokgung.json
 require_file records/weather/rules.json
 require_file records/congestion/grade-policy.json
 require_file records/regions/seoul-jongno.json
+require_file records/project-artifacts/portfolio-deliverables.json
 require_file indexes/manifest.json
 require_file indexes/chunks.jsonl
 require_file indexes/source-map.json
@@ -134,7 +138,7 @@ jq -r '.canonicalPages[]?.path, .records[]?, .packages[]?' indexes/manifest.json
   [ -f "$manifest_path" ] || fail "indexes/manifest.json references missing path $manifest_path"
 done
 
-jq -r '.. | objects | .source? // empty' records/places/*.json records/congestion/*.json records/regions/*.json | while IFS= read -r source_path; do
+jq -r '.. | objects | .source? // empty' records/places/*.json records/congestion/*.json records/regions/*.json records/project-artifacts/*.json | while IFS= read -r source_path; do
   [ -f "$source_path" ] || fail "record references missing source $source_path"
 done
 

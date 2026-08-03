@@ -54,6 +54,22 @@
       ]
     },
     {
+      "id": "concept:project-artifact-linking",
+      "path": "concepts/project-artifact-linking.md",
+      "type": "concept",
+      "title": "Project Artifact Linking",
+      "confidence": "medium",
+      "tags": [
+        "travel-context",
+        "evidence-wiki",
+        "data-lineage",
+        "llm-rag"
+      ],
+      "sources": [
+        "raw/project-guides/open-source-ai-agent-project-guide.md"
+      ]
+    },
+    {
       "id": "concept:raw-derived-data-separation",
       "path": "concepts/raw-derived-data-separation.md",
       "type": "concept",
@@ -201,6 +217,7 @@
   "records": [
     "records/congestion/grade-policy.json",
     "records/places/gyeongbokgung.json",
+    "records/project-artifacts/portfolio-deliverables.json",
     "records/regions/seoul-jongno.json",
     "records/weather/rules.json"
   ],
