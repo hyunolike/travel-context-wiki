@@ -37,8 +37,11 @@ require_dir raw/experiments
 require_dir raw/user-input
 require_dir raw/external-snapshots
 require_dir raw/project-guides
+require_dir inbox
+require_dir research
 require_dir concepts
 require_dir entities
+require_dir comparisons
 require_dir queries
 require_dir decisions
 require_dir records/places
