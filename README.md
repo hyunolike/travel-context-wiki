@@ -143,6 +143,52 @@ Rules:
 - `build-index.sh --check` is the CI-safe mode; it fails if committed retrieval artifacts are stale.
 - Authenticated live API polling should be added later in a service backend or secret-managed scheduled job, not directly in this public wiki repo.
 
+## Knowledge Store Boundary
+
+에이전트가 읽는 저장소는 하나가 아닙니다. 흔한 설계 실수는 "지식 저장소"와 "데이터 랜딩존"을 객체 스토리지 한 곳에 몰아넣는 것인데, 두 계층은 쓰기 주체도 빈도도 삭제 가능성도 다릅니다. 이 wiki는 그 경계를 리포지토리 경계로 그었습니다.
+
+| | **이 GitHub 리포** | **객체 스토리지 / 서비스 DB** |
+| --- | --- | --- |
+| 담는 것 | canonical pages, `records/`, `indexes/`, `packages/` | 실시간 날씨, 실시간 혼잡도, 사용자 입력, 세션 이력 |
+| 쓰기 주체 | 사람 (Pull Request) | 배치와 런타임 (기계) |
+| 쓰기 빈도 | 낮음. 변경마다 리뷰 | 높음. 분 단위 가능 |
+| 검증 관문 | `smoke.sh` + 코드 리뷰 | 서비스 스키마 검증 |
+| 이력 | Git 전체 이력, diff, blame | 최신값 위주 |
+| 삭제 | 어려움. 히스토리에 남음 | 쉬움 |
+| 개인정보 | **금지** | 서비스 경계 안에서만 허용 |
+
+지식 계층을 Git에 두면 출처 추적이 저장소의 기본 기능이 됩니다. 반대로 고빈도 자동 수집을 Git에 두면 커밋 이력이 폭증하고, 동시 쓰기에 push 경합이 생기며, 한 번 들어간 개인정보를 지우려면 히스토리 재작성이 필요합니다. 그래서 자동 수집은 이 리포로 들어오지 않습니다.
+
+```mermaid
+flowchart TD
+    Curator["Curator"] -->|"Pull Request"| Wiki
+    Wiki["GitHub: travel-context-wiki\ncanonical + records + indexes + packages"]
+    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI 검증"}
+    Gate -->|"merge"| Bundle["context bundle\n(빌드 타임 번들)"]
+
+    Sensors["실시간 날씨 / 혼잡도 / 공공 API"] -->|"자동 수집"| Store["객체 스토리지 / 서비스 DB"]
+    UserInput["사용자 입력 / 세션"] --> Store
+
+    Bundle --> Agent["Hermes Agent"]
+    Store -->|"런타임 조회"| Agent
+    Agent <--> LLM["LLM (OpenRouter 등)"]
+    Agent --> Client["Client"]
+```
+
+에이전트는 **정적 컨텍스트는 번들에서, 실시간 사실은 서비스 저장소에서** 받습니다. 이 우선순위는 `indexes/retrieval-policy.md`가 이미 규정하고 있습니다: backend facts가 최우선이고, 그다음이 `packages/`, 그다음이 canonical page입니다.
+
+### Agent Delivery
+
+이 리포의 지식을 실행 중인 에이전트에 전달하는 방법은 셋입니다.
+
+| 방식 | 동작 | 적합한 경우 |
+| --- | --- | --- |
+| **빌드 타임 번들 (권장)** | 이미지 빌드 시 리포를 복사하거나 clone해 `packages/`와 `indexes/`를 이미지에 포함 | 런타임 네트워크 의존과 요청 한도가 없어야 할 때. 갱신은 재배포 |
+| 런타임 pull + 캐시 | 기동 시 clone, webhook이나 주기 pull로 갱신 | 지식이 자주 바뀌고 재배포가 부담일 때 |
+| HTTP 직접 조회 | 정적 호스팅으로 `indexes/`를 노출해 fetch | 번들이 불가능할 때. CDN 캐시 지연과 요청 한도를 감안할 것 |
+
+`packages/<service>/context-bundle.json`과 `indexes/manifest.json`이 이 전달을 전제로 만들어진 산출물입니다. 세 방식 모두 이 두 파일을 진입점으로 씁니다.
+
 ## Project Artifact Links
 
 오픈소스 AI 자동화 에이전트 프로젝트 자료의 요구를 반영해, 이 wiki는 서비스 데이터뿐 아니라 포트폴리오 산출물도 연결 가능한 artifact로 관리합니다. PRD, GitHub Issue/PR, RAGAS 평가 보고서, 배포 URL, service package, GraphRAG export는 `records/project-artifacts/`에 기록하고 canonical page와 source-map으로 역추적합니다.
