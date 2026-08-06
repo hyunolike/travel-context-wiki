@@ -30,3 +30,21 @@
 - Added captured notes from the open source AI automation agent project guide.
 - Added canonical project artifact linking rules for PRD, GitHub Issue/PR, RAGAS report, deployment URL, and service packages.
 - Added project artifact records so portfolio deliverables can be traced through source evidence, canonical pages, indexes, and packages.
+
+## 2026-08-06 - repair - restore git-tracked canonical directories
+
+- `comparisons/`, `inbox/`, and `research/` were registered in `SCHEMA.md` but had no placeholder, so git did not track them and a fresh clone lacked all three.
+- `./harness/scripts/smoke.sh` failed at the canonical `find` with exit 1 on any fresh clone, which also broke the `wiki-batch` workflow.
+- Created: `comparisons/.gitkeep`, `inbox/.gitkeep`, `research/.gitkeep`.
+- Updated: `harness/scripts/smoke.sh` to guard the three directories with `require_dir`.
+
+## 2026-08-06 - update - align schema contract with the repository tree
+
+- Registered previously undocumented directories in the `SCHEMA.md` role table: `scripts/`, `templates/`, `docs/`, `specs/`, `.agents/`, `.github/`, and on-demand `_archive/`.
+- Removed empty pre-pivot directories that had no registered role: `raw/api-spikes/`, `raw/competition/`, `raw/hanjeok-design/`, `raw/harness/`, `raw/openapi-briefing/`.
+- Added `SCHEMA.md` sections for file format rules, index rules, log rules, and archive rules. The log heading grammar and its action vocabulary were previously used but never defined.
+- Recorded the missing final newline in `raw/public-tourism-api/2026-openapi-briefing.txt` as a known format gap rather than repairing immutable evidence.
+- Created: `.gitattributes`, pinning LF and marking `raw/**` as `-text` so captured bytes are never rewritten.
+- Updated: `index.md` to sort the Concepts section alphabetically; `.specify/workflows/workflow-registry.json` to end with a newline.
+- Updated: `harness/scripts/smoke.sh` with checks for kebab-case page names, index section membership and ordering, index/filesystem slug parity, log heading grammar, and BOM/CRLF/final-newline hygiene outside `raw/`.
+- Canonical pages unchanged at 13.

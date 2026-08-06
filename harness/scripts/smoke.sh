@@ -37,8 +37,11 @@ require_dir raw/experiments
 require_dir raw/user-input
 require_dir raw/external-snapshots
 require_dir raw/project-guides
+require_dir inbox
+require_dir research
 require_dir concepts
 require_dir entities
+require_dir comparisons
 require_dir queries
 require_dir decisions
 require_dir records/places
@@ -98,6 +101,11 @@ find concepts entities comparisons queries decisions -type f -name '*.md' | whil
   grep -q '^contested: ' "$file" || fail "$file missing contested"
   grep -q '^contradictions:' "$file" || fail "$file missing contradictions"
 
+  slug="$(basename "$file" .md)"
+  if ! printf '%s\n' "$slug" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+)*$'; then
+    fail "$file is not lowercase kebab-case"
+  fi
+
   type="$(awk -F': ' '/^type: / { print $2; exit }' "$file")"
   dir="$(dirname "$file")"
   case "$dir:$type" in
@@ -144,6 +152,66 @@ done
 
 jq -r '.canonicalContext[]?, .recordContext[]?, .retrievalPolicy? // empty' packages/*/context-bundle.json | while IFS= read -r package_path; do
   [ -f "$package_path" ] || fail "package references missing path $package_path"
+done
+
+# SCHEMA "Index Rules": every canonical page appears once, in the section that
+# matches its type, sorted alphabetically within that section.
+INDEX_ENTRIES="$TMP_DIR/index-entries.tsv"
+awk '
+  /^## / { section = $2; next }
+  /^- \[\[/ {
+    slug = $0
+    sub(/^- \[\[/, "", slug)
+    sub(/\]\].*$/, "", slug)
+    print section "\t" slug
+  }
+' index.md > "$INDEX_ENTRIES"
+
+while IFS="$(printf '\t')" read -r section slug; do
+  case "$section" in
+    Concepts) section_dir=concepts ;;
+    Entities) section_dir=entities ;;
+    Comparisons) section_dir=comparisons ;;
+    Queries) section_dir=queries ;;
+    Decisions) section_dir=decisions ;;
+    *) fail "index.md has an unknown section: $section" ;;
+  esac
+  [ -f "$section_dir/$slug.md" ] || fail "index.md lists $slug under $section but $section_dir/$slug.md does not exist"
+done < "$INDEX_ENTRIES"
+
+for section in $(cut -f1 "$INDEX_ENTRIES" | sort -u); do
+  listed="$(awk -F'\t' -v s="$section" '$1 == s { print $2 }' "$INDEX_ENTRIES")"
+  sorted="$(printf '%s\n' "$listed" | LC_ALL=C sort)"
+  [ "$listed" = "$sorted" ] || fail "index.md section $section is not sorted alphabetically"
+done
+
+find concepts entities comparisons queries decisions -type f -name '*.md' -exec basename {} .md \; | LC_ALL=C sort > "$TMP_DIR/canonical-slugs.txt"
+cut -f2 "$INDEX_ENTRIES" | LC_ALL=C sort > "$TMP_DIR/indexed-slugs.txt"
+if ! diff -u "$TMP_DIR/canonical-slugs.txt" "$TMP_DIR/indexed-slugs.txt" > "$TMP_DIR/index-diff.txt"; then
+  cat "$TMP_DIR/index-diff.txt" >&2
+  fail "index.md entries do not match the canonical pages on disk"
+fi
+
+# SCHEMA "Log Rules": append-only history with a fixed heading grammar.
+grep '^## ' log.md | while IFS= read -r heading; do
+  if ! printf '%s\n' "$heading" | grep -Eq '^## [0-9]{4}-[0-9]{2}-[0-9]{2} - (ingest|create|update|archive|delete|lint|repair) - .+$'; then
+    fail "log.md heading does not match SCHEMA format: $heading"
+  fi
+done
+
+# SCHEMA "File Format Rules": UTF-8, LF, no BOM, final newline.
+# raw/ is exempt because captured evidence is preserved byte-for-byte.
+find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.jsonl' -o -name '*.sh' -o -name '*.yml' -o -name '*.yaml' \) \
+  -not -path './.git/*' -not -path './raw/*' | while IFS= read -r text_file; do
+  if [ "$(head -c 3 "$text_file" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+    fail "$text_file starts with a byte-order mark"
+  fi
+  if grep -q "$(printf '\r')" "$text_file"; then
+    fail "$text_file contains CRLF line endings"
+  fi
+  if [ -s "$text_file" ] && [ -n "$(tail -c 1 "$text_file")" ]; then
+    fail "$text_file has no final newline"
+  fi
 done
 
 printf 'smoke passed: %s canonical pages checked\n' "$canonical_count"
