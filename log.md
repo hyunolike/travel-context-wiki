@@ -48,3 +48,10 @@
 - Updated: `index.md` to sort the Concepts section alphabetically; `.specify/workflows/workflow-registry.json` to end with a newline.
 - Updated: `harness/scripts/smoke.sh` with checks for kebab-case page names, index section membership and ordering, index/filesystem slug parity, log heading grammar, and BOM/CRLF/final-newline hygiene outside `raw/`.
 - Canonical pages unchanged at 13.
+
+## 2026-08-06 - update - document the knowledge store boundary
+
+- Recorded why the knowledge layer lives in git while automated high-frequency collection does not: commit history growth, push contention on concurrent writers, and the inability to delete personal data once committed.
+- Added a README `Knowledge Store Boundary` section comparing this repository against service-side object storage across write owner, write frequency, validation gate, history, deletability, and personal data.
+- Added an `Agent Delivery` table for the three ways a running agent can consume this repository, recommending the build-time bundle so runtime has no network dependency or request ceiling.
+- Updated: `README.md` only. No canonical page, record, index, or package changed.
