@@ -1,0 +1,135 @@
+name: Collect Air Quality Stations
+
+# Captures the national air-quality monitoring station list as raw evidence, so
+# a region record can state which station its air-quality claims come from.
+#
+# This deliberately does NOT capture live concentration readings. Under
+# "Scheduled Collection Rules" in SCHEMA.md a scheduled workflow may only take
+# slowly changing public reference data; a live reading belongs to the consumer
+# service backend, not to this wiki.
+#
+# VERIFY BEFORE ENABLING: confirm the endpoint path, parameter names, and the
+# licence label against the dataset page on data.go.kr. They are set once in the
+# env block below.
+
+on:
+  schedule:
+    # Tuesday 06:00 KST. Offset from the wiki-batch cron so the two never race.
+    - cron: "0 21 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  ENDPOINT: https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList
+  SNAPSHOT_ID: airkorea-station-list
+  SOURCE_KIND: air-quality
+  SOURCE_URL: https://www.data.go.kr/data/15073877/openapi.do
+  LICENSE: 공공누리 제1유형
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for the service key
+        id: guard
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "::notice::DATA_GO_KR_SERVICE_KEY is not configured; skipping collection."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The service key travels as a query parameter, and logs on a public
+      # repository are public. Never print the URL, never use curl -v, and let
+      # curl do the encoding so the key is not pre-encoded past the log masker.
+      - name: Fetch station list
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          curl -sS --fail-with-body --get "$ENDPOINT" \
+            --data-urlencode "serviceKey=$SERVICE_KEY" \
+            --data-urlencode "returnType=json" \
+            --data-urlencode "numOfRows=1000" \
+            --data-urlencode "pageNo=1" \
+            -o response.json
+
+      # A rejected key still returns HTTP 200 with an error envelope that can
+      # echo the request back, so validate the shape and fail without printing
+      # the body.
+      - name: Validate response
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          jq empty response.json || { echo "::error::response was not valid JSON"; exit 1; }
+          code="$(jq -r '.response.header.resultCode // "missing"' response.json)"
+          if [ "$code" != "00" ]; then
+            echo "::error::public data API returned resultCode=$code"
+            exit 1
+          fi
+
+      - name: Capture as raw evidence
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          jq -n \
+            --slurpfile payload response.json \
+            --arg snapshotId "$SNAPSHOT_ID" \
+            --arg sourceKind "$SOURCE_KIND" \
+            --arg sourceUrl "$SOURCE_URL" \
+            --arg license "$LICENSE" \
+            --arg collectedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{snapshotId: $snapshotId, sourceKind: $sourceKind, sourceUrl: $sourceUrl,
+              license: $license, collectedAt: $collectedAt, payload: $payload[0]}' \
+            > envelope.json
+
+          scripts/collect-external-snapshot.sh --skip-unchanged envelope.json raw/external-snapshots
+          scripts/build-index.sh
+          rm -f response.json envelope.json
+
+      - name: Detect a real change
+        if: steps.guard.outputs.ready == 'true'
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain raw/external-snapshots indexes)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::payload unchanged; nothing to propose."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify the capture still satisfies the contract
+        if: steps.diff.outputs.changed == 'true'
+        run: ./harness/scripts/smoke.sh
+
+      # Evidence lands in raw/ and stops there. Deriving records/ and promoting
+      # canonical pages stays human work, so this opens a pull request instead
+      # of pushing to the default branch.
+      - name: Open a pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="collect/air-quality-stations-$(date -u +%Y%m%d-%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add raw/external-snapshots indexes
+          git commit -m "chore: capture air quality station list"
+          git push -u origin "$branch"
+          printf '%s\n' \
+            "Scheduled capture from the air-quality station dataset. The payload changed since the last stored snapshot." \
+            "" \
+            "Evidence only: this touches \`raw/external-snapshots/\` and the rebuilt retrieval artifacts. Deriving \`records/\` and promoting canonical pages stays human work." \
+            "" \
+            "Review the diff before merging; a shifting station list can change which station a region record cites." \
+            > pr-body.md
+          gh pr create --base main --head "$branch" \
+            --title "chore: capture air quality station list" \
+            --body-file pr-body.md

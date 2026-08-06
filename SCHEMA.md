@@ -148,6 +148,34 @@ Rules:
 - Live authenticated API polling, private user history, and operational recommendation logs belong in a consumer service backend, not in this public wiki.
 - Batch-generated index artifacts must be checked with `scripts/build-index.sh --check`.
 
+## Scheduled Collection Rules
+
+A scheduled workflow in this repository may call an authenticated public-data
+API, but only under every condition below. This is the narrow exception to the
+live-polling rule above: it covers slowly changing public reference data, never
+live readings or anything about a person.
+
+1. **Public reference data only.** The response must describe places, schedules,
+   facilities, or measurements of the environment. Never user identity, user
+   location, user history, or any operational log.
+2. **At most once per day**, and prefer weekly. Data that is only meaningful at
+   a finer interval than a day is live data and belongs in the consumer backend.
+3. **Secrets never reach `scripts/`.** A service key may only be read by the
+   workflow step that performs the fetch. Every script under `scripts/` must
+   still run correctly with no secret present.
+4. **Never print a request URL.** Korean public-data services pass the service
+   key as a query parameter, and workflow logs on a public repository are
+   public. Pass keys with `--data-urlencode` and keep the URL out of the log.
+5. **Commit only on a payload change.** Envelope metadata such as `collectedAt`
+   changes on every run, so `scripts/collect-external-snapshot.sh` compares the
+   `payload` object and leaves the stored file untouched when it is unchanged.
+   Use `--skip-unchanged` for any scheduled capture.
+6. **Land in `raw/` and stop there.** A workflow may capture evidence. Deriving
+   `records/`, promoting canonical pages, and updating `index.md` stay human
+   work, so the review gate is never bypassed.
+7. **Open a pull request; never push to the default branch.** The capture has to
+   pass `./harness/scripts/smoke.sh` and human review like any other change.
+
 ## Retrieval And Package Rules
 
 - `indexes/manifest.json` lists canonical pages, records, and packages available for static retrieval.
