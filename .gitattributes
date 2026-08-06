@@ -1,0 +1,22 @@
+* text=auto eol=lf
+
+*.md text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Layer 1 evidence is byte-immutable. Never let git rewrite a captured body,
+# including its line endings or a missing final newline. Diffs stay enabled
+# because any diff under raw/ is itself a SCHEMA violation worth reading.
+raw/** -text
+
+*.pdf -text -diff -merge
+*.png -text -diff -merge
+*.jpg -text -diff -merge
+*.jpeg -text -diff -merge
+*.gif -text -diff -merge
+*.webp -text -diff -merge
+*.zip -text -diff -merge

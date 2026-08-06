@@ -41,10 +41,36 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | `queries/` | Canonical pages whose `type` is `query`. |
 | `decisions/` | Canonical pages whose `type` is `decision`. |
 | `research/` | Staging area for human-reviewed research drafts. Not canonical. |
+| `_archive/` | Fully superseded canonical pages removed from active navigation. Created on demand. |
 | `indexes/` | Static retrieval manifests, chunks, source maps, and retrieval policy. |
 | `packages/` | Service-specific context bundles and prompts. |
 | `harness/` | Scenarios, fixtures, and smoke checks for this wiki. |
+| `scripts/` | Repo-local batch scripts. Must run without secrets. |
+| `templates/` | Record and page skeletons. Not evidence, not canonical, never a `sources` target. |
+| `docs/` | Architecture notes, diagrams, and working plans. Deliverables only, never evidence. |
+| `specs/` | Spec Kit feature specifications, plans, and task lists. |
 | `.specify/` | Spec Kit SDD templates, scripts, and workflow metadata. |
+| `.agents/` | Agent skill definitions used to operate this repository. |
+| `.github/` | CI workflows that run the smoke and index checks. |
+
+Any directory not listed here is undefined. Register a directory in this table
+before adding files to it, and delete leftover directories that no longer have a
+registered role.
+
+## File Format Rules
+
+- Markdown, JSON, JSONL, and shell files are UTF-8 with LF line endings, no
+  byte-order mark, and a final newline. `.gitattributes` enforces the line
+  endings; this section is the contract the checks read from.
+- Canonical page filenames are lowercase kebab-case and end in `.md`.
+- Files under `raw/` are exempt from the final-newline and line-ending rules.
+  A capture is preserved byte-for-byte, so a missing final newline in a captured
+  body is a documented format gap, not a defect to repair. `.gitattributes`
+  marks `raw/**` as `-text` so git never rewrites those bytes.
+
+Known format gaps:
+
+- `raw/public-tourism-api/2026-openapi-briefing.txt` has no final newline, as captured.
 
 ## Canonical Frontmatter
 
@@ -135,6 +161,50 @@ Rules:
 - Canonical pages should use Obsidian-style `[[wikilinks]]` to connect related pages.
 - Once three or more canonical pages exist, each canonical page should link to at least two other active canonical pages.
 - Links to `raw/`, `templates/`, `_archive/`, or missing files do not count as canonical links.
+
+## Index Rules
+
+- `index.md` lists every active canonical page exactly once, under the section
+  matching its `type`.
+- Entries are sorted alphabetically by page slug within each section.
+- The `Active canonical pages:` count must equal the number of canonical
+  Markdown files on disk.
+- Never list raw records, records, templates, docs, or archived pages as active
+  canonical entries.
+- Split a section once it exceeds 50 entries.
+
+## Log Rules
+
+`log.md` is append-only. Never rewrite or remove an earlier entry; correct a
+mistake by appending a `repair` entry that states the correction.
+
+Entry headings use this exact format:
+
+```text
+## YYYY-MM-DD - <action> - <subject>
+```
+
+Allowed actions:
+
+| Action | Use |
+| --- | --- |
+| `ingest` | Captured new evidence under `raw/`. |
+| `create` | Added canonical pages or records. |
+| `update` | Changed existing canonical pages, records, or contracts. |
+| `archive` | Moved a fully superseded canonical page to `_archive/`. |
+| `delete` | Removed canonical pages or records. |
+| `lint` | Recorded a validation outcome. |
+| `repair` | Corrected an earlier log entry or a contract violation. |
+
+Each entry lists every affected repository-relative path. Rotate to
+`log-YYYY.md` after 500 entries and leave the completed file unchanged.
+
+## Archive Rules
+
+Archive a canonical page only when it is fully superseded. In one operation:
+move it under `_archive/`, remove its `index.md` entry, repair any inbound
+`[[wikilinks]]`, and append an `archive` entry to `log.md`. Archived pages are
+never `sources` targets and never count toward link minimums.
 
 ## Index And Log Synchronization
 
