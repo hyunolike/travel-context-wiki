@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: %s <input-json> <output-dir>\n' "$0" >&2
+  printf 'Usage: %s [--skip-unchanged] <input-json> <output-dir>\n' "$0" >&2
   exit 2
 }
 
@@ -10,6 +10,15 @@ fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1
 }
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+skip_unchanged="false"
+if [ "${1:-}" = "--skip-unchanged" ]; then
+  skip_unchanged="true"
+  shift
+fi
 
 [ "$#" -eq 2 ] || usage
 
@@ -39,6 +48,20 @@ safe_id="$(printf '%s' "$snapshot_id" | sed 's/[^A-Za-z0-9._-]/-/g')"
 
 mkdir -p "$output_dir"
 output_path="$output_dir/$safe_kind-$safe_id.json"
+
+# Envelope metadata such as collectedAt changes on every scheduled run, so a
+# plain rewrite produces a commit even when the source data is identical.
+# Compare the payload alone and leave the stored capture untouched when it has
+# not moved. See "Scheduled Collection Rules" in SCHEMA.md.
+if [ "$skip_unchanged" = "true" ] && [ -f "$output_path" ]; then
+  if jq -S '.payload' "$input_json" > "$TMP_DIR/incoming-payload.json" \
+    && jq -S '.payload' "$output_path" > "$TMP_DIR/stored-payload.json" \
+    && cmp -s "$TMP_DIR/incoming-payload.json" "$TMP_DIR/stored-payload.json"; then
+    printf 'unchanged external snapshot: %s\n' "$output_path"
+    exit 0
+  fi
+fi
+
 jq -S . "$input_json" > "$output_path"
 
 printf 'captured external snapshot: %s\n' "$output_path"

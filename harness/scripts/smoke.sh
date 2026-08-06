@@ -135,6 +135,20 @@ scripts/collect-user-input.sh harness/fixtures/user-input-capture.valid.json "$T
 scripts/collect-external-snapshot.sh harness/fixtures/external-tourism-snapshot.valid.json "$TMP_DIR/external" >/dev/null
 [ -f "$TMP_DIR/external/public-tourism-api-tourapi-sample-jongno-20260803.json" ] || fail "external snapshot script did not create expected output"
 
+# SCHEMA "Scheduled Collection Rules": a scheduled capture must not rewrite the
+# stored file when only envelope metadata such as collectedAt moved, otherwise
+# every run produces a commit whose payload is identical.
+snapshot_path="$TMP_DIR/external/public-tourism-api-tourapi-sample-jongno-20260803.json"
+snapshot_before="$(cksum < "$snapshot_path")"
+
+jq '.collectedAt = "2099-01-01T00:00:00Z"' harness/fixtures/external-tourism-snapshot.valid.json > "$TMP_DIR/retimed-snapshot.json"
+scripts/collect-external-snapshot.sh --skip-unchanged "$TMP_DIR/retimed-snapshot.json" "$TMP_DIR/external" >/dev/null
+[ "$(cksum < "$snapshot_path")" = "$snapshot_before" ] || fail "--skip-unchanged rewrote a snapshot whose payload did not change"
+
+jq '.payload.smokeProbe = "changed"' harness/fixtures/external-tourism-snapshot.valid.json > "$TMP_DIR/repayloaded-snapshot.json"
+scripts/collect-external-snapshot.sh --skip-unchanged "$TMP_DIR/repayloaded-snapshot.json" "$TMP_DIR/external" >/dev/null
+[ "$(cksum < "$snapshot_path")" != "$snapshot_before" ] || fail "--skip-unchanged ignored a real payload change"
+
 scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do

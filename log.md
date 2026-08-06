@@ -55,3 +55,13 @@
 - Added a README `Knowledge Store Boundary` section comparing this repository against service-side object storage across write owner, write frequency, validation gate, history, deletability, and personal data.
 - Added an `Agent Delivery` table for the three ways a running agent can consume this repository, recommending the build-time bundle so runtime has no network dependency or request ceiling.
 - Updated: `README.md` only. No canonical page, record, index, or package changed.
+
+## 2026-08-06 - update - allow scheduled public reference data collection
+
+- Added `SCHEMA.md` "Scheduled Collection Rules" as a narrow exception to the live-polling ban: public reference data only, at most daily, secrets confined to the workflow fetch step, no request URL in logs, commit only on payload change, evidence stops at `raw/`, and pull request only.
+- Updated: `scripts/collect-external-snapshot.sh` with `--skip-unchanged`, which compares the `payload` object and leaves the stored capture untouched when only envelope metadata such as `collectedAt` moved. Without the flag the previous always-write behaviour is unchanged.
+- Updated: `harness/scripts/smoke.sh` to assert both directions of that flag, so a re-timed capture cannot rewrite the file and a real payload change cannot be swallowed.
+- Created: `.github/workflows/collect-air-quality-stations.yml`, capturing the air-quality monitoring station list so a region record can cite the station its air-quality claims come from.
+- Deliberately not collected: live concentration readings. Those are live data owned by the consumer backend, and rule 1 of the new section excludes them.
+- Endpoint path, parameter names, and licence label in that workflow are unverified against data.go.kr and must be confirmed before the secret is configured.
+- Canonical pages unchanged at 13.
