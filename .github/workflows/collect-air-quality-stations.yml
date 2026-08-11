@@ -8,9 +8,11 @@ name: Collect Air Quality Stations
 # slowly changing public reference data; a live reading belongs to the consumer
 # service backend, not to this wiki.
 #
-# VERIFY BEFORE ENABLING: confirm the endpoint path, parameter names, and the
-# licence label against the dataset page on data.go.kr. They are set once in the
-# env block below.
+# Endpoint path, parameter names, and licence label were confirmed against
+# dataset 15073877 on data.go.kr on 2026-08-12. The licence is KOGL type 3
+# (attribution required, modification prohibited), not type 1 as first recorded.
+# Note the parameter is `returnType`; some other AirKorea services use
+# `_returnType` and answer XML when the name is wrong.
 
 on:
   schedule:
@@ -27,7 +29,7 @@ env:
   SNAPSHOT_ID: airkorea-station-list
   SOURCE_KIND: air-quality
   SOURCE_URL: https://www.data.go.kr/data/15073877/openapi.do
-  LICENSE: 공공누리 제1유형
+  LICENSE: 공공누리 제3유형 (출처표시 + 변경금지)
 
 jobs:
   collect:

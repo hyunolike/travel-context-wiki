@@ -75,3 +75,11 @@
 - Outstanding, and required before the collector can succeed: the repository setting "Allow GitHub Actions to create and approve pull requests" is off (`can_approve_pull_request_reviews: false`), which makes the final `gh pr create` step fail. Rule 7 of "Scheduled Collection Rules" cannot be satisfied until it is on.
 - Endpoint path, parameter names, and licence label remain unverified against data.go.kr. They are checked with a throwaway script outside this repository, since rule 3 forbids a secret-dependent script under `scripts/`.
 - Canonical pages unchanged at 13.
+
+## 2026-08-12 - repair - correct the air-quality licence label
+
+- The previous entry recorded the licence label as unverified. It was verified against dataset 15073877 on data.go.kr and found wrong: the workflow declared `공공누리 제1유형`, but the dataset is `공공누리 제3유형` (출처표시 + 변경금지).
+- Updated: `.github/workflows/collect-air-quality-stations.yml`, correcting the `LICENSE` value that is written into every captured envelope, and replacing the "verify before enabling" header with the confirmed contract. No capture had been made under the wrong label, so no stored evidence needs repair.
+- Also confirmed on the same page: the endpoint path `MsrstnInfoInqireSvc/getMsrstnList` and the parameter name `returnType`. Other AirKorea services use `_returnType` and answer XML when the name is wrong, so the name is now recorded in the workflow header rather than left to memory.
+- Type 3 forbids distributing a modified version of the work. Capturing the response verbatim with attribution is squarely inside the licence; deriving `records/` from it is a judgement call that has not been made yet and is not made here.
+- Canonical pages unchanged at 13.
