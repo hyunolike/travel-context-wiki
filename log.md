@@ -65,3 +65,13 @@
 - Deliberately not collected: live concentration readings. Those are live data owned by the consumer backend, and rule 1 of the new section excludes them.
 - Endpoint path, parameter names, and licence label in that workflow are unverified against data.go.kr and must be confirmed before the secret is configured.
 - Canonical pages unchanged at 13.
+
+## 2026-08-12 - update - make the scheduled air-quality collector able to finish
+
+- The collector had run weekly since 2026-08-06 and never collected anything: no `DATA_GO_KR_SERVICE_KEY` secret exists, so every run took the guard branch, emitted a skip notice, and reported success. A green run history meant nothing had happened.
+- Updated: `.github/workflows/collect-air-quality-stations.yml` with a `totalCount` guard. The request asks for a single page of 1000 rows and never checked how many rows exist, so a station list that outgrew that page would have been captured truncated and stored as if complete. The run now fails instead of paginating, because crossing that line is rare enough to deserve a human decision about whether the extra pages are still one snapshot.
+- Updated: the same workflow to stop calling `scripts/build-index.sh` and to stop staging `indexes/`. That script reads canonical pages, `records/`, and `packages/` only, so a capture under `raw/` cannot move any index artifact until a human writes a record citing it. The rebuild was always a no-op and falsely implied retrieval had been refreshed.
+- Updated: the pull request body to state that no checks will appear on it. A pull request opened with `GITHUB_TOKEN` does not trigger other workflows, so `Wiki Batch Checks` stays idle there; the collecting run executes `./harness/scripts/smoke.sh` against the same tree before opening it.
+- Outstanding, and required before the collector can succeed: the repository setting "Allow GitHub Actions to create and approve pull requests" is off (`can_approve_pull_request_reviews: false`), which makes the final `gh pr create` step fail. Rule 7 of "Scheduled Collection Rules" cannot be satisfied until it is on.
+- Endpoint path, parameter names, and licence label remain unverified against data.go.kr. They are checked with a throwaway script outside this repository, since rule 3 forbids a secret-dependent script under `scripts/`.
+- Canonical pages unchanged at 13.

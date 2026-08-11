@@ -75,6 +75,20 @@ jobs:
             exit 1
           fi
 
+          # The request asks for a single page, so a station list that outgrows
+          # numOfRows would be captured truncated and stored as if complete.
+          # Fail instead of paginating: crossing this line is rare enough that a
+          # human should decide whether the extra pages are still one snapshot.
+          total="$(jq -r '.response.body.totalCount // "missing"' response.json)"
+          rows="$(jq -r '.response.body.numOfRows // "missing"' response.json)"
+          case "$total$rows" in
+            *missing*) echo "::error::response body has no totalCount/numOfRows"; exit 1 ;;
+          esac
+          if [ "$total" -gt "$rows" ]; then
+            echo "::error::totalCount=$total exceeds numOfRows=$rows; the capture would be truncated"
+            exit 1
+          fi
+
       - name: Capture as raw evidence
         if: steps.guard.outputs.ready == 'true'
         run: |
@@ -90,14 +104,17 @@ jobs:
             > envelope.json
 
           scripts/collect-external-snapshot.sh --skip-unchanged envelope.json raw/external-snapshots
-          scripts/build-index.sh
           rm -f response.json envelope.json
 
+      # scripts/build-index.sh is deliberately not run here. It reads canonical
+      # pages, records/, and packages/ only, so a capture under raw/ cannot move
+      # indexes/ until a human writes a record that cites it. Rebuilding would
+      # always be a no-op and would falsely suggest retrieval had been refreshed.
       - name: Detect a real change
         if: steps.guard.outputs.ready == 'true'
         id: diff
         run: |
-          if [ -n "$(git status --porcelain raw/external-snapshots indexes)" ]; then
+          if [ -n "$(git status --porcelain raw/external-snapshots)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::payload unchanged; nothing to propose."
@@ -120,15 +137,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add raw/external-snapshots indexes
+          git add raw/external-snapshots
           git commit -m "chore: capture air quality station list"
           git push -u origin "$branch"
           printf '%s\n' \
             "Scheduled capture from the air-quality station dataset. The payload changed since the last stored snapshot." \
             "" \
-            "Evidence only: this touches \`raw/external-snapshots/\` and the rebuilt retrieval artifacts. Deriving \`records/\` and promoting canonical pages stays human work." \
+            "Evidence only: this touches \`raw/external-snapshots/\` and nothing else. Deriving \`records/\`, rebuilding \`indexes/\`, and promoting canonical pages stay human work." \
             "" \
             "Review the diff before merging; a shifting station list can change which station a region record cites." \
+            "" \
+            "No checks will appear below. A pull request opened with \`GITHUB_TOKEN\` does not trigger other workflows, so \`Wiki Batch Checks\` stays idle here. The collecting run already executed \`./harness/scripts/smoke.sh\` against this exact tree before opening the pull request." \
             > pr-body.md
           gh pr create --base main --head "$branch" \
             --title "chore: capture air quality station list" \
