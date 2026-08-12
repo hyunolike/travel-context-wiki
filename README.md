@@ -1,82 +1,147 @@
-# Travel Context Wiki
+<div align="center">
 
-여행지, 관광 공공데이터, 날씨, 혼잡도, 지역 맥락, 연구 자료를 연결하는 범용 LLM wiki 레포지토리입니다.
+# 🧭 Travel Context Wiki
 
-이 레포는 특정 서비스의 코드를 대체하지 않습니다. 여행 서비스는 각자의 백엔드에서 결정적인 추천을 수행하고, 이 wiki는 그 추천을 설명하고 검증하는 컨텍스트 레이어로 사용합니다. 한적은 이 wiki를 사용하는 첫 번째 소비 서비스일 뿐, 유일한 목적이 아닙니다.
+**A source-grounded LLM knowledge layer for travel, tourism, weather, congestion, and regional context.**
 
-## Concept
+Travel services decide the recommendation. This wiki explains and verifies it.
 
-**Travel Context Layer**
+<br/>
 
-사용자가 여행 서비스에 목적지, 날짜, 시간대, 이동 반경, 여행 선호를 입력하면 서비스 백엔드는 관광지, 날씨, 혼잡도, 이동 조건을 기반으로 후보와 코스를 계산합니다. 이후 LLM은 이 레포의 canonical wiki를 검색해 다음 설명을 만듭니다.
+[![License](https://img.shields.io/badge/license-Unlicensed-lightgrey.svg)](#-license)
+[![Docs](https://img.shields.io/badge/docs-SCHEMA.md-blue.svg)](./SCHEMA.md)
+[![Spec Kit](https://img.shields.io/badge/workflow-Spec%20Kit-6f42c1.svg)](#-spec-driven-workflow)
+[![Smoke Test](https://img.shields.io/badge/CI-smoke.sh-brightgreen.svg)](#-quick-start)
 
-- 오늘 이 여행지가 왜 적합한가
-- 날씨가 코스 선택에 어떤 영향을 주는가
-- 혼잡하면 어떤 대안지가 적합한가
-- 실내/실외 대안은 어떤 기준으로 갈리는가
-- 공공 API와 연구 자료의 근거는 어디에 있는가
+<br/>
 
-## Knowledge Layers
+**English** · [한국어](./README.ko.md) · [日本語](./README.ja.md)
+
+</div>
+
+---
+
+## 📖 Table of Contents
+
+- [What Is This?](#-what-is-this)
+- [The Travel Context Layer](#-the-travel-context-layer)
+- [Knowledge Layers](#-knowledge-layers)
+- [Repository Structure](#-repository-structure)
+- [Data Flow](#-data-flow)
+- [Service Integration Model](#-service-integration-model)
+- [Batch Collection Model](#-batch-collection-model)
+- [Knowledge Store Boundary](#-knowledge-store-boundary)
+- [Agent Delivery](#-agent-delivery)
+- [Project Artifact Links](#-project-artifact-links)
+- [Quick Start](#-quick-start)
+- [Spec-Driven Workflow](#-spec-driven-workflow)
+- [MVP Scope](#-mvp-scope)
+- [Out of Scope](#-out-of-scope)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 🤔 What Is This?
+
+**Travel Context Wiki** is a general-purpose, Markdown/Git-based knowledge repository that
+connects **destinations, public tourism data, weather, congestion, regional context, and
+research material** for use by large language models.
+
+This repo does **not** replace any service's code. Each travel service performs its own
+**deterministic** recommendation in its own backend; this wiki is used as a **context layer**
+that _explains_ and _verifies_ those recommendations. Hanjeok is simply the first consuming
+service — it is one use case, not the only purpose.
+
+> **In one sentence:** the service picks _what_ to recommend; this wiki supplies the
+> source-grounded _why_.
+
+---
+
+## 🧩 The Travel Context Layer
+
+When a user enters a **destination, date, time slot, travel radius, and preferences** into a
+travel service, the service backend computes candidate places and courses from attractions,
+weather, congestion, and routing conditions. The LLM then searches this repo's **canonical
+wiki** to produce explanations such as:
+
+- Why this destination fits **today**
+- How **weather** affects the choice of course
+- Which **alternatives** fit when a place is crowded
+- What criteria split **indoor vs. outdoor** fallbacks
+- Where the **public API and research evidence** lives
+
+---
+
+## 🗂 Knowledge Layers
 
 ```text
 Layer 1: Evidence
-  raw/public-tourism-api/     관광 공공 API 설명회, 매뉴얼, 정책 자료
-  raw/weather-api/            날씨 API 문서와 검증 자료
-  raw/tourism-research/       관광, 혼잡, 날씨 영향 관련 논문/리포트
-  raw/service-snapshots/      이 wiki를 소비하는 서비스의 설계/하네스 스냅샷
-  raw/experiments/            API 실호출 검증 결과
+  raw/public-tourism-api/     Tourism public-API briefings, manuals, policy material
+  raw/weather-api/            Weather API docs and validation material
+  raw/tourism-research/       Papers/reports on tourism, congestion, weather impact
+  raw/service-snapshots/      Design/harness snapshots of consuming services
+  raw/experiments/            Real API-call validation results
 
 Layer 2: Canonical Memory
-  entities/                   관광/날씨 API, 기관, 데이터셋, 주요 시스템
-  concepts/                   날씨 인지 추천, 혼잡 회피, 계절성, 지역 맥락
-  comparisons/                API/데이터소스/추천 정책 비교
-  queries/                    재사용 가능한 근거 기반 질의응답
-  decisions/                  LLM wiki 운영과 서비스 연동 의사결정
+  entities/                   Tourism/weather APIs, agencies, datasets, key systems
+  concepts/                   Weather-aware recommendation, congestion avoidance, seasonality
+  comparisons/                API / data-source / recommendation-policy comparisons
+  queries/                    Reusable, evidence-grounded Q&A
+  decisions/                  Operating & service-integration decisions
 
 Layer 3: Operation Metadata
-  SCHEMA.md                   wiki 계약
-  index.md                    active canonical catalog
-  log.md                      append-only operation history
+  SCHEMA.md                   Wiki contract
+  index.md                    Active canonical catalog
+  log.md                      Append-only operation history
 ```
 
-## Data Layers
+---
 
-이 구조는 `hyunolike/2nd-brain-template`의 Evidence → Canonical Memory → Discovery → Human Decision 흐름을 따르되, 여행 서비스 연동을 위해 정규화 레코드와 서비스 패키지를 추가합니다.
+## 📁 Repository Structure
+
+| Layer | Path | Purpose |
+| --- | --- | --- |
+| Temporary intake | `inbox/` | Inputs whose source & format are not yet finalized |
+| Raw evidence | `raw/` | Untouched source material, API responses, PDF extracts, service snapshots |
+| Normalized records | `records/` | Service-readable derived JSON |
+| Canonical memory | `concepts/`, `entities/`, `queries/`, `decisions/`, `comparisons/` | Human-readable, LLM-retrievable knowledge |
+| Retrieval indexes | `indexes/` | Static RAG manifest, chunks, source map |
+| Service packages | `packages/` | Per-service context bundle + prompt |
+
+---
+
+## 🔀 Data Flow
+
+This structure follows the **Evidence → Canonical Memory → Discovery → Human Decision** flow of
+`hyunolike/2nd-brain-template`, adding normalized records and service packages for travel-service
+integration.
 
 ```mermaid
 flowchart TD
-    Inbox["inbox/\n임시 수집"] --> Raw["raw/\n불변 원천 증거"]
-    Raw --> Records["records/\n정규화된 파생 레코드"]
-    Raw --> Canonical["canonical pages\nentities / concepts / comparisons / queries / decisions"]
-    Canonical --> Indexes["indexes/\nmanifest + chunks + source map"]
+    Inbox["inbox/<br/>temporary intake"] --> Raw["raw/<br/>immutable source evidence"]
+    Raw --> Records["records/<br/>normalized derived records"]
+    Raw --> Canonical["canonical pages<br/>entities / concepts / comparisons / queries / decisions"]
+    Canonical --> Indexes["indexes/<br/>manifest + chunks + source map"]
     Records --> Indexes
-    Indexes --> Packages["packages/\n서비스별 context bundle + prompt"]
-    Packages --> Services["consumer services\nHanjeok / generic travel apps"]
-    Services --> Explanation["LLM explanation\n추천 설명, 날씨/혼잡 근거, 정책 문장"]
+    Indexes --> Packages["packages/<br/>per-service context bundle + prompt"]
+    Packages --> Services["consumer services<br/>Hanjeok / generic travel apps"]
+    Services --> Explanation["LLM explanation<br/>recommendation rationale, weather/congestion evidence, policy statements"]
 
     Raw -. "source paths" .-> Canonical
     Raw -. "provenance" .-> Records
     Canonical -. "index.md + log.md" .-> Indexes
 ```
 
-### Layer Meaning
+---
 
-| Layer | Path | Purpose |
-| --- | --- | --- |
-| Temporary intake | `inbox/` | 아직 출처와 형식이 확정되지 않은 입력 |
-| Raw evidence | `raw/` | 수정하지 않는 원천 자료, API 응답, PDF 추출본, 서비스 스냅샷 |
-| Normalized records | `records/` | 서비스가 읽기 쉬운 JSON 파생 데이터 |
-| Canonical memory | `concepts/`, `entities/`, `queries/`, `decisions/`, `comparisons/` | 사람이 읽고 LLM이 검색하는 지식 |
-| Retrieval indexes | `indexes/` | 정적 RAG manifest, chunk, source map |
-| Service packages | `packages/` | 서비스별 context bundle과 prompt |
-
-## Service Integration Model
+## 🔌 Service Integration Model
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Service as Travel Service Backend
-    participant Package as packages/<service>
+    participant Package as packages/&lt;service&gt;
     participant Index as indexes/manifest.json
     participant Wiki as Canonical Wiki
     participant LLM
@@ -92,9 +157,15 @@ sequenceDiagram
     Service-->>User: recommendation + weather/congestion/context explanation
 ```
 
-## Batch Collection Model
+**Key rule:** the LLM produces **explanation only**. It never changes the service's ranking.
 
-처음 단계에서는 별도 백엔드 배치 서버를 두지 않습니다. 이 repo의 배치는 **sanitized evidence capture**와 **static index build**까지만 담당합니다. 실시간 날씨, 실시간 혼잡도, 사용자별 추천 이력처럼 빠르게 바뀌거나 개인적인 데이터는 소비 서비스 백엔드가 관리합니다.
+---
+
+## ⚙️ Batch Collection Model
+
+In the early stage there is **no separate backend batch server**. This repo's batch scope covers
+only **sanitized evidence capture** and **static index build**. Fast-changing or personal data —
+live weather, live congestion, per-user history — is managed by the consumer service backend.
 
 ```mermaid
 flowchart TD
@@ -136,62 +207,81 @@ scripts/build-index.sh --check
 ./harness/scripts/smoke.sh
 ```
 
-Rules:
+**Rules:**
 
 - `collect-user-input.sh` rejects input unless `consentForWiki` is `true` and `containsPersonalData` is `false`.
 - `collect-external-snapshot.sh` requires source URL, license, collection time, and payload.
 - `build-index.sh --check` is the CI-safe mode; it fails if committed retrieval artifacts are stale.
-- Authenticated live API polling should be added later in a service backend or secret-managed scheduled job, not directly in this public wiki repo.
+- Authenticated live API polling should be added later in a service backend or a secret-managed
+  scheduled job — **not** directly in this public wiki repo.
 
-## Knowledge Store Boundary
+---
 
-에이전트가 읽는 저장소는 하나가 아닙니다. 흔한 설계 실수는 "지식 저장소"와 "데이터 랜딩존"을 객체 스토리지 한 곳에 몰아넣는 것인데, 두 계층은 쓰기 주체도 빈도도 삭제 가능성도 다릅니다. 이 wiki는 그 경계를 리포지토리 경계로 그었습니다.
+## 🧱 Knowledge Store Boundary
 
-| | **이 GitHub 리포** | **객체 스토리지 / 서비스 DB** |
+An agent does not read from a single store. A common design mistake is to cram the "knowledge
+store" and the "data landing zone" into one object store — but the two layers differ in **who
+writes, how often, and whether deletion is possible**. This wiki draws that boundary as a
+**repository boundary**.
+
+| | **This GitHub repo** | **Object storage / service DB** |
 | --- | --- | --- |
-| 담는 것 | canonical pages, `records/`, `indexes/`, `packages/` | 실시간 날씨, 실시간 혼잡도, 사용자 입력, 세션 이력 |
-| 쓰기 주체 | 사람 (Pull Request) | 배치와 런타임 (기계) |
-| 쓰기 빈도 | 낮음. 변경마다 리뷰 | 높음. 분 단위 가능 |
-| 검증 관문 | `smoke.sh` + 코드 리뷰 | 서비스 스키마 검증 |
-| 이력 | Git 전체 이력, diff, blame | 최신값 위주 |
-| 삭제 | 어려움. 히스토리에 남음 | 쉬움 |
-| 개인정보 | **금지** | 서비스 경계 안에서만 허용 |
+| Holds | canonical pages, `records/`, `indexes/`, `packages/` | live weather, live congestion, user input, session history |
+| Writer | humans (Pull Request) | batch & runtime (machines) |
+| Write frequency | low — reviewed per change | high — possibly per-minute |
+| Validation gate | `smoke.sh` + code review | service schema validation |
+| History | full Git history, diff, blame | latest value mostly |
+| Deletion | hard — remains in history | easy |
+| Personal data | **forbidden** | allowed only within the service boundary |
 
-지식 계층을 Git에 두면 출처 추적이 저장소의 기본 기능이 됩니다. 반대로 고빈도 자동 수집을 Git에 두면 커밋 이력이 폭증하고, 동시 쓰기에 push 경합이 생기며, 한 번 들어간 개인정보를 지우려면 히스토리 재작성이 필요합니다. 그래서 자동 수집은 이 리포로 들어오지 않습니다.
+Keeping the knowledge layer in Git makes **provenance a built-in feature**. Conversely, putting
+high-frequency automated collection into Git explodes commit history, creates push contention on
+concurrent writes, and requires history rewrites to erase personal data. So automated collection
+never enters this repo.
 
 ```mermaid
 flowchart TD
     Curator["Curator"] -->|"Pull Request"| Wiki
-    Wiki["GitHub: travel-context-wiki\ncanonical + records + indexes + packages"]
-    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI 검증"}
-    Gate -->|"merge"| Bundle["context bundle\n(빌드 타임 번들)"]
+    Wiki["GitHub: travel-context-wiki<br/>canonical + records + indexes + packages"]
+    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI validation"}
+    Gate -->|"merge"| Bundle["context bundle<br/>(build-time bundle)"]
 
-    Sensors["실시간 날씨 / 혼잡도 / 공공 API"] -->|"자동 수집"| Store["객체 스토리지 / 서비스 DB"]
-    UserInput["사용자 입력 / 세션"] --> Store
+    Sensors["live weather / congestion / public API"] -->|"auto collection"| Store["object storage / service DB"]
+    UserInput["user input / session"] --> Store
 
     Bundle --> Agent["Hermes Agent"]
-    Store -->|"런타임 조회"| Agent
-    Agent <--> LLM["LLM (OpenRouter 등)"]
+    Store -->|"runtime lookup"| Agent
+    Agent <--> LLM["LLM (OpenRouter, etc.)"]
     Agent --> Client["Client"]
 ```
 
-에이전트는 **정적 컨텍스트는 번들에서, 실시간 사실은 서비스 저장소에서** 받습니다. 이 우선순위는 `indexes/retrieval-policy.md`가 이미 규정하고 있습니다: backend facts가 최우선이고, 그다음이 `packages/`, 그다음이 canonical page입니다.
+The agent receives **static context from the bundle** and **live facts from the service store**.
+This priority is already defined in `indexes/retrieval-policy.md`: backend facts come first, then
+`packages/`, then canonical pages.
 
-### Agent Delivery
+---
 
-이 리포의 지식을 실행 중인 에이전트에 전달하는 방법은 셋입니다.
+## 🚚 Agent Delivery
 
-| 방식 | 동작 | 적합한 경우 |
+There are three ways to deliver this repo's knowledge to a running agent.
+
+| Method | Behavior | When it fits |
 | --- | --- | --- |
-| **빌드 타임 번들 (권장)** | 이미지 빌드 시 리포를 복사하거나 clone해 `packages/`와 `indexes/`를 이미지에 포함 | 런타임 네트워크 의존과 요청 한도가 없어야 할 때. 갱신은 재배포 |
-| 런타임 pull + 캐시 | 기동 시 clone, webhook이나 주기 pull로 갱신 | 지식이 자주 바뀌고 재배포가 부담일 때 |
-| HTTP 직접 조회 | 정적 호스팅으로 `indexes/`를 노출해 fetch | 번들이 불가능할 때. CDN 캐시 지연과 요청 한도를 감안할 것 |
+| **Build-time bundle (recommended)** | Copy/clone the repo at image-build time so `packages/` and `indexes/` ship inside the image | When runtime network dependency and rate limits are unacceptable. Refresh = redeploy |
+| Runtime pull + cache | Clone on startup, refresh via webhook or periodic pull | When knowledge changes often and redeploy is costly |
+| Direct HTTP fetch | Expose `indexes/` via static hosting and fetch | When bundling is impossible. Account for CDN cache lag and rate limits |
 
-`packages/<service>/context-bundle.json`과 `indexes/manifest.json`이 이 전달을 전제로 만들어진 산출물입니다. 세 방식 모두 이 두 파일을 진입점으로 씁니다.
+`packages/<service>/context-bundle.json` and `indexes/manifest.json` are the artifacts built for
+this delivery. All three methods use these two files as entry points.
 
-## Project Artifact Links
+---
 
-오픈소스 AI 자동화 에이전트 프로젝트 자료의 요구를 반영해, 이 wiki는 서비스 데이터뿐 아니라 포트폴리오 산출물도 연결 가능한 artifact로 관리합니다. PRD, GitHub Issue/PR, RAGAS 평가 보고서, 배포 URL, service package, GraphRAG export는 `records/project-artifacts/`에 기록하고 canonical page와 source-map으로 역추적합니다.
+## 🔗 Project Artifact Links
+
+Reflecting the needs of an open-source AI-automation-agent portfolio, this wiki manages not only
+service data but also **portfolio artifacts** as linkable assets. PRDs, GitHub Issues/PRs, RAGAS
+evaluation reports, deployment URLs, service packages, and GraphRAG exports are recorded under
+`records/project-artifacts/` and traced back via canonical pages and the source map.
 
 ```mermaid
 flowchart TD
@@ -202,94 +292,42 @@ flowchart TD
     RawGuide --> Canonical["concepts/project-artifact-linking.md"]
     Artifacts --> Canonical
     Canonical --> Index["indexes/source-map.json"]
-    Index --> Package["packages/<service>"]
+    Index --> Package["packages/&lt;service&gt;"]
     Package --> Loader["Context Loader / Hermes Agent"]
 ```
 
-This makes the deployed AI service explainable as a portfolio asset: the user can trace from service URL to issue, implementation, evaluation, prompt package, retrieval rule, and original project requirement.
+This makes the deployed AI service explainable as a portfolio asset: you can trace from the
+service URL to the issue, implementation, evaluation, prompt package, retrieval rule, and the
+original project requirement.
 
-## Operating Workflow
+---
 
-```mermaid
-flowchart LR
-    Capture["1. Capture\nPDF, API response, research, service snapshot"] --> Validate["2. Validate\nsource path, format, JSON, frontmatter"]
-    Validate --> Compile["3. Compile\ncanonical pages with sources"]
-    Compile --> Sync["4. Sync\nindex.md + log.md"]
-    Sync --> Index["5. Build static retrieval\nindexes/*.json, chunks.jsonl"]
-    Index --> Package["6. Package\npackages/<service>/context-bundle.json"]
-    Package --> Review["7. Human review\naccept / contest / revise"]
-```
-
-## Mermaid Architecture
-
-```mermaid
-flowchart TB
-    subgraph Evidence["Layer 1: Evidence"]
-      R1["raw/public-tourism-api"]
-      R2["raw/weather-api"]
-      R3["raw/tourism-research"]
-      R4["raw/service-snapshots"]
-      R5["raw/experiments"]
-    end
-
-    subgraph Derived["Layer 2: Derived Data"]
-      P["records/places"]
-      W["records/weather"]
-      C["records/congestion"]
-      G["records/regions"]
-    end
-
-    subgraph Memory["Layer 3: Canonical Memory"]
-      Concepts["concepts"]
-      Entities["entities"]
-      Queries["queries"]
-      Decisions["decisions"]
-    end
-
-    subgraph Retrieval["Layer 4: Retrieval"]
-      Manifest["indexes/manifest.json"]
-      Chunks["indexes/chunks.jsonl"]
-      SourceMap["indexes/source-map.json"]
-    end
-
-    subgraph Service["Layer 5: Service Context"]
-      Generic["packages/generic-travel"]
-      Hanjeok["packages/hanjeok"]
-    end
-
-    Evidence --> Derived
-    Evidence --> Memory
-    Derived --> Retrieval
-    Memory --> Retrieval
-    Retrieval --> Service
-```
-
-## MVP Scope
-
-- Preserve the initial tourism OpenAPI briefing extract and first consumer-service snapshots as raw evidence.
-- Maintain canonical wiki pages for tourism data, weather-aware recommendation, congestion-aware routing, and LLM explanation boundaries.
-- Maintain normalized `records/`, retrieval `indexes/`, and service `packages/` as derived artifacts.
-- Provide a deterministic smoke script that checks frontmatter, source paths, index entries, log entries, and Spec Kit files.
-- Use Spec Kit for future feature work through `$speckit-specify`, `$speckit-plan`, `$speckit-tasks`, and `$speckit-implement`.
-
-## Out Of Scope
-
-- Letting an LLM decide the actual travel course.
-- Real-time paper search per user request.
-- Storing API keys, public-data service keys, Telegram tokens, or user travel history in Git.
-- Replacing each consumer service's deterministic recommendation logic.
-
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 ./harness/scripts/smoke.sh
 ```
 
-Open this folder as an Obsidian vault or in VS Code. Before adding or changing canonical pages, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md`.
+Open this folder as an **Obsidian vault** or in **VS Code**. Before adding or changing canonical
+pages, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md`.
 
-## SDD Workflow
+### Operating Workflow
 
-This repository includes Spec Kit scaffolding.
+```mermaid
+flowchart LR
+    Capture["1. Capture<br/>PDF, API response, research, service snapshot"] --> Validate["2. Validate<br/>source path, format, JSON, frontmatter"]
+    Validate --> Compile["3. Compile<br/>canonical pages with sources"]
+    Compile --> Sync["4. Sync<br/>index.md + log.md"]
+    Sync --> Index["5. Build static retrieval<br/>indexes/*.json, chunks.jsonl"]
+    Index --> Package["6. Package<br/>packages/&lt;service&gt;/context-bundle.json"]
+    Package --> Review["7. Human review<br/>accept / contest / revise"]
+```
+
+---
+
+## 📐 Spec-Driven Workflow
+
+This repository includes **Spec Kit** scaffolding. Large changes proceed in this order:
 
 ```text
 $speckit-constitution
@@ -299,28 +337,54 @@ $speckit-tasks
 $speckit-implement
 ```
 
-New runtime integration features must start with a scenario under `harness/scenarios/`, a fixture under `harness/fixtures/`, and a Spec Kit feature branch.
+New runtime-integration features must start with a scenario under `harness/scenarios/`, a fixture
+under `harness/fixtures/`, and a Spec Kit feature branch.
 
-## Initial Source Snapshots
+---
 
-- `raw/public-tourism-api/2026-openapi-briefing.txt`
-- `raw/service-snapshots/hanjeok/design-v3.md`
-- `raw/service-snapshots/hanjeok/course-recommendation.md`
-- `raw/service-snapshots/hanjeok/attractions.fixture.json`
+## ✅ MVP Scope
 
-## Initial Data Artifacts
+- Preserve the initial tourism OpenAPI briefing extract and first consumer-service snapshots as raw evidence.
+- Maintain canonical wiki pages for tourism data, weather-aware recommendation, congestion-aware routing, and LLM explanation boundaries.
+- Maintain normalized `records/`, retrieval `indexes/`, and service `packages/` as derived artifacts.
+- Provide a deterministic smoke script that checks frontmatter, source paths, index entries, log entries, and Spec Kit files.
+- Use Spec Kit for future feature work through `$speckit-specify`, `$speckit-plan`, `$speckit-tasks`, and `$speckit-implement`.
 
-- `records/places/gyeongbokgung.json`
-- `records/weather/rules.json`
-- `records/congestion/grade-policy.json`
-- `records/regions/seoul-jongno.json`
-- `records/project-artifacts/portfolio-deliverables.json`
-- `indexes/manifest.json`
-- `indexes/chunks.jsonl`
-- `indexes/source-map.json`
-- `packages/generic-travel/context-bundle.json`
-- `packages/hanjeok/context-bundle.json`
+---
 
-## Recommended Repository Name
+## 🚫 Out of Scope
 
-`travel-context-wiki`
+- Letting an LLM decide the actual travel course.
+- Real-time paper search per user request.
+- Storing API keys, public-data service keys, Telegram tokens, or user travel history in Git.
+- Replacing each consumer service's deterministic recommendation logic.
+
+---
+
+## 🤝 Contributing
+
+1. Read `SCHEMA.md`, `index.md`, and the latest `log.md` entries first.
+2. For new runtime features, add a scenario under `harness/scenarios/` and a fixture under `harness/fixtures/`.
+3. When you create or change a canonical page, update `index.md` and `log.md` in the **same change**.
+4. Run the gate locally before opening a PR:
+   ```bash
+   ./harness/scripts/smoke.sh
+   scripts/build-index.sh --check
+   ```
+5. Never commit personal travel input, location data, API keys, service keys, or tokens.
+
+---
+
+## 📄 License
+
+No license file is currently declared. Until a license is added, treat all rights as reserved by
+the repository owner. If you intend to reuse this material, please open an issue to clarify terms.
+
+<div align="center">
+<br/>
+
+**English** · [한국어](./README.ko.md) · [日本語](./README.ja.md)
+
+<sub>Travel services decide the recommendation. This wiki explains and verifies it.</sub>
+
+</div>
