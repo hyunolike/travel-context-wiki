@@ -8,6 +8,8 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 
 <br/>
 
+[![Public Data](https://img.shields.io/badge/public%20data-KTO%20TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![Source](https://img.shields.io/badge/source-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
 [![License](https://img.shields.io/badge/license-Unlicensed-lightgrey.svg)](#-license)
 [![Docs](https://img.shields.io/badge/docs-SCHEMA.md-blue.svg)](./SCHEMA.md)
 [![Spec Kit](https://img.shields.io/badge/workflow-Spec%20Kit-6f42c1.svg)](#-spec-driven-workflow)
@@ -25,6 +27,7 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 
 - [What Is This?](#-what-is-this)
 - [The Travel Context Layer](#-the-travel-context-layer)
+- [Data Sources](#-data-sources)
 - [Knowledge Layers](#-knowledge-layers)
 - [Repository Structure](#-repository-structure)
 - [Data Flow](#-data-flow)
@@ -70,6 +73,31 @@ wiki** to produce explanations such as:
 - Which **alternatives** fit when a place is crowded
 - What criteria split **indoor vs. outdoor** fallbacks
 - Where the **public API and research evidence** lives
+
+---
+
+## 🗃 Data Sources
+
+The canonical knowledge in this wiki is grounded in **Korea Tourism Organization (KTO) public
+open data**, opened through the national public-data portal. Every derived record and canonical
+page traces back to a raw evidence snapshot under `raw/`.
+
+[![KTO TourAPI](https://img.shields.io/badge/한국관광공사-TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![data.go.kr](https://img.shields.io/badge/공공데이터포털-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
+[![Congestion](https://img.shields.io/badge/관광지-집중률예측-e07b39.svg)](https://www.data.go.kr/)
+[![Related](https://img.shields.io/badge/관광지-연관정보-6f42c1.svg)](https://www.data.go.kr/)
+
+| Data source | Provider | Used for | Raw evidence |
+| --- | --- | --- | --- |
+| TourAPI KorService2 (국문 관광정보) | 한국관광공사 (KTO) | Attraction detail, coordinates, images, overview | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 관광지 집중률 방문자 추이 예측 (Congestion Forecast) | 한국관광공사 (KTO) | `congestion-diagnosis` congestion grading | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 관광지별 연관 관광지 (Related Attraction) | 한국관광공사 (KTO) | `alternative-scoring` candidate sets | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| Weather / seasonality data | Meteorological open API _(planned)_ | Weather-aware recommendation & indoor/outdoor fallback | `raw/weather-api/` _(to be captured)_ |
+
+> The 2026-05 OpenAPI briefing describes the KTO open-data service that opens roughly **4.58 million
+> tourism records** as real-time OpenAPI. Source snapshots are preserved verbatim under `raw/` and
+> are never edited — updates arrive as new snapshots. Confirm the exact license terms
+> (e.g. KOGL) on the [public-data portal](https://www.data.go.kr/) before redistribution.
 
 ---
 

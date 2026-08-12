@@ -8,6 +8,8 @@
 
 <br/>
 
+[![Public Data](https://img.shields.io/badge/公共データ-韓国観光公社%20TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![Source](https://img.shields.io/badge/出典-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
 [![License](https://img.shields.io/badge/license-Unlicensed-lightgrey.svg)](#-ライセンス)
 [![Docs](https://img.shields.io/badge/docs-SCHEMA.md-blue.svg)](./SCHEMA.md)
 [![Spec Kit](https://img.shields.io/badge/workflow-Spec%20Kit-6f42c1.svg)](#-仕様駆動ワークフロー)
@@ -25,6 +27,7 @@
 
 - [これは何ですか?](#-これは何ですか)
 - [Travel Context Layer](#-travel-context-layer)
+- [データ出典](#-データ出典)
 - [ナレッジレイヤー](#-ナレッジレイヤー)
 - [リポジトリ構成](#-リポジトリ構成)
 - [データフロー](#-データフロー)
@@ -66,6 +69,31 @@
 - 混雑している場合、どの代替地が適しているのか
 - 屋内/屋外の代替はどんな基準で分かれるのか
 - 公共 API と研究資料の根拠はどこにあるのか
+
+---
+
+## 🗃 データ出典
+
+この wiki の canonical ナレッジは **韓国観光公社 (KTO) の公共データ OpenAPI** に基づいており、
+韓国の公共データポータルを通じて公開されている資料です。すべての派生レコードと canonical page は
+`raw/` 配下の原本証拠スナップショットまで逆追跡できます。
+
+[![KTO TourAPI](https://img.shields.io/badge/韓国観光公社-TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![data.go.kr](https://img.shields.io/badge/公共データポータル-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
+[![Congestion](https://img.shields.io/badge/観光地-混雑度予測-e07b39.svg)](https://www.data.go.kr/)
+[![Related](https://img.shields.io/badge/観光地-関連情報-6f42c1.svg)](https://www.data.go.kr/)
+
+| データ出典 | 提供機関 | 用途 | 原本証拠 |
+| --- | --- | --- | --- |
+| TourAPI KorService2 (韓国語観光情報) | 韓国観光公社 (KTO) | 観光地の詳細、座標、画像、概要 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 観光地混雑度・訪問者推移予測 | 韓国観光公社 (KTO) | `congestion-diagnosis` の混雑度グレーディング | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 観光地別の関連観光地 | 韓国観光公社 (KTO) | `alternative-scoring` の代替候補構成 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 天気 / 季節性データ | 気象 OpenAPI _(予定)_ | 天気認識推薦と屋内/屋外フォールバック | `raw/weather-api/` _(取得予定)_ |
+
+> 2026-05 の OpenAPI 説明会資料は、約 **458 万件** の観光データをリアルタイム OpenAPI として公開する
+> 韓国観光公社の公共データサービスを説明しています。原本スナップショットは `raw/` 配下に原文のまま
+> 保存され、決して編集されず、更新は新しいスナップショットとしてのみ行われます。再配布の前に、
+> [公共データポータル](https://www.data.go.kr/) で正確なライセンス条件 (例: KOGL) を確認してください。
 
 ---
 
