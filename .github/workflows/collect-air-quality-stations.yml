@@ -105,7 +105,11 @@ jobs:
               license: $license, collectedAt: $collectedAt, payload: $payload[0]}' \
             > envelope.json
 
-          scripts/collect-external-snapshot.sh --skip-unchanged envelope.json raw/external-snapshots
+          # --sort-arrays because this endpoint returns the same 673 stations in
+          # a different order on every call. Without it the capture compared as
+          # changed every run and proposed a pull request that changed nothing.
+          # The station list is an unordered set, so sorting loses no meaning.
+          scripts/collect-external-snapshot.sh --skip-unchanged --sort-arrays envelope.json raw/external-snapshots
           rm -f response.json envelope.json
 
       # scripts/build-index.sh is deliberately not run here. It reads canonical
