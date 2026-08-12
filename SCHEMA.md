@@ -67,6 +67,12 @@ registered role.
   A capture is preserved byte-for-byte, so a missing final newline in a captured
   body is a documented format gap, not a defect to repair. `.gitattributes`
   marks `raw/**` as `-text` so git never rewrites those bytes.
+- Byte-for-byte covers captured bodies, not the JSON snapshot envelopes that
+  `scripts/collect-external-snapshot.sh` builds. Those are written canonically:
+  object keys are always sorted, and array order is sorted too when the
+  collector passes `--sort-arrays`. Canonical form is what makes an unchanged
+  capture detectable and a changed one reviewable, so the envelope records the
+  data rather than the byte layout the source happened to emit.
 
 Known format gaps:
 
@@ -170,10 +176,18 @@ live readings or anything about a person.
    changes on every run, so `scripts/collect-external-snapshot.sh` compares the
    `payload` object and leaves the stored file untouched when it is unchanged.
    Use `--skip-unchanged` for any scheduled capture.
-6. **Land in `raw/` and stop there.** A workflow may capture evidence. Deriving
+6. **Normalise array order when the source does not fix it.** Some endpoints
+   return the same rows in a different order on every call, which makes an
+   unchanged payload compare as changed and turns a one-row difference into an
+   unreviewable diff. `--sort-arrays` puts every array in the payload into a
+   canonical order before comparing and storing, so the stored file records the
+   data rather than the order it happened to arrive in. It is opt-in per
+   collector: array order carries meaning in rankings, time series, and
+   paginated sequences, and those collectors must not pass it.
+7. **Land in `raw/` and stop there.** A workflow may capture evidence. Deriving
    `records/`, promoting canonical pages, and updating `index.md` stay human
    work, so the review gate is never bypassed.
-7. **Open a pull request; never push to the default branch.** The capture has to
+8. **Open a pull request; never push to the default branch.** The capture has to
    pass `./harness/scripts/smoke.sh` and human review like any other change.
 
 ## Retrieval And Package Rules

@@ -83,3 +83,15 @@
 - Also confirmed on the same page: the endpoint path `MsrstnInfoInqireSvc/getMsrstnList` and the parameter name `returnType`. Other AirKorea services use `_returnType` and answer XML when the name is wrong, so the name is now recorded in the workflow header rather than left to memory.
 - Type 3 forbids distributing a modified version of the work. Capturing the response verbatim with attribution is squarely inside the licence; deriving `records/` from it is a judgement call that has not been made yet and is not made here.
 - Canonical pages unchanged at 13.
+
+## 2026-08-13 - repair - stop the air-quality capture rewriting itself every run
+
+- The first two real runs of the collector produced captures of identical byte length whose contents differed on 9040 diff lines. The endpoint returns the same 673 stations in a different order on every call. `jq -S` sorts object keys but leaves array order alone, so `--skip-unchanged` compared identical data as changed and opened a pull request that changed nothing. Left alone this would have queued one empty pull request per week and made rule 5 meaningless.
+- Verified before fixing: normalising both captures made them byte-identical, item counts matched at 673, and everything outside the items array was already identical. The data had not moved at all.
+- Updated: `scripts/collect-external-snapshot.sh` with `--sort-arrays`, which canonicalises object keys and then sorts every array in the payload before both comparing and storing. Sorting happens on the stored file, not only on the comparison, because comparison-only sorting would keep the first capture's arbitrary order forever and render a single added station as a 9000-line diff no reviewer could read.
+- The flag is opt-in. Array order carries meaning in rankings, time series, and paginated sequences, so a blanket sort in a shared script would corrupt a future collector. The judgement stays with each collector.
+- Updated: `harness/scripts/smoke.sh` with four assertions: a reordered payload must not rewrite under `--sort-arrays`, a real addition must still rewrite under it, and the same reordering must still count as a change without it, so the default behaviour is pinned as well as the new one.
+- Updated: `SCHEMA.md` with "Scheduled Collection Rules" rule 6, renumbering the former rules 6 and 7 to 7 and 8. Also clarified in "File Format Rules" that byte-for-byte preservation covers captured bodies and not the JSON envelopes this script builds, which have always been written with sorted keys.
+- Updated: `.github/workflows/collect-air-quality-stations.yml` to pass `--sort-arrays`, with the reason recorded at the call site.
+- The snapshot already on `main` was stored unsorted, so the next run will propose one pull request that normalises it and then go quiet.
+- Canonical pages unchanged at 13.

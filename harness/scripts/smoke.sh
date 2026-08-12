@@ -149,6 +149,31 @@ jq '.payload.smokeProbe = "changed"' harness/fixtures/external-tourism-snapshot.
 scripts/collect-external-snapshot.sh --skip-unchanged "$TMP_DIR/repayloaded-snapshot.json" "$TMP_DIR/external" >/dev/null
 [ "$(cksum < "$snapshot_path")" != "$snapshot_before" ] || fail "--skip-unchanged ignored a real payload change"
 
+# SCHEMA "Scheduled Collection Rules": the air-quality source returns the same
+# rows in a different order on every call, so an unchanged payload compared as
+# changed and proposed a pull request every run. --sort-arrays must make that
+# compare as unchanged, must still see a real change, and must stay opt-in so
+# payloads whose order carries meaning keep the old behaviour.
+jq '.payload.items = [{"id":"a"},{"id":"b"},{"id":"c"}]' harness/fixtures/external-tourism-snapshot.valid.json > "$TMP_DIR/ordered-snapshot.json"
+jq '.payload.items = [{"id":"c"},{"id":"a"},{"id":"b"}]' harness/fixtures/external-tourism-snapshot.valid.json > "$TMP_DIR/reordered-snapshot.json"
+sorted_path="$TMP_DIR/sorted/public-tourism-api-tourapi-sample-jongno-20260803.json"
+
+scripts/collect-external-snapshot.sh --sort-arrays "$TMP_DIR/ordered-snapshot.json" "$TMP_DIR/sorted" >/dev/null
+sorted_before="$(cksum < "$sorted_path")"
+
+scripts/collect-external-snapshot.sh --skip-unchanged --sort-arrays "$TMP_DIR/reordered-snapshot.json" "$TMP_DIR/sorted" >/dev/null
+[ "$(cksum < "$sorted_path")" = "$sorted_before" ] || fail "--sort-arrays let a reordered but identical payload rewrite the snapshot"
+
+jq '.payload.items += [{"id":"d"}]' "$TMP_DIR/reordered-snapshot.json" > "$TMP_DIR/grown-snapshot.json"
+scripts/collect-external-snapshot.sh --skip-unchanged --sort-arrays "$TMP_DIR/grown-snapshot.json" "$TMP_DIR/sorted" >/dev/null
+[ "$(cksum < "$sorted_path")" != "$sorted_before" ] || fail "--sort-arrays swallowed a real payload change"
+
+scripts/collect-external-snapshot.sh "$TMP_DIR/ordered-snapshot.json" "$TMP_DIR/unsorted" >/dev/null
+unsorted_path="$TMP_DIR/unsorted/public-tourism-api-tourapi-sample-jongno-20260803.json"
+unsorted_before="$(cksum < "$unsorted_path")"
+scripts/collect-external-snapshot.sh --skip-unchanged "$TMP_DIR/reordered-snapshot.json" "$TMP_DIR/unsorted" >/dev/null
+[ "$(cksum < "$unsorted_path")" != "$unsorted_before" ] || fail "reordering counted as unchanged without --sort-arrays"
+
 scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do
