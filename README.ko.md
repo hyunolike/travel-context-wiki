@@ -8,6 +8,8 @@
 
 <br/>
 
+[![Public Data](https://img.shields.io/badge/공공데이터-한국관광공사%20TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![Source](https://img.shields.io/badge/출처-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
 [![License](https://img.shields.io/badge/license-Unlicensed-lightgrey.svg)](#-라이선스)
 [![Docs](https://img.shields.io/badge/docs-SCHEMA.md-blue.svg)](./SCHEMA.md)
 [![Spec Kit](https://img.shields.io/badge/workflow-Spec%20Kit-6f42c1.svg)](#-스펙-기반-워크플로우)
@@ -25,6 +27,7 @@
 
 - [무엇인가요?](#-무엇인가요)
 - [Travel Context Layer](#-travel-context-layer)
+- [데이터 출처](#-데이터-출처)
 - [지식 계층](#-지식-계층)
 - [레포지토리 구조](#-레포지토리-구조)
 - [데이터 흐름](#-데이터-흐름)
@@ -66,6 +69,32 @@
 - 혼잡하면 어떤 대안지가 적합한가
 - 실내/실외 대안은 어떤 기준으로 갈리는가
 - 공공 API와 연구 자료의 근거는 어디에 있는가
+
+---
+
+## 🗃 데이터 출처
+
+이 wiki의 canonical 지식은 **한국관광공사(KTO) 공공데이터 OpenAPI**에 근거하며, 공공데이터포털을
+통해 개방된 자료입니다. 모든 파생 레코드와 canonical page는 `raw/` 아래의 원천 증거 스냅샷으로
+역추적됩니다.
+
+[![KTO TourAPI](https://img.shields.io/badge/한국관광공사-TourAPI-0088cc.svg)](https://www.data.go.kr/)
+[![data.go.kr](https://img.shields.io/badge/공공데이터포털-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
+[![Congestion](https://img.shields.io/badge/관광지-집중률예측-e07b39.svg)](https://www.data.go.kr/)
+[![Related](https://img.shields.io/badge/관광지-연관정보-6f42c1.svg)](https://www.data.go.kr/)
+
+| 데이터 출처 | 제공기관 | 용도 | 원천 증거 |
+| --- | --- | --- | --- |
+| TourAPI KorService2 (국문 관광정보) | 한국관광공사 (KTO) | 관광지 상세, 좌표, 이미지, 개요 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 관광지 집중률 방문자 추이 예측 | 한국관광공사 (KTO) | `congestion-diagnosis` 혼잡 등급화 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 관광지별 연관 관광지 | 한국관광공사 (KTO) | `alternative-scoring` 대안 후보 구성 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 날씨 / 계절성 데이터 | 기상 OpenAPI _(예정)_ | 날씨 인지 추천 및 실내/실외 폴백 | `raw/weather-api/` _(수집 예정)_ |
+
+> 2026-05 OpenAPI 설명회 자료는 약 **458만 건**의 관광 데이터를 실시간 OpenAPI로 개방하는 한국
+> 관광공사 공공데이터 서비스를 설명합니다. 원천 스냅샷은 `raw/` 아래에 원문 그대로 보존되며 절대
+> 수정하지 않고, 갱신은 새 스냅샷으로만 이뤄집니다. 재배포 전에는
+> [공공데이터포털](https://www.data.go.kr/)에서 정확한 라이선스 조건(예: 공공누리/KOGL)을
+> 확인하세요.
 
 ---
 
