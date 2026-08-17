@@ -1,8 +1,37 @@
 # Regional Visitor Count Collector Design
 
-**Status:** approved design, not yet implemented
+**Status:** approved design; Task 1 implemented, Task 3 revised after the endpoint contract was confirmed
 **Date:** 2026-08-17
 **Source dataset:** [한국관광공사_빅데이터_지역별 방문자수_GW](https://www.data.go.kr/data/15101972/openapi.do) (data.go.kr 15101972)
+
+## Confirmed endpoint contract
+
+Read out of `TourAPI_Guide_(관광빅데이터)v4.1.zip` on the dataset page, 2026-08-17. Four of this design's original assumptions were wrong; the corrections are recorded in "What the guide changed" below.
+
+| Value | Confirmed |
+|---|---|
+| Endpoint | `http://apis.data.go.kr/B551011/DataLabService` |
+| Operation (기초지자체) | `locgoRegnVisitrDDList` |
+| Operation (광역, unused) | `metcoRegnVisitrDDList` |
+| Service key parameter | `serviceKey`, URL-decoded form |
+| Range parameters | `startYmd`, `endYmd`, both `yyyyMMdd` |
+| Response format parameter | `_type=json` — leading underscore; the default is XML |
+| Required, and missed by the first draft | `MobileOS=ETC`, `MobileApp=<app name>` |
+| Paging | `numOfRows`, `pageNo` |
+| Row array | `.response.body.items.item` |
+| Period field | `baseYmd`, `yyyyMMdd` |
+| Success code | `resultCode` is **`0000`** |
+| Row fields | `signguCode`, `signguNm`, `daywkDivCd`, `daywkDivNm`, `touDivCd`, `touDivNm`, `touNum`, `baseYmd` |
+| Publication | 갱신주기 일 1회 |
+
+`touDivCd` splits every region-day three ways: `1` 현지인, `2` 외지인, `3` 외국인. One day returns roughly 740 rows.
+
+### What the guide changed
+
+1. **There is no monthly operation.** Both operations are `…DDList` and `baseYmd` is a date. The 기초지자체 unit this design chose is served only at daily granularity. Monthly figures would have to be aggregated by us, and aggregation is derivation, which `raw/` does not hold. **Resolution:** keep one file per `YYYY-MM` period and store that month's daily rows inside it, unaggregated. The period-file model and `scripts/collect-period-snapshot.sh` are unaffected.
+2. **`resultCode` is `0000`, not `00`.** The air-quality collector's `00` check would have rejected every successful response here.
+3. **Pagination is mandatory, not exceptional.** A month is roughly 22,000 rows. The air-quality collector fails when `totalCount` exceeds `numOfRows` because crossing that line there is rare; here it is the normal case. This collector pages through to completion and instead fails when the rows it assembled do not reconcile with `totalCount`.
+4. **Volume is material.** At roughly 3 MB per month file, an 18-month backfill adds about 60 MB. Accepted deliberately: the evidence layer keeps the source's own granularity, and the alternative was aggregating in `raw/`.
 
 ## Goal
 
@@ -17,8 +46,8 @@ This design covers the collector, its first real capture, and the rule-1 decisio
 | | Air-quality stations | Regional visitor counts |
 |---|---|---|
 | Shape | fixed reference list (673 rows) | accumulating time series |
-| Publication | effectively static | monthly data by the 4th of the following month; daily data with a 4-day lag |
-| Query limit | none | monthly queries span at most 18 months from the start date |
+| Publication | effectively static | 갱신주기 일 1회, with a lag of roughly 4 days |
+| Rows per fetch | 673, one page | ~740 per day, so ~22,000 per month; pagination required |
 | Licence | 공공누리 제3유형 (변경금지) | 이용허락범위 제한 없음 |
 
 `scripts/collect-external-snapshot.sh` stores one file per `snapshotId` and overwrites it with the newest payload. Applied to a time series that model fails three ways:
@@ -78,7 +107,7 @@ Requires `period` matching `YYYY-MM` in addition to the fields the existing scri
 | `period` missing or not `YYYY-MM` | fail | 1 |
 | Envelope invalid or missing required metadata | fail | 1 |
 
-The third row is where this script diverges from `--skip-unchanged`, which overwrites on difference. Here a past period is contractually immutable, and a difference means the source restated history. That is rare enough to deserve a human decision, so the run stops rather than deciding on its own — the same reasoning behind the air-quality collector failing instead of paginating when `totalCount` exceeds `numOfRows`.
+The third row is where this script diverges from `--skip-unchanged`, which overwrites on difference. Here a past period is contractually immutable, and a difference means the source restated history. That is rare enough to deserve a human decision, so the run stops rather than deciding on its own.
 
 Secrets never reach this script. It reads a file that a workflow step has already built, and runs correctly with no secret present.
 
@@ -88,16 +117,18 @@ Secrets never reach this script. It reads a file that a workflow step has alread
 
 **Manual trigger:** `workflow_dispatch` with a `months` input (default 3) used for the initial backfill.
 
-**One query, many files.** Each run requests a span of `months` ending at the most recently published month, in a single call, then splits the response by period and feeds each period through `collect-period-snapshot.sh`. The scheduled run uses the default of 3: the newly published month is stored, and the two before it are re-fetched and checked for restatement. The backfill uses 18, which is exactly the API's monthly query span, and produces up to eighteen files from one call. Backfill and steady state share one code path.
+**One month per request, paginated.** The API takes a `startYmd`/`endYmd` date range and returns roughly 740 rows per day, so a month cannot arrive in one page. The workflow loops over the requested months; for each it requests that month's first through last day, pages until it has assembled `totalCount` rows, builds one envelope, and feeds it to `collect-period-snapshot.sh`. The scheduled run uses the default of 3: the newly published month is stored, and the two before it are re-fetched and checked for restatement. The backfill uses 18. Backfill and steady state share one code path.
 
-**Secret:** the existing `DATA_GO_KR_SERVICE_KEY`. data.go.kr issues one key per account; only a per-dataset 활용신청 is additionally required.
+Rows are stored exactly as returned, at daily granularity, with `touDivCd` still splitting each region-day into 현지인/외지인/외국인. Rolling them up to a monthly figure would be derivation, and `raw/` does not hold derived data.
+
+**Secret:** the existing `DATA_GO_KR_SERVICE_KEY`, in its **URL-decoded** form. `--data-urlencode` encodes it, so storing the pre-encoded variant double-encodes it and the service rejects the key. data.go.kr issues one key per account; only a per-dataset 활용신청 is additionally required.
 
 **Steps**, following the air-quality workflow's structure:
 
 1. Guard on the secret; emit a notice and skip when absent.
-2. Fetch with `--data-urlencode`, never printing the URL, never `curl -v`.
-3. Validate: response parses as JSON, `resultCode` is `00`, and `totalCount` does not exceed `numOfRows` — fail without printing the body, since a rejected key can echo the request back.
-4. Split by period and store each through `collect-period-snapshot.sh`.
+2. For each month, fetch every page with `--data-urlencode`, never printing the URL, never `curl -v`. Send the required `MobileOS` and `MobileApp` parameters and `_type=json`.
+3. Validate each page: it parses as JSON and `resultCode` is `0000` — fail without printing the body, since a rejected key can echo the request back. After the last page, fail unless the assembled row count equals `totalCount`, so a truncated month is never stored as complete.
+4. Build one envelope per month and store it through `collect-period-snapshot.sh`.
 5. Detect a real change with `git status --porcelain` on the snapshot directory.
 6. On change, run `./harness/scripts/smoke.sh`.
 7. On change, open a pull request against `main`. Never push to the default branch.
@@ -133,25 +164,21 @@ Assertions 3 and 5 are the pair that matters: together they say the script halts
 | Failure | Response |
 |---|---|
 | Secret absent | skip with a notice; the run reports success having done nothing |
-| `resultCode` not `00` | fail; do not print the body |
-| `totalCount` exceeds `numOfRows` | fail; a truncated capture must not be stored as complete |
+| `resultCode` not `0000` | fail; do not print the body |
+| Assembled rows do not equal `totalCount` | fail; a truncated month must not be stored as complete |
 | Stored period differs from re-fetched period | fail, naming the period; a human decides whether to accept the restatement |
 | Malformed or missing `period` | fail |
 
 ## Prerequisites before the collector can succeed
 
-Both are human work outside this repository, and neither is optional.
-
-1. **활용신청 for dataset 15101972.** The operational stage is 심의승인, not automatic approval, so this takes time.
-2. **Confirm the endpoint contract.** Operation names and request parameters for this service are published only inside `TourAPI_Guide_(관광빅데이터)v4.1.zip` on the dataset page; they are not in any public index, and this design deliberately does not guess them. Download the guide, then verify with a throwaway script outside this repository — rule 3 forbids a secret-dependent script under `scripts/`.
-
-   Acceptance criteria for that verification, recorded in the workflow header once confirmed: the exact endpoint path; the operation name for 기초지자체 monthly visitor counts; the parameter names for the service key, period range, page number, and row count; the response format parameter and its correct spelling; and the observed `totalCount` for one known month. The air-quality collector's licence label was recorded from memory and turned out wrong, so each of these is confirmed against the source rather than assumed.
+1. **활용신청 for dataset 15101972.** Done 2026-08-17 on a 개발계정. A development registration is auto-approved and capped at 10,000 calls a day, which is far above what a monthly run needs. Two consequences to track: a development key has a limited 활용기간 and must be renewed, and moving to a 운영계정 later requires 심의승인. `AGENTS.md` already lists 운영계정 전환 as a policy topic; when the key is renewed or promoted, the switch belongs in `log.md`.
+2. **Confirm the endpoint contract.** Done 2026-08-17 by extracting `TourAPI_Guide_(관광빅데이터)v4.1.zip` from the dataset page; the values are in "Confirmed endpoint contract" above. The guide is dated 2026-02-25, so a single live call verifies it before the workflow is written — run outside this repository, since rule 3 forbids a secret-dependent script under `scripts/`. What that call must show: `resultCode` is `0000`, the row array sits at `.response.body.items.item`, `baseYmd` is `yyyyMMdd`, and `_type=json` actually returns JSON rather than XML.
 
 **Until both are done the workflow takes the guard branch and reports success having collected nothing.** The air-quality collector sat in exactly that state for six days while its green run history suggested otherwise. A passing run is not evidence of a capture; a new file under `raw/external-snapshots/tourism-visitors/` is.
 
 ## Out of scope
 
-- Daily-granularity visitor counts. Roughly thirty times the volume, and monthly is sufficient for a percentile distribution.
+- Rolling the daily rows up to a monthly figure. The API is daily-only, and aggregating before storage would put derived data in `raw/`. The rollup belongs in `records/` when someone needs it.
 - Deriving `records/congestion/` percentile distributions. Needs accumulated periods; a distribution computed from one month would be a weak claim dressed as evidence.
 - 광역 시도 aggregates. `records/regions/seoul-jongno.json` is a 기초지자체, so that is the unit the wiki needs.
 - Live or near-live readings of any kind. Rule 1 puts those in the consumer backend.
