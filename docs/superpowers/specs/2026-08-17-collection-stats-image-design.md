@@ -1,6 +1,6 @@
 # Collection Stats Image Design
 
-**Status:** approved design; not yet implemented
+**Status:** approved design; renderer prototyped and verified, not yet committed as scripts
 **Date:** 2026-08-17
 **Artifact:** `docs/collection-stats.svg`, embedded in `README.md`
 
@@ -89,7 +89,7 @@ missing ones as empty outlines, which answers the question a reader of this
 figure actually has: how far back does coverage run, and is anything missing.
 Row counts keep their place in the tiles, where a single number belongs.
 
-Every box and bar is drawn with the hand-drawn stroke described below. The
+Every box and cell is drawn with the hand-drawn stroke described below. The
 footer date is the maximum `collectedAt` across both collectors, so it answers
 "how stale is anything here" with one number rather than two.
 
@@ -106,7 +106,7 @@ That forces two constraints the renderer must obey.
    The wobble is instead produced by a seeded Lehmer generator
    (`seed = seed * 16807 % 2147483647`), seeded from a djb2 hash of the
    extracted metrics serialised with `jq -S -c`. Same numbers, same drawing;
-   a bar whose value moved is the only thing whose shape moves.
+   a cell whose state moved is the only thing whose shape moves.
    MINSTD's constants are chosen so every intermediate product stays below
    2^53 and is therefore exact in the IEEE doubles `jq` uses — a larger
    multiplier would lose precision and could diverge between platforms.
@@ -122,11 +122,13 @@ Excalidraw's look reduces to four devices, all reproducible in plain SVG:
 1. **Every straight edge is drawn twice.** Two cubic Béziers along the same
    endpoints, each with independently jittered control points, so the two
    passes diverge and re-converge the way a pen does.
-2. **Control points are offset proportionally to edge length**, capped at
-   roughly 2px, matching roughjs' `maxRandomnessOffset` at `roughness: 1`.
-   Endpoints are jittered less than midpoints so corners still read as corners.
-3. **Fills are hachure**, not solid: parallel 45° strokes about 8px apart,
-   clipped to the shape, each stroke jittered independently.
+2. **Control points are offset proportionally to edge length.** Endpoints are
+   jittered at 1.1x the amplitude and midpoints at 3.2x, so corners still read
+   as corners while the span between them visibly bows. These multipliers were
+   set by rendering: roughjs' nominal `maxRandomnessOffset` of ~2px at
+   `roughness: 1` was too faint to read as drawn at this canvas size.
+3. **Fills are hachure**, not solid: parallel 45° strokes 11px apart, clipped
+   to the shape analytically, each stroke jittered independently.
 4. **Stroke ends overshoot slightly** past the corner, which is what makes a
    hand-drawn rectangle read as hand-drawn rather than as a wobbly rectangle.
 
@@ -136,7 +138,7 @@ image proxy and sanitiser, where inline CSS and scripts are not dependable.
 
 ### Font
 
-`font-family="Comic Sans MS, Chalkboard SE, Segoe Print, cursive"`.
+`font-family="Comic Sans MS, Chalkboard SE, Segoe Print, Bradley Hand, cursive"`.
 
 The proxy blocks external font loading, so the only alternative that guarantees
 identical lettering everywhere is embedding Excalifont as a ~100KB base64
@@ -154,14 +156,15 @@ and `prefers-color-scheme` inside a proxied, cached SVG is not dependable. The
 paper also happens to be what an Excalidraw canvas looks like, so the fix and
 the aesthetic agree.
 
-Palette: paper `#fdfdf7`, ink `#1e1e1e`, bars `#4c6ef5` at reduced opacity for
-hachure, muted labels `#5c5c5c`.
+Palette: paper `#fdfdf7`, ink `#1e1e1e`, cells `#4c6ef5` with hachure at 0.55
+opacity, muted labels and uncaptured cells `#5c5c5c`. One series, so no
+categorical palette and no legend; the labels under the cells carry identity so
+it never rests on colour alone.
 
 ## Empty and partial states
 
-With zero period files — today's state — the chart section is replaced by a
-hand-drawn empty frame reading `아직 수집된 기간이 없습니다`, and the period
-tiles render `0`. A collector that has never run must produce a legible image
+With zero period files — today's state — the strip is replaced by a hand-drawn
+empty frame reading `아직 수집된 기간이 없습니다`, and the period tiles render `0`. A collector that has never run must produce a legible image
 saying so, not a broken axis or a division by zero. The same applies when the
 air-quality snapshot is absent.
 
