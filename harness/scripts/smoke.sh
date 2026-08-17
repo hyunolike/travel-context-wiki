@@ -63,6 +63,7 @@ require_file raw/service-snapshots/hanjeok/course-recommendation.md
 require_file raw/service-snapshots/hanjeok/attractions.fixture.json
 require_file harness/fixtures/user-input-capture.valid.json
 require_file harness/fixtures/external-tourism-snapshot.valid.json
+require_file harness/fixtures/period-snapshot.valid.json
 require_file raw/project-guides/open-source-ai-agent-project-guide.md
 require_file records/places/gyeongbokgung.json
 require_file records/weather/rules.json
@@ -79,11 +80,13 @@ require_file packages/hanjeok/context-bundle.json
 require_file packages/hanjeok/prompt.md
 require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
+require_file scripts/collect-period-snapshot.sh
 require_file scripts/build-index.sh
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
 [ -x scripts/collect-external-snapshot.sh ] || fail "scripts/collect-external-snapshot.sh is not executable"
+[ -x scripts/collect-period-snapshot.sh ] || fail "scripts/collect-period-snapshot.sh is not executable"
 [ -x scripts/build-index.sh ] || fail "scripts/build-index.sh is not executable"
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
@@ -173,6 +176,38 @@ unsorted_path="$TMP_DIR/unsorted/public-tourism-api-tourapi-sample-jongno-202608
 unsorted_before="$(cksum < "$unsorted_path")"
 scripts/collect-external-snapshot.sh --skip-unchanged "$TMP_DIR/reordered-snapshot.json" "$TMP_DIR/unsorted" >/dev/null
 [ "$(cksum < "$unsorted_path")" != "$unsorted_before" ] || fail "reordering counted as unchanged without --sort-arrays"
+
+# SCHEMA "Scheduled Collection Rules" rule 9: a period-partitioned capture
+# writes one file per period, leaves a stored period alone, and halts when the
+# source restates one instead of overwriting the original reading.
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.valid.json "$TMP_DIR/periods" >/dev/null
+period_path="$TMP_DIR/periods/2026-07.json"
+[ -f "$period_path" ] || fail "period snapshot script did not create expected output"
+period_before="$(cksum < "$period_path")"
+
+jq '.collectedAt = "2099-01-01T00:00:00Z"' harness/fixtures/period-snapshot.valid.json > "$TMP_DIR/retimed-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/retimed-period.json" "$TMP_DIR/periods" >/dev/null
+[ "$(cksum < "$period_path")" = "$period_before" ] || fail "period snapshot rewrote a stored period whose payload did not change"
+
+jq '.payload.response.body.items |= reverse' harness/fixtures/period-snapshot.valid.json > "$TMP_DIR/reordered-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/reordered-period.json" "$TMP_DIR/periods" >/dev/null
+[ "$(cksum < "$period_path")" = "$period_before" ] || fail "period snapshot read a reordered payload as a restatement"
+
+jq '.payload.response.body.items[0].touNum = 9999999' harness/fixtures/period-snapshot.valid.json > "$TMP_DIR/restated-period.json"
+if scripts/collect-period-snapshot.sh "$TMP_DIR/restated-period.json" "$TMP_DIR/periods" >/dev/null 2>&1; then
+  fail "period snapshot accepted a restated payload instead of halting"
+fi
+[ "$(cksum < "$period_path")" = "$period_before" ] || fail "period snapshot altered a stored period while rejecting a restatement"
+
+jq '.period = "2026-13"' harness/fixtures/period-snapshot.valid.json > "$TMP_DIR/malformed-period.json"
+if scripts/collect-period-snapshot.sh "$TMP_DIR/malformed-period.json" "$TMP_DIR/periods" >/dev/null 2>&1; then
+  fail "period snapshot accepted a malformed period"
+fi
+
+jq '.period = "2026-08" | .snapshotId = "kto-regional-visitors-2026-08"' harness/fixtures/period-snapshot.valid.json > "$TMP_DIR/next-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods" >/dev/null
+[ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
+[ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
 
 scripts/build-index.sh --check >/dev/null
 

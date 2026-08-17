@@ -184,11 +184,25 @@ live readings or anything about a person.
    data rather than the order it happened to arrive in. It is opt-in per
    collector: array order carries meaning in rankings, time series, and
    paginated sequences, and those collectors must not pass it.
+   A collector that partitions its series by period under rule 9 is not one of
+   those cases; the time axis lives in its file names, not in its arrays.
 7. **Land in `raw/` and stop there.** A workflow may capture evidence. Deriving
    `records/`, promoting canonical pages, and updating `index.md` stay human
    work, so the review gate is never bypassed.
 8. **Open a pull request; never push to the default branch.** The capture has to
    pass `./harness/scripts/smoke.sh` and human review like any other change.
+9. **Partition a growing series by period, and treat a stored period as
+   immutable.** A source that accumulates new rows over time does not fit the
+   single-file model of `scripts/collect-external-snapshot.sh`: its payload
+   changes on every run, so rule 5 stops filtering anything, and a rolling query
+   window silently drops the oldest data out of the evidence layer. Use
+   `scripts/collect-period-snapshot.sh`, which writes one file per `YYYY-MM`
+   period and refuses to rewrite a period it has already stored. When a
+   re-fetched period differs, the run fails and names the period, because a
+   restated figure is a judgement for a human rather than an overwrite.
+   Partitioning also settles what rule 6 leaves open: with the time axis in the
+   file name, what remains inside a file is an unordered set, so a period file
+   is always stored normalised.
 
 ## Retrieval And Package Rules
 

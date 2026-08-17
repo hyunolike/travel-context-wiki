@@ -1,0 +1,23 @@
+{
+  "snapshotId": "kto-regional-visitors-2026-07",
+  "sourceKind": "tourism-visitors",
+  "period": "2026-07",
+  "sourceUrl": "https://www.data.go.kr/data/15101972/openapi.do",
+  "license": "이용허락범위 제한 없음",
+  "collectedAt": "2026-08-17T00:00:00Z",
+  "payload": {
+    "response": {
+      "header": { "resultCode": "00", "resultMsg": "OK" },
+      "body": {
+        "numOfRows": 3,
+        "pageNo": 1,
+        "totalCount": 3,
+        "items": [
+          { "signguCode": "11110", "signguNm": "종로구", "touNum": 1234567 },
+          { "signguCode": "11140", "signguNm": "중구", "touNum": 2345678 },
+          { "signguCode": "26350", "signguNm": "해운대구", "touNum": 3456789 }
+        ]
+      }
+    }
+  }
+}
