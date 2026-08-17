@@ -82,12 +82,17 @@ require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
 require_file scripts/collect-period-snapshot.sh
 require_file scripts/build-index.sh
+require_file scripts/build-collection-stats.sh
+require_file scripts/collection-stats.jq
+require_file docs/collection-stats.svg
+require_file harness/scenarios/collection-stats-image.md
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
 [ -x scripts/collect-external-snapshot.sh ] || fail "scripts/collect-external-snapshot.sh is not executable"
 [ -x scripts/collect-period-snapshot.sh ] || fail "scripts/collect-period-snapshot.sh is not executable"
 [ -x scripts/build-index.sh ] || fail "scripts/build-index.sh is not executable"
+[ -x scripts/build-collection-stats.sh ] || fail "scripts/build-collection-stats.sh is not executable"
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -274,6 +279,20 @@ jq -r -f scripts/collection-stats.jq "$TMP_DIR/stats-gap.json" > "$TMP_DIR/stats
 
 scripts/build-collection-stats.sh --snapshot-dir "$TMP_DIR/empty-snapshots" --out "$TMP_DIR/stats-empty.svg" >/dev/null
 grep -q '아직 수집된 기간이 없습니다' "$TMP_DIR/stats-empty.svg" || fail "collection stats did not render the empty state"
+
+grep -q 'docs/collection-stats.svg' README.md || fail "README.md does not embed the collection stats image"
+
+# --check is the guard a human runs before committing a redraw. It is pinned
+# here against a temporary file, never against docs/collection-stats.svg:
+# wiki-batch.yml runs this suite on every push, and the stats workflow runs it
+# before pushing, so asserting on the real artifact would turn a scheduling gap
+# into a contract failure and deadlock the workflow against its own output.
+cp "$TMP_DIR/stats-a.svg" "$TMP_DIR/stats-check.svg"
+scripts/build-collection-stats.sh --check --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-check.svg" >/dev/null
+printf '<!-- stale -->\n' >> "$TMP_DIR/stats-check.svg"
+if scripts/build-collection-stats.sh --check --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-check.svg" >/dev/null 2>&1; then
+  fail "--check accepted a stale collection stats image"
+fi
 
 scripts/build-index.sh --check >/dev/null
 
