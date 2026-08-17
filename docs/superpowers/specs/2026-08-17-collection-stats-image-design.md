@@ -39,7 +39,7 @@ Two collectors exist, and each contributes its own metrics.
 | Period range | earliest and latest file name |
 | Daily rows | sum of `.payload.response.body.totalCount` |
 | 기초지자체 covered | distinct `.payload.response.body.items.item[].signguCode` in the latest period |
-| Rows per period | `.payload.response.body.totalCount` per file — the chart's bars |
+| Months covered | every calendar month between the first and last stored period — the strip's cells, filled where a file exists |
 | Last captured | maximum `.collectedAt` |
 
 `signguCode` is read only from the latest period. Reading every period would
@@ -57,21 +57,37 @@ newest period can answer honestly — whether current coverage is national.
 
 ```text
 ┌─ paper ───────────────────────────────────────────────┐
-│  수집 현황                                             │
+│  수집 현황                            2025-05 – 2026-07 │
 │                                                        │
 │  ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐       │
-│  │   3    │  │ 66,412 │  │  229   │  │  673   │       │
-│  │ 개월   │  │ 일별 행│  │지자체  │  │측정소  │       │
+│  │   15   │  │331,000 │  │  229   │  │  673   │       │
+│  │수집 개월│  │ 일별 행 │  │기초지자체│  │대기측정소│       │
 │  └────────┘  └────────┘  └────────┘  └────────┘       │
 │                                                        │
-│  월별 수집량                                           │
-│  2026-05 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 22,134                    │
-│  2026-06 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 22,140                    │
-│  2026-07 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 22,138                    │
+│  수집된 월                                             │
+│  ┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐    │
+│  │▓▓││▓▓││▓▓││▓▓││  ││▓▓││▓▓││▓▓││▓▓││  ││▓▓││▓▓│    │
+│  └──┘└──┘└──┘└──┘└──┘└──┘└──┘└──┘└──┘└──┘└──┘└──┘    │
+│   05  06  07  08  09  10  11  12  01  02  03  04      │
+│  2025                              2026               │
 │                                                        │
-│  마지막 수집 2026-08-08                                │
+│  마지막 수집 2026-08-12                                │
 └────────────────────────────────────────────────────────┘
 ```
+
+### Why a coverage strip and not a bar chart
+
+The first draft charted rows per period as bars. Rendered against realistic
+figures it showed three bars of visibly identical length, which is what the
+data forces: a month's row count is `days x regions x 3`, so it is near-constant
+by construction and there is no magnitude to compare. Worse, a bar chart has no
+way to draw a month that was never captured — the month simply has no bar, and
+a series with a hole in it looks the same as a shorter series.
+
+The strip draws a cell per calendar month across the covered span and leaves the
+missing ones as empty outlines, which answers the question a reader of this
+figure actually has: how far back does coverage run, and is anything missing.
+Row counts keep their place in the tiles, where a single number belongs.
 
 Every box and bar is drawn with the hand-drawn stroke described below. The
 footer date is the maximum `collectedAt` across both collectors, so it answers
@@ -260,7 +276,7 @@ the rendered image is visually confirmed against the current repository state.
   the feature looks unfinished until the visitor collector merges and runs.
 - **`cursive` fallback on Linux** loses the hand-drawn lettering while keeping
   the hand-drawn geometry. Acceptable and reversible.
-- **Hachure fill on many bars grows the file.** With one bar per period, an
-  18-month backfill means 18 bars; hachure at an 8px gap keeps this in the tens
-  of kilobytes. If it grows past that, bars switch to a solid low-opacity fill
-  with a hachured outline.
+- **Hachure fill grows the file.** Measured on the built renderer: 15 KB at 3
+  months, 44 KB at 15 months. Cells shrink as the span widens, so this scales
+  better than the bars it replaced (44 KB at 3 bars alone). Past roughly 36
+  months, switch cells to a solid low-opacity fill with a hachured outline.
