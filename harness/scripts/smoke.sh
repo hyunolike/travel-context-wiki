@@ -209,6 +209,35 @@ scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods
 [ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
 [ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
 
+# The stats image is a pure function of committed evidence, so its metrics are
+# pinned against fixtures rather than against whatever raw/ happens to hold on
+# the day the suite runs.
+stats_fixtures=harness/fixtures/collection-stats
+stats_metrics="$TMP_DIR/stats-metrics.json"
+scripts/build-collection-stats.sh --metrics --snapshot-dir "$stats_fixtures" > "$stats_metrics"
+
+[ "$(jq -r '.periods.count' "$stats_metrics")" = "2" ] || fail "collection stats counted the wrong number of periods"
+[ "$(jq -r '.periods.first' "$stats_metrics")" = "2026-06" ] || fail "collection stats reported the wrong first period"
+[ "$(jq -r '.periods.last' "$stats_metrics")" = "2026-07" ] || fail "collection stats reported the wrong last period"
+[ "$(jq -r '.periods.rows' "$stats_metrics")" = "10" ] || fail "collection stats summed the wrong row count"
+[ "$(jq -r '.stations.count' "$stats_metrics")" = "673" ] || fail "collection stats reported the wrong station count"
+[ "$(jq -r '.lastCollectedAt' "$stats_metrics")" = "2026-08-12" ] || fail "collection stats reported the wrong last collection date"
+
+# Coverage is a statement about now, so it is read from the newest period only.
+# Unioning every period would answer "which regions ever appeared", which is a
+# different and more flattering question. The fixtures differ (5 vs 6) so that
+# the wrong reading cannot pass.
+[ "$(jq -r '.periods.regions' "$stats_metrics")" = "5" ] || fail "collection stats counted regions outside the latest period"
+
+# The collectors run on their own schedule, so the image has to render before
+# the first capture rather than divide by zero.
+mkdir -p "$TMP_DIR/empty-snapshots"
+empty_metrics="$TMP_DIR/stats-metrics-empty.json"
+scripts/build-collection-stats.sh --metrics --snapshot-dir "$TMP_DIR/empty-snapshots" > "$empty_metrics"
+[ "$(jq -r '.periods.count' "$empty_metrics")" = "0" ] || fail "collection stats did not report zero periods for an empty evidence layer"
+[ "$(jq -r '.periods.rows' "$empty_metrics")" = "0" ] || fail "collection stats did not report zero rows for an empty evidence layer"
+[ "$(jq -r '.lastCollectedAt' "$empty_metrics")" = "" ] || fail "collection stats invented a collection date for an empty evidence layer"
+
 scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do
