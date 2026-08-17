@@ -190,7 +190,8 @@ live readings or anything about a person.
    `records/`, promoting canonical pages, and updating `index.md` stay human
    work, so the review gate is never bypassed.
 8. **Open a pull request; never push to the default branch.** The capture has to
-   pass `./harness/scripts/smoke.sh` and human review like any other change.
+   pass `./harness/scripts/smoke.sh` and human review like any other change,
+   except for the one case "Generated Artifact Rules" below carves out.
 9. **Partition a growing series by period, and treat a stored period as
    immutable.** A source that accumulates new rows over time does not fit the
    single-file model of `scripts/collect-external-snapshot.sh`: its payload

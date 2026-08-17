@@ -51,6 +51,13 @@ latest_period_file=""
 if [ -d "$visitors_dir" ]; then
   while IFS= read -r period_file; do
     [ -n "$period_file" ] || continue
+    # The renderer derives the coverage strip from these period strings, and an
+    # absent or empty one reaches its month arithmetic as a bare `""` — a raw
+    # jq parse error that names neither the field nor the file. Refuse here
+    # instead. collect-period-snapshot.sh validates the period, so this is a
+    # guard against a hand-written file, not a supported input.
+    jq -e '(.period // "") | type == "string" and length > 0' "$period_file" >/dev/null \
+      || fail "period snapshot is missing a non-empty .period string: $period_file"
     jq -c '{
       period: (.period // ""),
       rows: (.payload.response.body.totalCount // 0),

@@ -23,9 +23,15 @@ def mstr: (. / 12 | floor) as $y | (. % 12 + 1) as $mo
   | "\($y)-\(if $mo < 10 then "0" else "" end)\($mo)";
 
 # djb2 over the serialised metrics. Seeding from the data is what ties the
-# sketch to the numbers: change a value and only that shape moves.
+# sketch to the numbers: change a value and only that shape moves. The
+# document is canonicalised first — sorting object keys recursively — so that
+# the same values in a different key order still hash to the same seed;
+# otherwise the seed would depend on the caller's serialisation order rather
+# than on the data.
+def canonize: walk(if type == "object" then (to_entries | sort_by(.key) | from_entries) else . end);
+
 def seed_of($doc):
-  (reduce ($doc | tojson | explode[]) as $c (5381; ((. * 33) + $c) % 2147483647))
+  (reduce ($doc | canonize | tojson | explode[]) as $c (5381; ((. * 33) + $c) % 2147483647))
   | if . == 0 then 1 else . end;
 
 # MINSTD. The multiplier is chosen so every intermediate product stays below
@@ -106,9 +112,9 @@ def text_at($x; $y; $size; $colour; $anchor; $s):
     {value: ($m.stations.count | commas),  caption: "대기측정소"} ] as $tiles
 
 | ( [ range(4) as $i
-      | (44 + $i * 216) as $tx
-      | ($tx + 98) as $cx
-      | sketch_rect($N; $tx; 88; 196; 84; 200 + $i * 96; 3.4; $INK; 1.6)
+      | (44 + $i * 208) as $tx
+      | ($tx + 94) as $cx
+      | sketch_rect($N; $tx; 88; 188; 84; 200 + $i * 96; 3.4; $INK; 1.6)
         + text_at($cx; 130; 32; $INK; "middle"; $tiles[$i].value)
         + text_at($cx; 156; 15; $MUTED; "middle"; $tiles[$i].caption) ]
     | join("") ) as $tileSvg
@@ -140,7 +146,7 @@ def text_at($x; $y; $size; $colour; $anchor; $s):
       + text_at(450; 270; 17; $MUTED; "middle"; "아직 수집된 기간이 없습니다")
     end ) as $chartSvg
 
-| ( if $m.periods.first == "" then "수집 전"
+| ( if $m.periods.first == "" then ""
     else "\($m.periods.first) – \($m.periods.last)" end ) as $range
 | ( if $m.lastCollectedAt == "" then "마지막 수집 없음"
     else "마지막 수집 \($m.lastCollectedAt)" end ) as $footer

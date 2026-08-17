@@ -282,6 +282,13 @@ grep -q '아직 수집된 기간이 없습니다' "$TMP_DIR/stats-empty.svg" || 
 
 grep -q 'docs/collection-stats.svg' README.md || fail "README.md does not embed the collection stats image"
 
+# SCHEMA "Generated Artifact Rules" rule 3: the stats image summarises sources
+# and is not one. A canonical page or record citing it would launder provenance
+# — the reader could no longer reach the evidence that was actually captured.
+if grep -rq 'collection-stats\.svg' concepts entities comparisons queries decisions records; then
+  fail "a canonical page or record cites the generated artifact as a source"
+fi
+
 # --check is the guard a human runs before committing a redraw. It is pinned
 # here against a temporary file, never against docs/collection-stats.svg:
 # wiki-batch.yml runs this suite on every push, and the stats workflow runs it
@@ -360,7 +367,7 @@ done
 
 # SCHEMA "File Format Rules": UTF-8, LF, no BOM, final newline.
 # raw/ is exempt because captured evidence is preserved byte-for-byte.
-find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.jsonl' -o -name '*.sh' -o -name '*.yml' -o -name '*.yaml' \) \
+find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.jsonl' -o -name '*.sh' -o -name '*.yml' -o -name '*.yaml' -o -name '*.jq' \) \
   -not -path './.git/*' -not -path './raw/*' | while IFS= read -r text_file; do
   if [ "$(head -c 3 "$text_file" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
     fail "$text_file starts with a byte-order mark"

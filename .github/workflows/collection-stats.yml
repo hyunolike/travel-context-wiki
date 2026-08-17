@@ -74,4 +74,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/collection-stats.svg
           git commit -m "chore: redraw the collection stats image"
-          git push
+          # If something else landed on main since checkout, the push is
+          # rejected; rebase onto it and retry. Safe here because this commit
+          # touches only the generated artifact, so a rebase can never
+          # conflict with or reorder anyone else's change.
+          git push || (git fetch origin main && git rebase origin/main && git push)

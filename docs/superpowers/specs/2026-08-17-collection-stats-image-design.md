@@ -1,6 +1,6 @@
 # Collection Stats Image Design
 
-**Status:** approved design; renderer prototyped and verified, not yet committed as scripts
+**Status:** approved design; renderer prototyped, verified, and committed as scripts
 **Date:** 2026-08-17
 **Artifact:** `docs/collection-stats.svg`, embedded in `README.md`
 
@@ -36,7 +36,7 @@ Two collectors exist, and each contributes its own metrics.
 | Metric | Source |
 |---|---|
 | Periods stored | number of `YYYY-MM.json` files |
-| Period range | earliest and latest file name |
+| Period range | the `.period` field of the earliest and latest stored file, ordered by file name |
 | Daily rows | sum of `.payload.response.body.totalCount` |
 | 기초지자체 covered | distinct `.payload.response.body.items.item[].signguCode` in the latest period |
 | Months covered | every calendar month between the first and last stored period — the strip's cells, filled where a file exists |
@@ -175,8 +175,13 @@ air-quality snapshot is absent.
 ```text
 build-collection-stats.sh            # regenerate docs/collection-stats.svg
 build-collection-stats.sh --check    # exit 1 if the committed file is stale
+build-collection-stats.sh --metrics  # print the extracted metrics document to stdout
 build-collection-stats.sh --snapshot-dir DIR --out FILE   # for the harness
 ```
+
+`--metrics` is a real, tested mode, not just a debugging aid: it is the seam
+the two-stage architecture rests on, letting the harness pin metric extraction
+against fixtures without asserting on SVG geometry.
 
 `jq` and POSIX shell only, matching every other script here. Runs correctly
 with no secret present — it reads the repository and calls no API, so SCHEMA
@@ -216,7 +221,8 @@ does.
 
 ### `SCHEMA.md`
 
-A new section, **Generated Artifact Rules**, stating the narrow exception:
+A new section, **Generated Artifact Rules**, stating the narrow exception, in
+five rules:
 
 1. A generated artifact may be refreshed by a scheduled workflow and pushed
    directly to the default branch, but only if it calls no external API, reads
@@ -229,6 +235,8 @@ A new section, **Generated Artifact Rules**, stating the narrow exception:
 4. It must be a pure function of the committed inputs. Nothing time-varying —
    including the current date — may appear in the output, so that an unchanged
    input produces an unchanged artifact and no empty commit.
+5. It is regenerated, never edited. A hand edit is overwritten by the next run,
+   so a change to the artifact means a change to its generator.
 
 ### `--check` is deliberately not wired into `wiki-batch.yml`
 
@@ -247,10 +255,15 @@ Per AGENTS.md, the scenario comes first.
 - Given two period snapshots and a station snapshot, When the script runs,
   Then the metrics document reports 2 periods, the summed row count, the
   station count, and the latest `collectedAt`.
-- Given the same fixtures, When the script runs twice, Then the two SVG outputs
-  are byte-identical.
 - Given an empty snapshot directory, When the script runs, Then the SVG renders
   the empty state and the script exits 0.
+- Given a metrics document with a month missing between its first and last
+  period, When the renderer runs, Then the missing month still gets a cell,
+  drawn empty — this is what "Why a coverage strip and not a bar chart" above
+  is about: a form that omits the month instead looks healthy while hiding a
+  failed capture.
+- Given the same fixtures, When the script runs twice, Then the two SVG outputs
+  are byte-identical.
 - Given a committed SVG that does not match its inputs, When `--check` runs,
   Then it exits non-zero.
 
