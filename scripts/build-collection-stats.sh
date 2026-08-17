@@ -115,4 +115,19 @@ if [ "$mode" = metrics ]; then
   exit 0
 fi
 
-fail "rendering is not implemented yet"
+jq -r -f scripts/collection-stats.jq "$TMP_DIR/metrics.json" > "$TMP_DIR/out.svg" \
+  || fail "could not render the stats image"
+
+case "$mode" in
+  check)
+    [ -f "$out_file" ] || fail "missing generated artifact: $out_file"
+    cmp -s "$TMP_DIR/out.svg" "$out_file" \
+      || fail "$out_file is stale; run scripts/build-collection-stats.sh"
+    printf 'collection stats up to date: %s\n' "$out_file"
+    ;;
+  render)
+    mkdir -p "$(dirname "$out_file")"
+    cp "$TMP_DIR/out.svg" "$out_file"
+    printf 'wrote collection stats: %s\n' "$out_file"
+    ;;
+esac

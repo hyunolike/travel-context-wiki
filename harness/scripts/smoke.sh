@@ -238,6 +238,43 @@ scripts/build-collection-stats.sh --metrics --snapshot-dir "$TMP_DIR/empty-snaps
 [ "$(jq -r '.periods.rows' "$empty_metrics")" = "0" ] || fail "collection stats did not report zero rows for an empty evidence layer"
 [ "$(jq -r '.lastCollectedAt' "$empty_metrics")" = "" ] || fail "collection stats invented a collection date for an empty evidence layer"
 
+# The workflow commits only when the picture changes, so identical evidence
+# must render byte-identically. A real random jitter would produce a new file
+# every day and turn a "no change" policy into a daily commit.
+scripts/build-collection-stats.sh --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-a.svg" >/dev/null
+scripts/build-collection-stats.sh --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-b.svg" >/dev/null
+cmp -s "$TMP_DIR/stats-a.svg" "$TMP_DIR/stats-b.svg" || fail "collection stats rendered differently from identical inputs"
+
+head -c 4 "$TMP_DIR/stats-a.svg" | grep -q '<svg' || fail "collection stats output does not open with an svg element"
+tail -c 7 "$TMP_DIR/stats-a.svg" | grep -q '</svg>' || fail "collection stats output does not close its svg element"
+
+# GitHub's dark theme shows through a transparent background, so the canvas is
+# painted rather than inherited.
+grep -q 'fill="#fdfdf7"' "$TMP_DIR/stats-a.svg" || fail "collection stats output has no opaque paper background"
+
+# Nothing time-varying may reach the output. The fixtures carry fixed dates, so
+# today's date can only appear here by being stamped in.
+stats_today="$(date -u +%Y-%m-%d)"
+if grep -q "$stats_today" "$TMP_DIR/stats-a.svg"; then
+  fail "collection stats stamped the current date into the image"
+fi
+grep -q '2026-08-12' "$TMP_DIR/stats-a.svg" || fail "collection stats did not show the last collection date"
+
+# One labelled cell per month in the covered span.
+grep -q '>06</text>' "$TMP_DIR/stats-a.svg" || fail "collection stats did not label its month cells"
+grep -q '>07</text>' "$TMP_DIR/stats-a.svg" || fail "collection stats did not label its month cells"
+
+# A month missing from the series must still get a cell, drawn empty. That gap
+# is the one thing this figure exists to show: a form that simply omits the
+# month looks healthy while hiding a failed capture. Fed straight to the
+# renderer, which is what the two-stage split is for.
+printf '%s\n' '{"lastCollectedAt":"2026-08-12","periods":{"count":2,"first":"2026-05","last":"2026-07","regions":5,"rows":10,"series":[{"period":"2026-05","rows":5},{"period":"2026-07","rows":5}]},"stations":{"count":673}}' > "$TMP_DIR/stats-gap.json"
+jq -r -f scripts/collection-stats.jq "$TMP_DIR/stats-gap.json" > "$TMP_DIR/stats-gap.svg"
+[ "$(grep -c '>06</text>' "$TMP_DIR/stats-gap.svg")" = "1" ] || fail "collection stats dropped the month missing from the series"
+
+scripts/build-collection-stats.sh --snapshot-dir "$TMP_DIR/empty-snapshots" --out "$TMP_DIR/stats-empty.svg" >/dev/null
+grep -q '아직 수집된 기간이 없습니다' "$TMP_DIR/stats-empty.svg" || fail "collection stats did not render the empty state"
+
 scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do
