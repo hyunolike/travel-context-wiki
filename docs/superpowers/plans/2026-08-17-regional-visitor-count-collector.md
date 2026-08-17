@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Capture monthly visitor counts per 기초지자체 from data.go.kr 15101972 as period-partitioned raw evidence, on a schedule, without ever rewriting a stored period.
+**Goal:** Capture visitor counts per 기초지자체 from data.go.kr 15101972 as period-partitioned raw evidence, on a schedule, without ever rewriting a stored period.
 
-**Architecture:** A new `scripts/collect-period-snapshot.sh` writes one file per `YYYY-MM` period under `raw/external-snapshots/tourism-visitors/` and refuses to overwrite a period it already stored. A monthly workflow fetches a span of months in one call, splits the response by period, and opens a pull request when a new period lands. `scripts/collect-external-snapshot.sh` is left untouched because the air-quality collector depends on its contract.
+**Architecture:** A new `scripts/collect-period-snapshot.sh` writes one file per `YYYY-MM` period under `raw/external-snapshots/tourism-visitors/` and refuses to overwrite a period it already stored. A monthly workflow requests each month as a date range, pages through the response, and opens a pull request when a new period lands. The API is daily-only, so a month file holds that month's daily rows unaggregated — rolling them up would be derivation, which `raw/` does not hold. `scripts/collect-external-snapshot.sh` is left untouched because the air-quality collector depends on its contract.
 
 **Tech Stack:** Bash, jq, curl, GitHub Actions, the existing `harness/scripts/smoke.sh`.
 
@@ -25,7 +25,7 @@ Copied from `SCHEMA.md` "Scheduled Collection Rules" and `AGENTS.md`. Every task
 - `log.md` headings match `## YYYY-MM-DD - (ingest|create|update|archive|delete|lint|repair) - <summary>`.
 - Verify with `./harness/scripts/smoke.sh`.
 
-**Task order note:** Task 2 has external approval latency (운영단계 심의승인) outside anyone's control. Start it on day one and let it run in parallel with Task 1. Tasks 3 and 4 need both.
+**Task order note:** Task 1 is done (commit `369a9c9`). Task 2's registration and guide extraction are done as of 2026-08-17 on a 개발계정; its confirmed values are in Task 3's contract table and in the design doc. What remains of Task 2 is the live-call observation, which Task 3's first dispatch supplies.
 
 ---
 
@@ -324,37 +324,64 @@ states a confirmed contract rather than a remembered one."
 - Creates at runtime: `raw/external-snapshots/tourism-visitors/<YYYY-MM>.json`
 
 **Interfaces:**
-- Consumes: `scripts/collect-period-snapshot.sh` from Task 1; the nine confirmed values from Task 2.
+- Consumes: `scripts/collect-period-snapshot.sh <envelope-json> <output-dir>` from Task 1. It writes `<output-dir>/<period>.json`, exits 0 when the period is written or already stored unchanged, and exits non-zero when a stored period differs.
 - Produces: period snapshot files that Task 4 cites as `sources`.
+
+**Confirmed endpoint contract.** Read out of `TourAPI_Guide_(관광빅데이터)v4.1.zip` on 2026-08-17. These are verified values, not guesses — use them verbatim.
+
+| Item | Value |
+|---|---|
+| Base URL | `http://apis.data.go.kr/B551011/DataLabService` |
+| Operation | `locgoRegnVisitrDDList` (기초지자체) |
+| Required params | `serviceKey`, `MobileOS`, `MobileApp`, `startYmd`, `endYmd` |
+| Optional params | `_type`, `numOfRows`, `pageNo` |
+| Date format | `yyyyMMdd` for `startYmd`/`endYmd` |
+| Success code | `resultCode` is `0000` |
+| Row array | `.response.body.items.item` |
+| Row fields | `signguCode`, `signguNm`, `daywkDivCd`, `daywkDivNm`, `touDivCd`, `touDivNm`, `touNum`, `baseYmd` |
+
+Three things about this API drive the design of the steps below:
+
+1. **It is daily-only.** There is no monthly operation. The workflow requests a whole month as a date range and stores that month's daily rows unaggregated. Rolling them up would be derivation, which `raw/` does not hold.
+2. **Pagination is the normal case.** One day returns roughly 740 rows, so a month is roughly 22,000. The air-quality collector fails when `totalCount` exceeds `numOfRows`; here that would fail on every run. This collector pages to completion and fails instead when the assembled row count does not equal `totalCount`.
+3. **`_type=json` has a leading underscore** and the default response format is XML. A wrong parameter name yields XML with no error, which `jq empty` catches.
+
+The secret `DATA_GO_KR_SERVICE_KEY` holds the URL-decoded key: the air-quality workflow passes it through `--data-urlencode` and succeeds, which is only possible with the decoded form.
 
 - [ ] **Step 1: Write the workflow**
 
-Create `.github/workflows/collect-regional-visitors.yml`. Replace each `<...>` marker with the value of the same name recorded in `raw/experiments/kto-regional-visitors-endpoint-verification.md`. Every marker matches one row of the Task 2 table; the substitution is mechanical and requires no judgement. `<PERIOD_FIELD_FORMAT>` appears only inside a comment.
+Create `.github/workflows/collect-regional-visitors.yml`:
 
 ```yaml
 name: Collect Regional Visitors
 
-# Captures monthly visitor counts per 기초지자체 as raw evidence, so a congestion
-# record can eventually cite an observed distribution instead of an unsourced
-# percentile scale.
+# Captures daily visitor counts per 기초지자체, stored one file per month, so a
+# congestion record can eventually cite an observed distribution instead of an
+# unsourced percentile scale.
 #
 # This is a growing time series, not a reference list, so it uses
-# scripts/collect-period-snapshot.sh: one file per period, and a stored period
-# is never rewritten. See "Scheduled Collection Rules" rule 9 in SCHEMA.md.
+# scripts/collect-period-snapshot.sh: one file per period, and a stored period is
+# never rewritten. See "Scheduled Collection Rules" rule 9 in SCHEMA.md.
 #
-# Endpoint, operation, parameter names, and response shape were confirmed
-# against dataset 15101972; see
-# raw/experiments/kto-regional-visitors-endpoint-verification.md.
+# Endpoint, operation, parameters, and response shape were read out of
+# TourAPI_Guide_(관광빅데이터)v4.1.zip on the dataset page, 2026-08-17. Three of
+# them are easy to get wrong from memory: resultCode is 0000 and not 00,
+# MobileOS and MobileApp are required, and the response-format parameter is
+# _type with a leading underscore whose default is XML.
+#
+# The API has no monthly operation. A month is requested as a date range and its
+# daily rows are stored unaggregated, because aggregating before storage would
+# put derived data in raw/.
 
 on:
   schedule:
-    # The 8th at 06:00 KST. Monthly data publishes by the 4th, leaving four days
-    # of slack. Offset from the other two crons so none of them race.
+    # The 8th at 06:00 KST. Daily data lags about four days, so the previous
+    # calendar month is complete by then. Offset from the other two crons.
     - cron: "0 21 7 * *"
   workflow_dispatch:
     inputs:
       months:
-        description: "How many months to request, ending at the last published month. 18 is the API's maximum span and is what the initial backfill uses."
+        description: "How many months back to collect, ending with last month. Use 1 to verify the contract, 18 for the initial backfill."
         required: false
         default: "3"
 
@@ -363,11 +390,12 @@ permissions:
   pull-requests: write
 
 env:
-  ENDPOINT: <ENDPOINT>/<OPERATION>
+  ENDPOINT: http://apis.data.go.kr/B551011/DataLabService/locgoRegnVisitrDDList
   SOURCE_KIND: tourism-visitors
   SOURCE_URL: https://www.data.go.kr/data/15101972/openapi.do
   LICENSE: 이용허락범위 제한 없음
   SNAPSHOT_DIR: raw/external-snapshots/tourism-visitors
+  ROWS_PER_PAGE: "1000"
 
 jobs:
   collect:
@@ -387,109 +415,136 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Work out the requested span
-        if: steps.guard.outputs.ready == 'true'
-        id: span
-        run: |
-          months="${{ github.event.inputs.months || '3' }}"
-          case "$months" in
-            ''|*[!0-9]*) echo "::error::months must be a positive integer"; exit 1 ;;
-          esac
-          if [ "$months" -lt 1 ] || [ "$months" -gt 18 ]; then
-            echo "::error::months must be between 1 and 18; 18 is the API's maximum monthly span"
-            exit 1
-          fi
-          # Monthly data publishes by the 4th, and this runs on the 8th, so the
-          # last published month is always the previous calendar month.
-          end="$(date -u -d "$(date -u +%Y-%m-01) -1 month" +%Y%m)"
-          start="$(date -u -d "$(date -u +%Y-%m-01) -$months month" +%Y%m)"
-          echo "start=$start" >> "$GITHUB_OUTPUT"
-          echo "end=$end" >> "$GITHUB_OUTPUT"
-
-      # The service key travels as a query parameter, and logs on a public
+      # The service key travels as a query parameter and logs on a public
       # repository are public. Never print the URL, never use curl -v, and let
-      # curl do the encoding so the key is not pre-encoded past the log masker.
-      - name: Fetch the span
+      # curl do the encoding so the decoded key is not pre-encoded past the
+      # log masker.
+      - name: Collect each month
         if: steps.guard.outputs.ready == 'true'
         env:
           SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
-          START: ${{ steps.span.outputs.start }}
-          END: ${{ steps.span.outputs.end }}
+          MONTHS: ${{ github.event.inputs.months || '3' }}
         run: |
-          curl -sS --fail-with-body --get "$ENDPOINT" \
-            --data-urlencode "<SERVICE_KEY_PARAM>=$SERVICE_KEY" \
-            --data-urlencode "<PERIOD_START_PARAM>=$START" \
-            --data-urlencode "<PERIOD_END_PARAM>=$END" \
-            --data-urlencode "<RETURN_TYPE_PARAM>=json" \
-            --data-urlencode "<ROWS_PARAM>=10000" \
-            --data-urlencode "<PAGE_PARAM>=1" \
-            -o response.json
-
-      # A rejected key still returns HTTP 200 with an error envelope that can
-      # echo the request back, so validate the shape and fail without printing
-      # the body.
-      - name: Validate the response
-        if: steps.guard.outputs.ready == 'true'
-        run: |
-          jq empty response.json || { echo "::error::response was not valid JSON"; exit 1; }
-          code="$(jq -r '.response.header.resultCode // "missing"' response.json)"
-          if [ "$code" != "00" ]; then
-            echo "::error::public data API returned resultCode=$code"
-            exit 1
-          fi
-
-          # One page is requested, so a span that outgrows the row limit would be
-          # stored truncated and look complete. Fail instead of paginating.
-          total="$(jq -r '.response.body.totalCount // "missing"' response.json)"
-          rows="$(jq -r '.response.body.numOfRows // "missing"' response.json)"
-          case "$total$rows" in
-            *missing*) echo "::error::response body has no totalCount/numOfRows"; exit 1 ;;
+          case "$MONTHS" in
+            ''|*[!0-9]*) echo "::error::months must be a positive integer"; exit 1 ;;
           esac
-          if [ "$total" -gt "$rows" ]; then
-            echo "::error::totalCount=$total exceeds numOfRows=$rows; the capture would be truncated"
+          if [ "$MONTHS" -lt 1 ] || [ "$MONTHS" -gt 18 ]; then
+            echo "::error::months must be between 1 and 18"
             exit 1
           fi
 
-      - name: Split by period and capture
-        if: steps.guard.outputs.ready == 'true'
-        run: |
-          periods="$(jq -r '[<ITEMS_JSON_PATH>[] | .<PERIOD_FIELD>] | unique | .[]' response.json)"
-          [ -n "$periods" ] || { echo "::error::no periods found in the response"; exit 1; }
+          mkdir -p "$SNAPSHOT_DIR"
+          work="$(mktemp -d)"
 
-          for raw_period in $periods; do
-            # The confirmed field format is <PERIOD_FIELD_FORMAT>. Anything else
-            # means the source changed shape, which must halt rather than be
-            # coerced into a period name.
-            case "$raw_period" in
-              [0-9][0-9][0-9][0-9][0-9][0-9]) period="${raw_period:0:4}-${raw_period:4:2}" ;;
-              [0-9][0-9][0-9][0-9]-[0-9][0-9]) period="$raw_period" ;;
-              *) echo "::error::unexpected period value in the response"; exit 1 ;;
-            esac
+          for i in $(seq 1 "$MONTHS"); do
+            month="$(date -u -d "$(date -u +%Y-%m-01) -$i month" +%Y-%m)"
+            start="$(date -u -d "$month-01" +%Y%m%d)"
+            end="$(date -u -d "$month-01 +1 month -1 day" +%Y%m%d)"
+            rows_file="$work/rows-$month.jsonl"
+            : > "$rows_file"
+            page=1
+            total=""
 
-            # Filtering in place with |= keeps the response shape exactly as the
-            # source returned it, so the stored period is still recognisably the
-            # source's own structure. totalCount and numOfRows are left alone and
-            # describe the fetched span rather than this one period; correcting
-            # them would be editing captured evidence.
+            while : ; do
+              curl -sS --fail-with-body --get "$ENDPOINT" \
+                --data-urlencode "serviceKey=$SERVICE_KEY" \
+                --data-urlencode "MobileOS=ETC" \
+                --data-urlencode "MobileApp=travel-context-wiki" \
+                --data-urlencode "_type=json" \
+                --data-urlencode "numOfRows=$ROWS_PER_PAGE" \
+                --data-urlencode "pageNo=$page" \
+                --data-urlencode "startYmd=$start" \
+                --data-urlencode "endYmd=$end" \
+                -o "$work/page.json"
+
+              # A rejected key still returns HTTP 200 with an error envelope
+              # that can echo the request back, so validate the shape and fail
+              # without printing the body. A wrong _type spelling returns XML,
+              # which fails here rather than silently storing markup.
+              jq empty "$work/page.json" \
+                || { echo "::error::response for $month page $page was not valid JSON"; exit 1; }
+
+              code="$(jq -r '.response.header.resultCode // "missing"' "$work/page.json")"
+              if [ "$code" != "0000" ]; then
+                echo "::error::public data API returned resultCode=$code for $month page $page"
+                exit 1
+              fi
+
+              total="$(jq -r '.response.body.totalCount // "missing"' "$work/page.json")"
+              case "$total" in
+                ''|*[!0-9]*) echo "::error::response body for $month has no numeric totalCount"; exit 1 ;;
+              esac
+
+              if [ "$page" -eq 1 ]; then
+                jq '.response.header' "$work/page.json" > "$work/header-$month.json"
+              fi
+
+              # items.item collapses to a single object when a page holds one
+              # row, so normalise to an array before appending.
+              jq -c '(.response.body.items.item // [])
+                     | if type == "object" then [.] else . end
+                     | .[]' "$work/page.json" >> "$rows_file"
+
+              have="$(wc -l < "$rows_file" | tr -d ' ')"
+              [ "$have" -lt "$total" ] || break
+
+              page=$((page + 1))
+              if [ "$page" -gt 200 ]; then
+                echo "::error::pagination for $month passed 200 pages; refusing to keep requesting"
+                exit 1
+              fi
+            done
+
+            have="$(wc -l < "$rows_file" | tr -d ' ')"
+
+            # An unpublished month returns zero rows. Storing it would freeze an
+            # empty period that the immutability check then refuses to replace
+            # once the real data arrives.
+            if [ "$total" -eq 0 ]; then
+              echo "::notice::$month has no rows yet; skipping."
+              continue
+            fi
+
+            if [ "$have" -ne "$total" ]; then
+              echo "::error::assembled $have rows for $month but totalCount is $total"
+              exit 1
+            fi
+
+            jq -s '.' "$rows_file" > "$work/items-$month.json"
+
+            # request records how this document was assembled, because the
+            # payload is many paginated responses rather than one. It sits
+            # outside payload so that a change in page count is not compared as
+            # a restatement of the data.
             jq -n \
-              --slurpfile payload response.json \
-              --arg rawPeriod "$raw_period" \
-              --arg period "$period" \
+              --slurpfile items "$work/items-$month.json" \
+              --slurpfile header "$work/header-$month.json" \
+              --arg period "$month" \
+              --arg start "$start" \
+              --arg end "$end" \
+              --arg pages "$page" \
+              --argjson total "$total" \
               --arg sourceKind "$SOURCE_KIND" \
               --arg sourceUrl "$SOURCE_URL" \
               --arg license "$LICENSE" \
               --arg collectedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-              '{snapshotId: ("kto-regional-visitors-" + $period), sourceKind: $sourceKind,
-                period: $period, sourceUrl: $sourceUrl, license: $license,
+              '{snapshotId: ("kto-regional-visitors-" + $period),
+                sourceKind: $sourceKind,
+                period: $period,
+                sourceUrl: $sourceUrl,
+                license: $license,
                 collectedAt: $collectedAt,
-                payload: ($payload[0]
-                          | (<ITEMS_JSON_PATH>) |= map(select(.<PERIOD_FIELD> == $rawPeriod)))}' \
-              > envelope.json
+                request: {startYmd: $start, endYmd: $end,
+                          pages: ($pages | tonumber), totalCount: $total},
+                payload: {response: {header: $header[0],
+                                     body: {items: {item: $items[0]},
+                                            totalCount: $total}}}}' \
+              > "$work/envelope-$month.json"
 
-            scripts/collect-period-snapshot.sh envelope.json "$SNAPSHOT_DIR"
+            scripts/collect-period-snapshot.sh "$work/envelope-$month.json" "$SNAPSHOT_DIR"
           done
 
-          rm -f response.json envelope.json
+          rm -rf "$work"
 
       # scripts/build-index.sh is deliberately not run here. It reads canonical
       # pages, records/, and packages/ only, so a capture under raw/ cannot move
@@ -522,7 +577,9 @@ jobs:
           git commit -m "chore: capture regional visitor counts"
           git push -u origin "$branch"
           printf '%s\n' \
-            "Scheduled capture of monthly visitor counts per 기초지자체. One file per period; stored periods are never rewritten." \
+            "Scheduled capture of daily visitor counts per 기초지자체, stored one file per month. Stored periods are never rewritten." \
+            "" \
+            "Rows are as the source returned them. \`touDivCd\` splits each region-day into 현지인, 외지인, and 외국인; no rollup is applied, because aggregating before storage would put derived data in \`raw/\`." \
             "" \
             "Evidence only: this touches \`raw/external-snapshots/tourism-visitors/\` and nothing else. Deriving \`records/\`, rebuilding \`indexes/\`, and promoting canonical pages stay human work." \
             "" \
@@ -533,44 +590,24 @@ jobs:
             --body-file pr-body.md
 ```
 
-- [ ] **Step 2: Check the workflow parses and the smoke still passes**
+- [ ] **Step 2: Check the smoke still passes**
 
 Run: `./harness/scripts/smoke.sh`
 Expected: PASS. The smoke's file-format check covers `.yml` outside `raw/`, so this catches a missing final newline or CRLF.
 
-- [ ] **Step 3: Commit and merge before dispatching**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add .github/workflows/collect-regional-visitors.yml
 git commit -m "feat: collect regional visitor counts monthly
 
-One file per period under rule 9, so a restated month halts the run
-instead of overwriting the original reading."
+The API is daily-only with no monthly operation, so a month is fetched as
+a date range and its daily rows are stored unaggregated. Pagination is the
+normal case here, not the exception it is for air quality, so the run
+pages to completion and fails when the assembled count misses totalCount."
 ```
 
-`workflow_dispatch` only offers workflows present on the default branch, so this must reach `main` before step 4.
-
-- [ ] **Step 4: Run the backfill**
-
-```bash
-gh workflow run collect-regional-visitors.yml -f months=18
-gh run watch
-```
-
-Expected: a pull request adding up to eighteen files under `raw/external-snapshots/tourism-visitors/`.
-
-- [ ] **Step 5: Confirm evidence actually landed**
-
-```bash
-gh pr list --state open
-ls raw/external-snapshots/tourism-visitors/
-```
-
-A green run is not evidence of a capture — the air-quality collector reported success for six days while its guard branch skipped every run. The deliverable is files on disk. If the run was green and the directory is empty, the secret is missing or the 활용신청 has not been approved; return to Task 2 rather than treating this task as done.
-
-- [ ] **Step 6: Review and merge the capture pull request**
-
-Check that period file names are contiguous months, that each file's `payload` contains only that period's rows, and that `license` reads `이용허락범위 제한 없음`. Then merge.
+Do not push or dispatch. Step 4 is the controller's, because it needs the branch merged and a live secret.
 
 ---
 
