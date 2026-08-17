@@ -1,0 +1,235 @@
+name: Collect Regional Visitors
+
+# Captures daily visitor counts per 기초지자체, stored one file per month, so a
+# congestion record can eventually cite an observed distribution instead of an
+# unsourced percentile scale.
+#
+# This is a growing time series, not a reference list, so it uses
+# scripts/collect-period-snapshot.sh: one file per period, and a stored period is
+# never rewritten. See "Scheduled Collection Rules" rule 9 in SCHEMA.md.
+#
+# Endpoint, operation, parameters, and response shape were read out of
+# TourAPI_Guide_(관광빅데이터)v4.1.zip on the dataset page, 2026-08-17. Three of
+# them are easy to get wrong from memory: resultCode is 0000 and not 00,
+# MobileOS and MobileApp are required, and the response-format parameter is
+# _type with a leading underscore whose default is XML.
+#
+# The API has no monthly operation. A month is requested as a date range and its
+# daily rows are stored unaggregated, because aggregating before storage would
+# put derived data in raw/.
+
+on:
+  schedule:
+    # The 8th at 06:00 KST. Daily data lags about four days, so the previous
+    # calendar month is complete by then. Offset from the other two crons.
+    - cron: "0 21 7 * *"
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "How many months back to collect, ending with last month. Use 1 to verify the contract, 18 for the initial backfill."
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  ENDPOINT: http://apis.data.go.kr/B551011/DataLabService/locgoRegnVisitrDDList
+  SOURCE_KIND: tourism-visitors
+  SOURCE_URL: https://www.data.go.kr/data/15101972/openapi.do
+  LICENSE: 이용허락범위 제한 없음
+  SNAPSHOT_DIR: raw/external-snapshots/tourism-visitors
+  ROWS_PER_PAGE: "1000"
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for the service key
+        id: guard
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "::notice::DATA_GO_KR_SERVICE_KEY is not configured; skipping collection."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The service key travels as a query parameter and logs on a public
+      # repository are public. Never print the URL, never use curl -v, and let
+      # curl do the encoding so the decoded key is not pre-encoded past the
+      # log masker.
+      - name: Collect each month
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+          MONTHS: ${{ github.event.inputs.months || '3' }}
+        run: |
+          case "$MONTHS" in
+            ''|*[!0-9]*) echo "::error::months must be a positive integer"; exit 1 ;;
+          esac
+          if [ "$MONTHS" -lt 1 ] || [ "$MONTHS" -gt 18 ]; then
+            echo "::error::months must be between 1 and 18"
+            exit 1
+          fi
+
+          mkdir -p "$SNAPSHOT_DIR"
+          work="$(mktemp -d)"
+
+          for i in $(seq 1 "$MONTHS"); do
+            month="$(date -u -d "$(date -u +%Y-%m-01) -$i month" +%Y-%m)"
+            start="$(date -u -d "$month-01" +%Y%m%d)"
+            end="$(date -u -d "$month-01 +1 month -1 day" +%Y%m%d)"
+            rows_file="$work/rows-$month.jsonl"
+            : > "$rows_file"
+            page=1
+            total=""
+
+            while : ; do
+              curl -sS --fail-with-body --get "$ENDPOINT" \
+                --data-urlencode "serviceKey=$SERVICE_KEY" \
+                --data-urlencode "MobileOS=ETC" \
+                --data-urlencode "MobileApp=travel-context-wiki" \
+                --data-urlencode "_type=json" \
+                --data-urlencode "numOfRows=$ROWS_PER_PAGE" \
+                --data-urlencode "pageNo=$page" \
+                --data-urlencode "startYmd=$start" \
+                --data-urlencode "endYmd=$end" \
+                -o "$work/page.json"
+
+              # A rejected key still returns HTTP 200 with an error envelope
+              # that can echo the request back, so validate the shape and fail
+              # without printing the body. A wrong _type spelling returns XML,
+              # which fails here rather than silently storing markup.
+              jq empty "$work/page.json" \
+                || { echo "::error::response for $month page $page was not valid JSON"; exit 1; }
+
+              code="$(jq -r '.response.header.resultCode // "missing"' "$work/page.json")"
+              if [ "$code" != "0000" ]; then
+                echo "::error::public data API returned resultCode=$code for $month page $page"
+                exit 1
+              fi
+
+              total="$(jq -r '.response.body.totalCount // "missing"' "$work/page.json")"
+              case "$total" in
+                ''|*[!0-9]*) echo "::error::response body for $month has no numeric totalCount"; exit 1 ;;
+              esac
+
+              if [ "$page" -eq 1 ]; then
+                jq '.response.header' "$work/page.json" > "$work/header-$month.json"
+              fi
+
+              # items.item collapses to a single object when a page holds one
+              # row, so normalise to an array before appending.
+              jq -c '(.response.body.items.item // [])
+                     | if type == "object" then [.] else . end
+                     | .[]' "$work/page.json" >> "$rows_file"
+
+              have="$(wc -l < "$rows_file" | tr -d ' ')"
+              [ "$have" -lt "$total" ] || break
+
+              page=$((page + 1))
+              if [ "$page" -gt 200 ]; then
+                echo "::error::pagination for $month passed 200 pages; refusing to keep requesting"
+                exit 1
+              fi
+            done
+
+            have="$(wc -l < "$rows_file" | tr -d ' ')"
+
+            # An unpublished month returns zero rows. Storing it would freeze an
+            # empty period that the immutability check then refuses to replace
+            # once the real data arrives.
+            if [ "$total" -eq 0 ]; then
+              echo "::notice::$month has no rows yet; skipping."
+              continue
+            fi
+
+            if [ "$have" -ne "$total" ]; then
+              echo "::error::assembled $have rows for $month but totalCount is $total"
+              exit 1
+            fi
+
+            jq -s '.' "$rows_file" > "$work/items-$month.json"
+
+            # request records how this document was assembled, because the
+            # payload is many paginated responses rather than one. It sits
+            # outside payload so that a change in page count is not compared as
+            # a restatement of the data.
+            jq -n \
+              --slurpfile items "$work/items-$month.json" \
+              --slurpfile header "$work/header-$month.json" \
+              --arg period "$month" \
+              --arg start "$start" \
+              --arg end "$end" \
+              --arg pages "$page" \
+              --argjson total "$total" \
+              --arg sourceKind "$SOURCE_KIND" \
+              --arg sourceUrl "$SOURCE_URL" \
+              --arg license "$LICENSE" \
+              --arg collectedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{snapshotId: ("kto-regional-visitors-" + $period),
+                sourceKind: $sourceKind,
+                period: $period,
+                sourceUrl: $sourceUrl,
+                license: $license,
+                collectedAt: $collectedAt,
+                request: {startYmd: $start, endYmd: $end,
+                          pages: ($pages | tonumber), totalCount: $total},
+                payload: {response: {header: $header[0],
+                                     body: {items: {item: $items[0]},
+                                            totalCount: $total}}}}' \
+              > "$work/envelope-$month.json"
+
+            scripts/collect-period-snapshot.sh "$work/envelope-$month.json" "$SNAPSHOT_DIR"
+          done
+
+          rm -rf "$work"
+
+      # scripts/build-index.sh is deliberately not run here. It reads canonical
+      # pages, records/, and packages/ only, so a capture under raw/ cannot move
+      # any index artifact until a human writes a record that cites it.
+      - name: Detect a real change
+        if: steps.guard.outputs.ready == 'true'
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain "$SNAPSHOT_DIR")" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::no new period; nothing to propose."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify the capture still satisfies the contract
+        if: steps.diff.outputs.changed == 'true'
+        run: ./harness/scripts/smoke.sh
+
+      - name: Open a pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="collect/regional-visitors-$(date -u +%Y%m%d-%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add "$SNAPSHOT_DIR"
+          git commit -m "chore: capture regional visitor counts"
+          git push -u origin "$branch"
+          printf '%s\n' \
+            "Scheduled capture of daily visitor counts per 기초지자체, stored one file per month. Stored periods are never rewritten." \
+            "" \
+            "Rows are as the source returned them. \`touDivCd\` splits each region-day into 현지인, 외지인, and 외국인; no rollup is applied, because aggregating before storage would put derived data in \`raw/\`." \
+            "" \
+            "Evidence only: this touches \`raw/external-snapshots/tourism-visitors/\` and nothing else. Deriving \`records/\`, rebuilding \`indexes/\`, and promoting canonical pages stay human work." \
+            "" \
+            "No checks will appear below. A pull request opened with \`GITHUB_TOKEN\` does not trigger other workflows, so \`Wiki Batch Checks\` stays idle here. The collecting run already executed \`./harness/scripts/smoke.sh\` against this exact tree before opening the pull request." \
+            > pr-body.md
+          gh pr create --base main --head "$branch" \
+            --title "chore: capture regional visitor counts" \
+            --body-file pr-body.md
