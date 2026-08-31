@@ -10,7 +10,7 @@ Active canonical pages: 13
 - [[project-artifact-linking]] - PRD, RAGAS, 배포 URL, GitHub Issue/PR 같은 프로젝트 산출물을 LLM Wiki에 연결하는 방식.
 - [[raw-derived-data-separation]] - 공공 API 원천 보존과 서비스용 파생 데이터 분리 원칙.
 - [[travel-context-layer]] - 여행 서비스 추천 결과를 LLM wiki 근거로 설명하는 통합 개념.
-- [[weather-aware-travel-recommendation]] - 날씨와 계절성을 여행 추천 설명에 반영하는 정책.
+- [[weather-aware-travel-recommendation]] - 날씨와 계절성을 여행 추천 설명에 반영하는 정책. 이 사실을 생산하는 소비 서비스는 아직 없다.
 
 ## Entities
 

@@ -4,7 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+# packages/smoke-broken is created below to prove build-bundle.sh rejects a
+# package that references a missing file. It is removed on every exit path so a
+# failure elsewhere in this script cannot leave a stray package in the tree.
+trap 'rm -rf "$TMP_DIR" "$ROOT/packages/smoke-broken"' EXIT
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -82,12 +85,17 @@ require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
 require_file scripts/collect-period-snapshot.sh
 require_file scripts/build-index.sh
+require_file scripts/build-bundle.sh
+require_file harness/scripts/explain-spike.sh
+require_file harness/scenarios/context-bundle-assembly.md
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
 [ -x scripts/collect-external-snapshot.sh ] || fail "scripts/collect-external-snapshot.sh is not executable"
 [ -x scripts/collect-period-snapshot.sh ] || fail "scripts/collect-period-snapshot.sh is not executable"
 [ -x scripts/build-index.sh ] || fail "scripts/build-index.sh is not executable"
+[ -x scripts/build-bundle.sh ] || fail "scripts/build-bundle.sh is not executable"
+[ -x harness/scripts/explain-spike.sh ] || fail "harness/scripts/explain-spike.sh is not executable"
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -209,7 +217,81 @@ scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods
 [ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
 [ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
 
-scripts/build-index.sh --check >/dev/null
+# Keep the diff. Sending it to /dev/null made a stale index fail with exit 1 and
+# no message at all, which is the least useful way a check can fail.
+if ! scripts/build-index.sh --check > "$TMP_DIR/index-check.txt" 2>&1; then
+  cat "$TMP_DIR/index-check.txt" >&2
+  fail "indexes are stale — run scripts/build-index.sh and commit the result"
+fi
+
+# Scenario "Context bundle assembly": prompt caching matches on an exact prefix,
+# so a bundle that differs by one byte between runs turns every request into a
+# cache miss. That costs money and fails no test, which is why the check is a
+# byte comparison of two consecutive runs rather than a code review note.
+for package_dir in packages/*/; do
+  service="$(basename "$package_dir")"
+  scripts/build-bundle.sh "$service" > "$TMP_DIR/bundle-$service.1" 2>/dev/null
+  scripts/build-bundle.sh "$service" > "$TMP_DIR/bundle-$service.2" 2>/dev/null
+  cmp -s "$TMP_DIR/bundle-$service.1" "$TMP_DIR/bundle-$service.2" \
+    || fail "scripts/build-bundle.sh $service is not deterministic across runs"
+  [ -s "$TMP_DIR/bundle-$service.1" ] || fail "scripts/build-bundle.sh $service produced an empty bundle"
+  grep -q "^----- FILE: packages/$service/prompt.md -----$" "$TMP_DIR/bundle-$service.1" \
+    || fail "bundle for $service does not carry packages/$service/prompt.md"
+done
+
+# The same scenario requires a missing path to fail loudly rather than produce a
+# half-written bundle that still looks usable.
+jq '.canonicalContext += ["concepts/deliberately-missing.md"]' packages/hanjeok/context-bundle.json \
+  > "$TMP_DIR/broken-bundle.json"
+mkdir -p "$TMP_DIR/packages/broken"
+cp "$TMP_DIR/broken-bundle.json" "$TMP_DIR/packages/broken/context-bundle.json"
+cp packages/hanjeok/prompt.md "$TMP_DIR/packages/broken/prompt.md"
+mkdir -p packages/smoke-broken
+cp "$TMP_DIR/packages/broken/context-bundle.json" packages/smoke-broken/context-bundle.json
+cp "$TMP_DIR/packages/broken/prompt.md" packages/smoke-broken/prompt.md
+if scripts/build-bundle.sh smoke-broken >/dev/null 2>&1; then
+  rm -rf packages/smoke-broken
+  fail "scripts/build-bundle.sh accepted a package referencing a missing file"
+fi
+rm -rf packages/smoke-broken
+
+# SCHEMA "Batch Collection Rules" keeps secret-dependent scripts out of scripts/,
+# so the spike lives under harness/. It must still do something useful with no
+# key present: emit the exact request body and exit clean. ANTHROPIC_API_KEY is
+# unset explicitly so a key in the environment can never turn smoke into a
+# billed API call.
+for provider in anthropic openrouter; do
+  env -u ANTHROPIC_API_KEY -u OPENROUTER_API_KEY \
+    harness/scripts/explain-spike.sh --provider "$provider" \
+    > "$TMP_DIR/spike-$provider.json" 2>/dev/null \
+    || fail "explain-spike.sh --provider $provider failed without a key"
+  jq empty "$TMP_DIR/spike-$provider.json" >/dev/null \
+    || fail "explain-spike.sh --provider $provider did not emit valid JSON without a key"
+done
+
+# The bundle is the cache prefix on Anthropic; losing the breakpoint costs money
+# silently rather than failing anything.
+[ "$(jq -r '.system[0].cache_control.ttl' "$TMP_DIR/spike-anthropic.json")" = "1h" ] \
+  || fail "spike request lost the 1h cache breakpoint on the bundle"
+[ "$(jq -r '.messages[0].role' "$TMP_DIR/spike-anthropic.json")" = "user" ] \
+  || fail "spike request does not put the varying facts in the user turn"
+
+# OpenRouter's free Nemotron does not support response_format, so the output
+# shape is forced through a tool call instead. If tool_choice stops forcing it,
+# the model is free to answer in prose and the contract is gone — with no error.
+[ "$(jq -r '.tool_choice.function.name' "$TMP_DIR/spike-openrouter.json")" = "submit_explanation" ] \
+  || fail "openrouter spike no longer forces the schema through tool_choice"
+[ "$(jq -r '.tools[0].function.parameters.required | sort | join(",")' "$TMP_DIR/spike-openrouter.json")" = "citations,explanation" ] \
+  || fail "openrouter spike schema lost a required field"
+
+# Both providers must be handed the same bundle and the same facts — otherwise a
+# comparison between them measures the prompt, not the model.
+[ "$(jq -r '.system[0].text' "$TMP_DIR/spike-anthropic.json" | cksum)" \
+  = "$(jq -r '.messages[0].content' "$TMP_DIR/spike-openrouter.json" | cksum)" ] \
+  || fail "the two providers were given different bundles"
+[ "$(jq -r '.messages[0].content' "$TMP_DIR/spike-anthropic.json" | cksum)" \
+  = "$(jq -r '.messages[1].content' "$TMP_DIR/spike-openrouter.json" | cksum)" ] \
+  || fail "the two providers were given different facts"
 
 while IFS= read -r line; do
   [ -z "$line" ] && continue
