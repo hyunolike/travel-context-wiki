@@ -57,12 +57,24 @@ fi
 
 # Validate every path before emitting anything, so a broken package never
 # produces a half-written bundle that looks usable.
+#
+# The marker check is the one that matters most. This script separates documents
+# with `----- FILE: <path> -----` lines, so a source file whose own body carries
+# such a line makes the bundle ambiguous: a consumer parsing it back gets a
+# document with a fabricated path. That fabricated path then reads as a real
+# entry in the bundle's path set, which is what a citation is validated against
+# — so an LLM could cite a document that does not exist and pass. Only the
+# generator can see the source files before they are concatenated, so only the
+# generator can refuse. A consumer cannot recover the boundary after the fact.
 while IFS= read -r path; do
   [ -n "$path" ] || continue
   case "$path" in
     /*|*..*) fail "$package lists a path outside the repository: $path" ;;
   esac
   [ -f "$path" ] || fail "$package references a missing file: $path"
+  if grep -qE '^----- FILE: .+ -----$' "$path"; then
+    fail "$path contains a line shaped like a bundle FILE marker; it would split into a document with a fabricated path"
+  fi
 done < "$paths_file"
 
 count=0
