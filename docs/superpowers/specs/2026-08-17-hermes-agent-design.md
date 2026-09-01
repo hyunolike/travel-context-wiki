@@ -1,7 +1,14 @@
 # Hermes Agent 설계
 
+> **부분 대체됨 (2026-08-31).** 코드가 사는 곳, 한적 호출 횟수, 노출 엔드포인트,
+> 사용자 접점, 배포 다섯 항목은 `2026-08-31-hermes-agent-repo-design.md`가 대체한다.
+> `max_tokens`는 §6.2의 4,096이 아니라 8,192이고, §5의 번들 실측 7,208바이트는
+> 15,681바이트로 갱신됐다. 그 외 — LLM 파라미터, 프롬프트 캐싱, 실패 처리,
+> 테스트 전략, 하지 않는 것 — 은 이 문서가 정본이다. 대체된 항목의 대조표는
+> 새 문서 §0에 있다.
+
 - **작성일**: 2026-08-17
-- **상태**: 설계
+- **상태**: 설계 (부분 대체)
 - **관련 결정**: `decisions/keep-llm-out-of-ranking.md`, `decisions/separate-context-wiki-from-services.md`
 - **관련 개념**: `concepts/travel-context-layer.md`, `queries/why-this-place-today.md`
 
