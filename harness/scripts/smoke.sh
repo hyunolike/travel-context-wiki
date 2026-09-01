@@ -82,12 +82,17 @@ require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
 require_file scripts/collect-period-snapshot.sh
 require_file scripts/build-index.sh
+require_file scripts/build-collection-stats.sh
+require_file scripts/collection-stats.jq
+require_file docs/collection-stats.svg
+require_file harness/scenarios/collection-stats-image.md
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
 [ -x scripts/collect-external-snapshot.sh ] || fail "scripts/collect-external-snapshot.sh is not executable"
 [ -x scripts/collect-period-snapshot.sh ] || fail "scripts/collect-period-snapshot.sh is not executable"
 [ -x scripts/build-index.sh ] || fail "scripts/build-index.sh is not executable"
+[ -x scripts/build-collection-stats.sh ] || fail "scripts/build-collection-stats.sh is not executable"
 
 canonical_count="$(find concepts entities comparisons queries decisions -type f -name '*.md' | wc -l | tr -d ' ')"
 index_count="$(awk -F': ' '/^Active canonical pages:/ { print $2 }' index.md)"
@@ -209,6 +214,93 @@ scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods
 [ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
 [ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
 
+# The stats image is a pure function of committed evidence, so its metrics are
+# pinned against fixtures rather than against whatever raw/ happens to hold on
+# the day the suite runs.
+stats_fixtures=harness/fixtures/collection-stats
+stats_metrics="$TMP_DIR/stats-metrics.json"
+scripts/build-collection-stats.sh --metrics --snapshot-dir "$stats_fixtures" > "$stats_metrics"
+
+[ "$(jq -r '.periods.count' "$stats_metrics")" = "2" ] || fail "collection stats counted the wrong number of periods"
+[ "$(jq -r '.periods.first' "$stats_metrics")" = "2026-06" ] || fail "collection stats reported the wrong first period"
+[ "$(jq -r '.periods.last' "$stats_metrics")" = "2026-07" ] || fail "collection stats reported the wrong last period"
+[ "$(jq -r '.periods.rows' "$stats_metrics")" = "10" ] || fail "collection stats summed the wrong row count"
+[ "$(jq -r '.stations.count' "$stats_metrics")" = "673" ] || fail "collection stats reported the wrong station count"
+[ "$(jq -r '.lastCollectedAt' "$stats_metrics")" = "2026-08-12" ] || fail "collection stats reported the wrong last collection date"
+
+# Coverage is a statement about now, so it is read from the newest period only.
+# Unioning every period would answer "which regions ever appeared", which is a
+# different and more flattering question. The fixtures differ (5 vs 6) so that
+# the wrong reading cannot pass.
+[ "$(jq -r '.periods.regions' "$stats_metrics")" = "5" ] || fail "collection stats counted regions outside the latest period"
+
+# The collectors run on their own schedule, so the image has to render before
+# the first capture rather than divide by zero.
+mkdir -p "$TMP_DIR/empty-snapshots"
+empty_metrics="$TMP_DIR/stats-metrics-empty.json"
+scripts/build-collection-stats.sh --metrics --snapshot-dir "$TMP_DIR/empty-snapshots" > "$empty_metrics"
+[ "$(jq -r '.periods.count' "$empty_metrics")" = "0" ] || fail "collection stats did not report zero periods for an empty evidence layer"
+[ "$(jq -r '.periods.rows' "$empty_metrics")" = "0" ] || fail "collection stats did not report zero rows for an empty evidence layer"
+[ "$(jq -r '.lastCollectedAt' "$empty_metrics")" = "" ] || fail "collection stats invented a collection date for an empty evidence layer"
+
+# The workflow commits only when the picture changes, so identical evidence
+# must render byte-identically. A real random jitter would produce a new file
+# every day and turn a "no change" policy into a daily commit.
+scripts/build-collection-stats.sh --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-a.svg" >/dev/null
+scripts/build-collection-stats.sh --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-b.svg" >/dev/null
+cmp -s "$TMP_DIR/stats-a.svg" "$TMP_DIR/stats-b.svg" || fail "collection stats rendered differently from identical inputs"
+
+head -c 4 "$TMP_DIR/stats-a.svg" | grep -q '<svg' || fail "collection stats output does not open with an svg element"
+tail -c 7 "$TMP_DIR/stats-a.svg" | grep -q '</svg>' || fail "collection stats output does not close its svg element"
+
+# GitHub's dark theme shows through a transparent background, so the canvas is
+# painted rather than inherited.
+grep -q 'fill="#fdfdf7"' "$TMP_DIR/stats-a.svg" || fail "collection stats output has no opaque paper background"
+
+# Nothing time-varying may reach the output. The fixtures carry fixed dates, so
+# today's date can only appear here by being stamped in.
+stats_today="$(date -u +%Y-%m-%d)"
+if grep -q "$stats_today" "$TMP_DIR/stats-a.svg"; then
+  fail "collection stats stamped the current date into the image"
+fi
+grep -q '2026-08-12' "$TMP_DIR/stats-a.svg" || fail "collection stats did not show the last collection date"
+
+# One labelled cell per month in the covered span.
+grep -q '>06</text>' "$TMP_DIR/stats-a.svg" || fail "collection stats did not label its month cells"
+grep -q '>07</text>' "$TMP_DIR/stats-a.svg" || fail "collection stats did not label its month cells"
+
+# A month missing from the series must still get a cell, drawn empty. That gap
+# is the one thing this figure exists to show: a form that simply omits the
+# month looks healthy while hiding a failed capture. Fed straight to the
+# renderer, which is what the two-stage split is for.
+printf '%s\n' '{"lastCollectedAt":"2026-08-12","periods":{"count":2,"first":"2026-05","last":"2026-07","regions":5,"rows":10,"series":[{"period":"2026-05","rows":5},{"period":"2026-07","rows":5}]},"stations":{"count":673}}' > "$TMP_DIR/stats-gap.json"
+jq -r -f scripts/collection-stats.jq "$TMP_DIR/stats-gap.json" > "$TMP_DIR/stats-gap.svg"
+[ "$(grep -c '>06</text>' "$TMP_DIR/stats-gap.svg")" = "1" ] || fail "collection stats dropped the month missing from the series"
+
+scripts/build-collection-stats.sh --snapshot-dir "$TMP_DIR/empty-snapshots" --out "$TMP_DIR/stats-empty.svg" >/dev/null
+grep -q '아직 수집된 기간이 없습니다' "$TMP_DIR/stats-empty.svg" || fail "collection stats did not render the empty state"
+
+grep -q 'docs/collection-stats.svg' README.md || fail "README.md does not embed the collection stats image"
+
+# SCHEMA "Generated Artifact Rules" rule 3: the stats image summarises sources
+# and is not one. A canonical page or record citing it would launder provenance
+# — the reader could no longer reach the evidence that was actually captured.
+if grep -rq 'collection-stats\.svg' concepts entities comparisons queries decisions records; then
+  fail "a canonical page or record cites the generated artifact as a source"
+fi
+
+# --check is the guard a human runs before committing a redraw. It is pinned
+# here against a temporary file, never against docs/collection-stats.svg:
+# wiki-batch.yml runs this suite on every push, and the stats workflow runs it
+# before pushing, so asserting on the real artifact would turn a scheduling gap
+# into a contract failure and deadlock the workflow against its own output.
+cp "$TMP_DIR/stats-a.svg" "$TMP_DIR/stats-check.svg"
+scripts/build-collection-stats.sh --check --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-check.svg" >/dev/null
+printf '<!-- stale -->\n' >> "$TMP_DIR/stats-check.svg"
+if scripts/build-collection-stats.sh --check --snapshot-dir "$stats_fixtures" --out "$TMP_DIR/stats-check.svg" >/dev/null 2>&1; then
+  fail "--check accepted a stale collection stats image"
+fi
+
 scripts/build-index.sh --check >/dev/null
 
 while IFS= read -r line; do
@@ -275,7 +367,7 @@ done
 
 # SCHEMA "File Format Rules": UTF-8, LF, no BOM, final newline.
 # raw/ is exempt because captured evidence is preserved byte-for-byte.
-find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.jsonl' -o -name '*.sh' -o -name '*.yml' -o -name '*.yaml' \) \
+find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.jsonl' -o -name '*.sh' -o -name '*.yml' -o -name '*.yaml' -o -name '*.jq' \) \
   -not -path './.git/*' -not -path './raw/*' | while IFS= read -r text_file; do
   if [ "$(head -c 3 "$text_file" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
     fail "$text_file starts with a byte-order mark"

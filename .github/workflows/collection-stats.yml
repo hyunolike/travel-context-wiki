@@ -1,0 +1,81 @@
+name: Collection Stats Image
+
+# Redraws docs/collection-stats.svg from evidence already committed here and
+# pushes it to main when the picture changed.
+#
+# This is the only workflow that writes outside raw/ and pushes to the default
+# branch. "Generated Artifact Rules" in SCHEMA.md defines that exception: no API
+# call, no secret, nothing but committed files as input, so there is no
+# judgement for a reviewer to make. The guards below are what keep it narrow.
+
+on:
+  schedule:
+    # 05:00 KST daily. Offset from the other three crons so no two runs race.
+    - cron: "0 20 * * *"
+  push:
+    branches:
+      - main
+    # Closes the window between merging a capture and the next daily run. The
+    # artifact's own path is absent from this list, so the push this workflow
+    # makes cannot retrigger it.
+    paths:
+      - "raw/external-snapshots/**"
+      - "scripts/build-collection-stats.sh"
+      - "scripts/collection-stats.jq"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collection-stats
+  cancel-in-progress: false
+
+jobs:
+  redraw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Redraw the image
+        run: scripts/build-collection-stats.sh
+
+      - name: Detect a real change
+        id: diff
+        run: |
+          # Rule 2: the generator owns exactly one path. Anything else moving
+          # means something wrote where it should not have, and committing
+          # would carry that with it.
+          stray="$(git status --porcelain -- . ':(exclude)docs/collection-stats.svg')"
+          if [ -n "$stray" ]; then
+            echo "::error::the generator touched a path other than docs/collection-stats.svg"
+            printf '%s\n' "$stray"
+            exit 1
+          fi
+
+          # Rule 4: an unchanged input must produce an unchanged file. If this
+          # branch stops being taken on quiet days, the generator has picked up
+          # something time-varying.
+          if [ -n "$(git status --porcelain docs/collection-stats.svg)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::the picture did not change; nothing to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify the tree still satisfies the contract
+        if: steps.diff.outputs.changed == 'true'
+        run: ./harness/scripts/smoke.sh
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/collection-stats.svg
+          git commit -m "chore: redraw the collection stats image"
+          # If something else landed on main since checkout, the push is
+          # rejected; rebase onto it and retry. Safe here because this commit
+          # touches only the generated artifact, so a rebase can never
+          # conflict with or reorder anyone else's change.
+          git push || (git fetch origin main && git rebase origin/main && git push)

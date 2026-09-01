@@ -1,0 +1,21 @@
+{
+  "collectedAt": "2026-08-12T20:49:15Z",
+  "license": "공공누리 제3유형 (출처표시 + 변경금지)",
+  "payload": {
+    "response": {
+      "body": {
+        "items": [
+          {"stationName": "종로구", "addr": "서울 종로구"},
+          {"stationName": "중구", "addr": "서울 중구"}
+        ],
+        "numOfRows": 1000,
+        "pageNo": 1,
+        "totalCount": 673
+      },
+      "header": {"resultCode": "00", "resultMsg": "NORMAL_CODE"}
+    }
+  },
+  "snapshotId": "airkorea-station-list",
+  "sourceKind": "air-quality",
+  "sourceUrl": "https://www.data.go.kr/data/15073877/openapi.do"
+}
