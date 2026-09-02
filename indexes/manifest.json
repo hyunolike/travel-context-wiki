@@ -9,7 +9,7 @@
       "path": "concepts/alternative-scoring.md",
       "type": "concept",
       "title": "Alternative Scoring",
-      "confidence": "medium",
+      "confidence": "high",
       "tags": [
         "recommendation-policy",
         "fallback-policy",
@@ -18,7 +18,8 @@
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
         "raw/service-snapshots/hanjeok/course-recommendation.md",
-        "raw/service-snapshots/hanjeok/attractions.fixture.json"
+        "raw/service-snapshots/hanjeok/attractions.fixture.json",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
@@ -26,7 +27,7 @@
       "path": "concepts/congestion-diagnosis.md",
       "type": "concept",
       "title": "Congestion Diagnosis",
-      "confidence": "medium",
+      "confidence": "high",
       "tags": [
         "congestion",
         "recommendation-policy",
@@ -34,7 +35,8 @@
       ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
-        "raw/service-snapshots/hanjeok/course-recommendation.md"
+        "raw/service-snapshots/hanjeok/course-recommendation.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
@@ -42,7 +44,7 @@
       "path": "concepts/course-generation-policy.md",
       "type": "concept",
       "title": "Course Generation Policy",
-      "confidence": "medium",
+      "confidence": "high",
       "tags": [
         "course-generation",
         "recommendation-policy",
@@ -50,7 +52,8 @@
       ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
-        "raw/service-snapshots/hanjeok/course-recommendation.md"
+        "raw/service-snapshots/hanjeok/course-recommendation.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
@@ -90,15 +93,15 @@
       "path": "concepts/travel-context-layer.md",
       "type": "concept",
       "title": "Travel Context Layer",
-      "confidence": "medium",
+      "confidence": "high",
       "tags": [
         "travel-context",
         "course-explanation",
-        "llm-rag",
-        "weather-aware-recommendation"
+        "llm-rag"
       ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md",
         "raw/public-tourism-api/2026-openapi-briefing.txt"
       ]
     },
@@ -202,7 +205,7 @@
       "path": "queries/why-this-place-today.md",
       "type": "query",
       "title": "Why This Place Today",
-      "confidence": "medium",
+      "confidence": "high",
       "tags": [
         "course-explanation",
         "llm-rag",
@@ -210,7 +213,8 @@
       ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
-        "raw/service-snapshots/hanjeok/course-recommendation.md"
+        "raw/service-snapshots/hanjeok/course-recommendation.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     }
   ],

@@ -17,6 +17,16 @@
       "entities/tourapi-korservice2.md"
     ]
   },
+  "raw/service-snapshots/hanjeok/api-contract-v4.md": {
+    "kind": "service-snapshots",
+    "usedBy": [
+      "concepts/alternative-scoring.md",
+      "concepts/congestion-diagnosis.md",
+      "concepts/course-generation-policy.md",
+      "concepts/travel-context-layer.md",
+      "queries/why-this-place-today.md"
+    ]
+  },
   "raw/service-snapshots/hanjeok/attractions.fixture.json": {
     "kind": "service-snapshots",
     "usedBy": [
