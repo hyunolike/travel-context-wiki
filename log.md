@@ -95,3 +95,14 @@
 - Updated: `.github/workflows/collect-air-quality-stations.yml` to pass `--sort-arrays`, with the reason recorded at the call site.
 - The snapshot already on `main` was stored unsorted, so the next run will propose one pull request that normalises it and then go quiet.
 - Canonical pages unchanged at 13.
+
+## 2026-08-17 - create - draw the collection coverage on the README
+
+- Added: `scripts/build-collection-stats.sh` and `scripts/collection-stats.jq`, which read `raw/external-snapshots/` and render `docs/collection-stats.svg` — periods stored, daily rows, 기초지자체 covered in the latest period, and the air-quality station count. The README previously stated what the wiki intends to collect and nothing about what it holds.
+- The renderer is a pure function of the metrics. Its hand-drawn wobble comes from a Lehmer generator seeded by a hash of those metrics, not from a random source, and the footer carries the newest `collectedAt` rather than the current date. Both follow from the refresh policy: the workflow runs daily and commits only when the picture changes, so any non-determinism would produce one meaningless commit per day.
+- 기초지자체 coverage is counted in the newest period only. Unioning every period would report which regions have ever appeared, which is a more flattering number and a different claim.
+- Added: `.github/workflows/collection-stats.yml`, which redraws daily, on a push to `main` under `raw/external-snapshots/`, and on demand. It fails if any path other than the artifact is dirty after generation, and pushes to `main` rather than opening a pull request.
+- Added: `SCHEMA.md` "Generated Artifact Rules", which is what makes that push legal. Rule 8 of "Scheduled Collection Rules" exists because a capture brings in something no human has seen; this artifact brings in nothing of its own, so a pull request would ask for a judgement that does not exist. The new rules keep the exception narrow: one fixed path, no API, no secret, not citable as a source, and pure.
+- `--check` is deliberately not wired into `harness/scripts/smoke.sh`. `wiki-batch.yml` runs smoke on every push and the stats workflow runs it before pushing, so asserting there would turn the interval between a merged capture and the next redraw into a contract failure, and would deadlock the workflow against its own output. The `push` trigger closes that interval instead.
+- The first committed version renders the empty state, because no visitor period has been captured yet. That is the accurate picture.
+- Canonical pages unchanged at 13.

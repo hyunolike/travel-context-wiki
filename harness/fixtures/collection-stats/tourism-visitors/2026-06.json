@@ -1,0 +1,25 @@
+{
+  "collectedAt": "2026-07-08T21:00:00Z",
+  "license": "이용허락범위 제한 없음",
+  "payload": {
+    "response": {
+      "body": {
+        "items": {
+          "item": [
+            {"baseYmd": "20260601", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "1", "touNum": 1000},
+            {"baseYmd": "20260601", "signguCode": "11140", "signguNm": "중구", "touDivCd": "1", "touNum": 900},
+            {"baseYmd": "20260602", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "2", "touNum": 800},
+            {"baseYmd": "20260602", "signguCode": "11170", "signguNm": "용산구", "touDivCd": "3", "touNum": 700}
+          ]
+        },
+        "totalCount": 4
+      },
+      "header": {"resultCode": "0000", "resultMsg": "OK"}
+    }
+  },
+  "period": "2026-06",
+  "request": {"endYmd": "20260630", "pages": 1, "startYmd": "20260601", "totalCount": 4},
+  "snapshotId": "kto-regional-visitors-2026-06",
+  "sourceKind": "tourism-visitors",
+  "sourceUrl": "https://www.data.go.kr/data/15101972/openapi.do"
+}

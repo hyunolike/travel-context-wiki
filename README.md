@@ -28,6 +28,7 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 - [What Is This?](#-what-is-this)
 - [The Travel Context Layer](#-the-travel-context-layer)
 - [Data Sources](#-data-sources)
+- [Collection Status](#-collection-status)
 - [Knowledge Layers](#-knowledge-layers)
 - [Repository Structure](#-repository-structure)
 - [Data Flow](#-data-flow)
@@ -98,6 +99,19 @@ page traces back to a raw evidence snapshot under `raw/`.
 > tourism records** as real-time OpenAPI. Source snapshots are preserved verbatim under `raw/` and
 > are never edited — updates arrive as new snapshots. Confirm the exact license terms
 > (e.g. KOGL) on the [public-data portal](https://www.data.go.kr/) before redistribution.
+
+---
+
+## 📊 Collection Status
+
+![Collection status](docs/collection-stats.svg)
+
+`scripts/build-collection-stats.sh` reads `raw/external-snapshots/` and redraws this
+figure daily. A day whose numbers did not move is not committed, so the date on the
+figure is the day the evidence was last captured, not the day it was drawn. And
+because the collectors skip an unchanged payload and treat a stored period as
+immutable, it is precisely the last capture that **differed** — not the last one
+that ran.
 
 ---
 

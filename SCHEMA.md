@@ -190,7 +190,8 @@ live readings or anything about a person.
    `records/`, promoting canonical pages, and updating `index.md` stay human
    work, so the review gate is never bypassed.
 8. **Open a pull request; never push to the default branch.** The capture has to
-   pass `./harness/scripts/smoke.sh` and human review like any other change.
+   pass `./harness/scripts/smoke.sh` and human review like any other change,
+   except for the one case "Generated Artifact Rules" below carves out.
 9. **Partition a growing series by period, and treat a stored period as
    immutable.** A source that accumulates new rows over time does not fit the
    single-file model of `scripts/collect-external-snapshot.sh`: its payload
@@ -203,6 +204,34 @@ live readings or anything about a person.
    Partitioning also settles what rule 6 leaves open: with the time axis in the
    file name, what remains inside a file is an unordered set, so a period file
    is always stored normalised.
+
+## Generated Artifact Rules
+
+A generated artifact is a file this repository writes about itself: derived
+wholly from files already committed here, carrying no evidence of its own. Today
+there is exactly one, `docs/collection-stats.svg`.
+
+1. **It may be pushed to the default branch by a scheduled workflow.** This is
+   the only exception to rule 8 of "Scheduled Collection Rules". The reason the
+   review gate applies elsewhere is that a capture brings in something a human
+   has not seen; a generated artifact brings in nothing, so a pull request would
+   ask for a judgement that does not exist. The exception holds only while all
+   of the following do: it calls no external API, reads no secret, and derives
+   solely from committed files.
+2. **Its path is fixed and single.** The refreshing workflow fails if any path
+   other than that artifact is dirty after generation. A generator free to write
+   anywhere is a generator that can quietly rewrite evidence.
+3. **It is not evidence.** No canonical page and no record may cite it as a
+   source. It summarises sources, and citing a summary launders provenance:
+   the reader can no longer reach the thing that was actually captured.
+4. **It must be a pure function of its inputs.** Nothing time-varying may reach
+   the output — not the current date, not a random number, not a run identifier.
+   Otherwise an unchanged input produces a changed file, the "commit only on a
+   change" rule stops filtering anything, and the history fills with commits
+   that say nothing. Any sketch or layout randomness must be seeded from the
+   data itself.
+5. **It is regenerated, never edited.** A hand edit is overwritten by the next
+   run, so a change to the artifact means a change to its generator.
 
 ## Retrieval And Package Rules
 
