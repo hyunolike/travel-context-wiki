@@ -122,6 +122,22 @@
       ]
     },
     {
+      "id": "decision:choose-explanation-model",
+      "path": "decisions/choose-explanation-model.md",
+      "type": "decision",
+      "title": "Choose Explanation Model By Readability, Not By Rule Violations",
+      "confidence": "medium",
+      "tags": [
+        "llm-rag",
+        "evaluation",
+        "cost"
+      ],
+      "sources": [
+        "packages/hanjeok/prompt.md",
+        "concepts/congestion-diagnosis.md"
+      ]
+    },
+    {
       "id": "decision:keep-llm-out-of-ranking",
       "path": "decisions/keep-llm-out-of-ranking.md",
       "type": "decision",

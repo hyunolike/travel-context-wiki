@@ -1,6 +1,6 @@
 # Travel Context Wiki Index
 
-Active canonical pages: 13
+Active canonical pages: 14
 
 ## Concepts
 
@@ -24,6 +24,7 @@ Active canonical pages: 13
 
 ## Decisions
 
+- [[choose-explanation-model]] - 설명 모델은 위반율이 아니라 한국어 가독성으로 고른다.
 - [[keep-llm-out-of-ranking]] - LLM은 추천 순위를 결정하지 않고 설명만 생성한다.
 - [[separate-context-wiki-from-services]] - 소비 서비스와 Travel Context Wiki를 별도 레포로 유지한다.
 
