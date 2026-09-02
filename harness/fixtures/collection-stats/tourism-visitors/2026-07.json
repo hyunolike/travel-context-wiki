@@ -1,0 +1,27 @@
+{
+  "collectedAt": "2026-08-08T21:00:00Z",
+  "license": "이용허락범위 제한 없음",
+  "payload": {
+    "response": {
+      "body": {
+        "items": {
+          "item": [
+            {"baseYmd": "20260701", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "1", "touNum": 1100},
+            {"baseYmd": "20260701", "signguCode": "11140", "signguNm": "중구", "touDivCd": "1", "touNum": 950},
+            {"baseYmd": "20260701", "signguCode": "11170", "signguNm": "용산구", "touDivCd": "1", "touNum": 720},
+            {"baseYmd": "20260702", "signguCode": "11200", "signguNm": "성동구", "touDivCd": "2", "touNum": 610},
+            {"baseYmd": "20260702", "signguCode": "11215", "signguNm": "광진구", "touDivCd": "2", "touNum": 580},
+            {"baseYmd": "20260702", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "3", "touNum": 240}
+          ]
+        },
+        "totalCount": 6
+      },
+      "header": {"resultCode": "0000", "resultMsg": "OK"}
+    }
+  },
+  "period": "2026-07",
+  "request": {"endYmd": "20260731", "pages": 1, "startYmd": "20260701", "totalCount": 6},
+  "snapshotId": "kto-regional-visitors-2026-07",
+  "sourceKind": "tourism-visitors",
+  "sourceUrl": "https://www.data.go.kr/data/15101972/openapi.do"
+}
