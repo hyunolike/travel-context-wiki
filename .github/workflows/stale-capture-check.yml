@@ -1,0 +1,58 @@
+name: Stale Capture Check
+
+# Fails while a capture pull request has been waiting too long.
+#
+# A collector opens its pull request with GITHUB_TOKEN, and a pull request
+# opened that way does not trigger other workflows. That is by design — the
+# collecting run has already executed ./harness/scripts/smoke.sh against the
+# exact tree it proposes — but it leaves the pull request with no checks at all,
+# which is also what an abandoned one looks like. The first real capture of the
+# visitor series sat open for six days for exactly this reason: nothing was
+# wrong, and nothing said so.
+#
+# The notification channel is a red run, because that is the one this repository
+# already has. No new secret and no external service.
+#
+# This check deliberately does not live in collection-stats.yml, which runs
+# daily and could carry it for free. That workflow pushes to main without review
+# on the grounds that it redraws committed evidence and adds no claim of its
+# own; a failure condition about pull request state is a claim of its own, and
+# it would also block the redraw whenever a capture was waiting.
+
+on:
+  schedule:
+    # 07:00 KST daily, after the collectors have had their window.
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail while a capture pull request is waiting
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_AGE_DAYS: "3"
+        run: |
+          cutoff="$(date -u -d "$MAX_AGE_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)"
+
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --json number,title,headRefName,createdAt,url \
+            --jq "[.[] | select(.headRefName | startswith(\"collect/\"))
+                       | select(.createdAt < \"$cutoff\")]" > stale.json
+
+          count="$(jq 'length' stale.json)"
+          if [ "$count" -eq 0 ]; then
+            echo "::notice::No capture pull request has been open longer than $MAX_AGE_DAYS days."
+            exit 0
+          fi
+
+          jq -r '.[] | "::error::capture pull request #\(.number) has been open since \(.createdAt): \(.title) — \(.url)"' stale.json
+
+          echo "$count capture pull request(s) waiting. Evidence that is captured but not merged is" >&2
+          echo "evidence this repository does not have: docs/collection-stats.svg counts committed" >&2
+          echo "files, so an unmerged capture reads as a month that was never collected." >&2
+          exit 1

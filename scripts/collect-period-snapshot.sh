@@ -11,6 +11,26 @@ fail() {
   exit 1
 }
 
+# Computed rather than asked of `date`, whose -d spelling differs between the
+# GNU date in CI and the BSD date on a developer's machine.
+days_in_month() {
+  year="${1%%-*}"
+  month="${1##*-}"
+  month="${month#0}"
+  case "$month" in
+    1|3|5|7|8|10|12) printf '31\n' ;;
+    4|6|9|11) printf '30\n' ;;
+    2)
+      if [ "$((year % 4))" -eq 0 ] && { [ "$((year % 100))" -ne 0 ] || [ "$((year % 400))" -eq 0 ]; }; then
+        printf '29\n'
+      else
+        printf '28\n'
+      fi
+      ;;
+    *) fail "not a month: $1" ;;
+  esac
+}
+
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -35,6 +55,42 @@ jq -e '
   (.collectedAt | type == "string" and length > 0) and
   (.payload | type == "object")
 ' "$input_json" >/dev/null || fail "period snapshot is missing required source metadata"
+
+# A period is stored only once the source has published all of it. Storing a
+# partial month is not a smaller version of the right thing: the file is
+# immutable from the moment it lands, so the complete month arriving later is
+# refused by the check below and the period stays wrong for good. The first real
+# capture of this series returned nine days of August on the 7th of September,
+# which is how the shape of the mistake became known.
+#
+# The count is taken from the payload rather than from a number the caller
+# declares, so a collector cannot assert coverage it does not have. dayField
+# names the field that carries a day; the expected count is a pure function of
+# the period. A source whose periods carry no day field declares no coverage and
+# keeps the old behaviour.
+day_field="$(jq -r '.coverage.dayField // empty' "$input_json")"
+if [ -n "$day_field" ]; then
+  printf '%s\n' "$day_field" | grep -Eq '^[A-Za-z][A-Za-z0-9_]*$' \
+    || fail "coverage.dayField must be a plain field name: $day_field"
+
+  expected_days="$(days_in_month "$period")"
+  actual_days="$(
+    jq --arg field "$day_field" \
+      '[.payload | .. | objects | .[$field]? // empty] | unique | length' "$input_json"
+  )"
+
+  if [ "$actual_days" -gt "$expected_days" ]; then
+    fail "period $period carries $actual_days distinct $day_field values but the month has $expected_days days; the payload reaches outside its own period"
+  fi
+
+  # Not an error. The newest month is partially published on every scheduled
+  # run, so failing here would paint a workflow red for behaving correctly.
+  if [ "$actual_days" -lt "$expected_days" ]; then
+    printf 'incomplete period snapshot: %s covers %s of %s days; not stored\n' \
+      "$period" "$actual_days" "$expected_days"
+    exit 0
+  fi
+fi
 
 mkdir -p "$output_dir"
 output_path="$output_dir/$period.json"
