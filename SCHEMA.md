@@ -204,6 +204,23 @@ live readings or anything about a person.
    Partitioning also settles what rule 6 leaves open: with the time axis in the
    file name, what remains inside a file is an unordered set, so a period file
    is always stored normalised.
+10. **Store a period only once the source has finished publishing it.** Rule 9
+    makes a stored period immutable, which turns a partial capture into a
+    permanent one: the complete month arrives later, differs, and is refused.
+    The two rules combine into a hole in the evidence layer unless the
+    incomplete period is never written. A period-partitioned envelope therefore
+    declares `coverage.dayField`, naming the field that carries a day, and
+    `scripts/collect-period-snapshot.sh` admits the period only when the
+    distinct days in its payload cover the calendar month. The count comes from
+    the payload, never from a number the collector declares, so a collector
+    cannot assert coverage it does not have. A period that is short is skipped
+    and reported rather than failed — the newest month is partially published on
+    every scheduled run, and that is the source behaving normally. A period
+    carrying days its month does not have is a real error and fails.
+    A source whose periods carry no day field declares no coverage, and its
+    completeness is then nobody's to check but a reviewer's. If a source
+    permanently omits a day, dropping `coverage.dayField` for that capture is
+    the deliberate, reviewable way to admit it.
 
 ## Generated Artifact Rules
 

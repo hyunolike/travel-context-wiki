@@ -67,6 +67,8 @@ require_file raw/service-snapshots/hanjeok/attractions.fixture.json
 require_file harness/fixtures/user-input-capture.valid.json
 require_file harness/fixtures/external-tourism-snapshot.valid.json
 require_file harness/fixtures/period-snapshot.valid.json
+require_file harness/fixtures/period-snapshot.complete.json
+require_file harness/fixtures/period-snapshot.incomplete.json
 require_file raw/project-guides/open-source-ai-agent-project-guide.md
 require_file records/places/gyeongbokgung.json
 require_file records/weather/rules.json
@@ -221,6 +223,57 @@ jq '.period = "2026-08" | .snapshotId = "kto-regional-visitors-2026-08"' harness
 scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods" >/dev/null
 [ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
 [ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
+
+# SCHEMA "Scheduled Collection Rules" rule 10: a period is stored only once the
+# source has published all of it. The first real capture returned nine days of
+# August and would have frozen the month at 29%, after which the immutability
+# check above refuses the complete month for as long as the file exists — the
+# two rules combine into a permanent hole unless the incomplete period is never
+# written. A period declaring coverage.dayField is admitted only when the days
+# present in its payload cover the calendar month.
+coverage_dir="$TMP_DIR/coverage"
+
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.complete.json "$coverage_dir" >/dev/null
+[ -f "$coverage_dir/2026-06.json" ] || fail "a period covering every day of its month was not stored"
+
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.incomplete.json "$coverage_dir" >/dev/null
+[ ! -f "$coverage_dir/2026-08.json" ] || fail "a period covering 9 of 31 days was stored"
+
+# Skipping is not failing. The newest month is partially published every time
+# this runs, which is the expected state rather than a broken run, so the
+# collector reports and continues instead of turning a monthly notice into a red
+# workflow. Only a period carrying days the month does not have is an error.
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.incomplete.json "$coverage_dir" >/dev/null \
+  || fail "an incomplete period exited non-zero instead of skipping"
+
+jq '.payload.response.body.items.item += [{"baseYmd": "20260701", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "1", "touDivNm": "현지인(a)", "touNum": "1"}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/overflowing-period.json"
+if scripts/collect-period-snapshot.sh "$TMP_DIR/overflowing-period.json" "$TMP_DIR/overflow" >/dev/null 2>&1; then
+  fail "a period carrying a day outside its own month was accepted"
+fi
+
+# Verified the other way: the same nine-day payload with no coverage declared is
+# stored. What refuses it is the rule, not some unrelated property of the
+# fixture, and a source with no day field keeps the old behaviour.
+jq 'del(.coverage)' harness/fixtures/period-snapshot.incomplete.json > "$TMP_DIR/uncovered-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/uncovered-period.json" "$TMP_DIR/uncovered" >/dev/null
+[ -f "$TMP_DIR/uncovered/2026-08.json" ] || fail "a period declaring no coverage was refused"
+
+# February is where a day-count table goes wrong, and 2028 is the leap year this
+# series reaches next. Neither calendar is exercised by the fixtures above.
+jq '.period = "2027-02" | .snapshotId = "smoke-2027-02"
+    | .payload.response.body.items.item = [range(1;29) as $d
+        | {baseYmd: ("202702" + ($d | tostring | if length == 1 then "0" + . else . end))}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/february-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/february-period.json" "$TMP_DIR/february" >/dev/null
+[ -f "$TMP_DIR/february/2027-02.json" ] || fail "a complete 28-day February was refused"
+
+jq '.period = "2028-02" | .snapshotId = "smoke-2028-02"
+    | .payload.response.body.items.item = [range(1;29) as $d
+        | {baseYmd: ("202802" + ($d | tostring | if length == 1 then "0" + . else . end))}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/leap-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/leap-period.json" "$TMP_DIR/leap" >/dev/null
+[ ! -f "$TMP_DIR/leap/2028-02.json" ] || fail "a 28-day February was stored for a leap year that has 29"
 
 # Keep the diff. Sending it to /dev/null made a stale index fail with exit 1 and
 # no message at all, which is the least useful way a check can fail.

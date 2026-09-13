@@ -20,8 +20,16 @@ name: Collect Regional Visitors
 
 on:
   schedule:
-    # The 8th at 06:00 KST. Daily data lags about four days, so the previous
-    # calendar month is complete by then. Offset from the other two crons.
+    # The 8th at 06:00 KST, offset from the other two crons.
+    #
+    # This date was chosen believing the daily data lagged about four days, so
+    # that the previous calendar month would be complete by the 8th. The first
+    # real run measured otherwise: on 2026-09-07 the source had published August
+    # only through 08-09, a lag of about 29 days. The schedule is kept anyway.
+    # Requesting three months means the month that was too fresh last time is
+    # complete by the next run, and collect-period-snapshot.sh refuses to store
+    # a month the source has not finished publishing, so a run that is too early
+    # captures nothing rather than freezing a partial month.
     - cron: "0 21 7 * *"
   workflow_dispatch:
     inputs:
@@ -181,6 +189,7 @@ jobs:
                 collectedAt: $collectedAt,
                 request: {startYmd: $start, endYmd: $end,
                           pages: ($pages | tonumber), totalCount: $total},
+                coverage: {dayField: "baseYmd"},
                 payload: {response: {header: $header[0],
                                      body: {items: {item: $items[0]},
                                             totalCount: $total}}}}' \
