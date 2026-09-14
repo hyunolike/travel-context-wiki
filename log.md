@@ -186,3 +186,9 @@
 - Repaired: `queries/why-this-place-today.md`. "avoid claiming that the LLM selected or ordered anything" sat in the **should** list — a prohibition among things to do, inside a document that ships in the bundle. `1c12819` diagnosed this shape: reading such a line reads as an instruction to make the denial, and two of three live explanations ended in a spiral of them. The item moved to **must not**, where it belongs.
 - Recorded: `NO_SYSTEM_NAME` in `packages/explanation-rules.json`, with all four documents as its homes. The two that contradicted it are pinned by `mustNotContain`, so the contradiction cannot come back quietly.
 - Canonical pages unchanged at 14.
+
+## 2026-09-14 - delete - retire the retrieval-context fixture
+
+- Deleted `harness/fixtures/wiki-retrieval-context.json`. No script read it, so it could not drift *into* anything — but its `forbiddenBehavior` array listed three rules where `packages/explanation-rules.json` now lists eight, and it is the first thing a reader greps for. A stale count nothing enforces is worse than no count.
+- `harness/README.md` no longer names it. `docs/superpowers/plans/2026-08-03-travel-context-wiki-pivot.md` still does, and stays as written: it records what was planned on that day.
+- The registry is now the only place that answers how many forbidden behaviours there are. The counts in the plans and in `decisions/choose-explanation-model.md` record what was measured when they were written and are left alone.
