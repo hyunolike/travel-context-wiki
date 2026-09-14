@@ -1,5 +1,5 @@
 {
-  "collectedAt": "2026-09-01T00:21:17Z",
+  "collectedAt": "2026-09-14T23:40:21Z",
   "license": "공공누리 제3유형 (출처표시 + 변경금지)",
   "payload": {
     "response": {
@@ -3003,15 +3003,6 @@
             "year": "2020"
           },
           {
-            "addr": "부산광역시 강서구 신항남로 416 (성북동)",
-            "dmX": "35.074896",
-            "dmY": "128.834169",
-            "item": null,
-            "mangName": "항만",
-            "stationName": "부산신항",
-            "year": "2017"
-          },
-          {
             "addr": "부산광역시 강서구 체육공원로 43 강서체육공원 (대저1동)",
             "dmX": "35.20958",
             "dmY": "128.9713671",
@@ -4647,7 +4638,7 @@
             "item": "SO2, CO, O3, NO2, PM10, PM2.5",
             "mangName": "항만",
             "stationName": "완도항",
-            "year": null
+            "year": "2026"
           },
           {
             "addr": "전남광주통합특별시 장성군 장성읍 영천로 211 장성읍사무소 옥상",
@@ -6065,7 +6056,7 @@
         ],
         "numOfRows": 1000,
         "pageNo": 1,
-        "totalCount": 673
+        "totalCount": 672
       },
       "header": {
         "resultCode": "00",
