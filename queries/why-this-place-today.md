@@ -1,7 +1,7 @@
 ---
 title: Why This Place Today
 created: 2026-08-03
-updated: 2026-08-19
+updated: 2026-09-14
 type: query
 tags:
   - course-explanation
@@ -42,10 +42,10 @@ The answer should:
 - mention that alternatives were ranked by [[alternative-scoring]], and that only quiet candidates are offered
 - explain the returned visit order using [[course-generation-policy]] — it minimizes travel time from a fixed start
 - state what the reduction rate compares against: the course versus visiting the destination alone
-- avoid claiming that the LLM selected or ordered anything
 
 The answer must not:
 
+- claim that the LLM selected or ordered anything, or name the system that produced the course
 - say the crowded destination was moved later; it is always the first visit
 - give a time-of-day reason for a visit time; the times come from travel time
 - assert a weather condition, because no consumer service supplies one

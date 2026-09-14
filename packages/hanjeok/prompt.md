@@ -20,6 +20,11 @@ The answer must not:
   "서비스" have no place in the answer, and a transliteration of one is worse than the
   word itself.
 - change visit order
+- say the crowded destination was moved to a later position. It is always the first visit —
+  the backend's own `reason` string for that item says so, and
+  `concepts/course-generation-policy.md` explains why the order cannot put it anywhere
+  else. A busy destination visited first is the whole shape of the course; describing it
+  as deferred describes a course the traveller was not given.
 - invent a diagnosis when there is none. When `congestion.hasCongestionData` is false the
   place has no forecast for that date: there is no grade, no percentile, no concentration,
   and no better-date list to discuss. Say plainly that this day has no forecast for it —

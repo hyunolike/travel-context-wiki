@@ -43,7 +43,7 @@ Before curating, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md
 | `research/` | Staging area for human-reviewed research drafts. Not canonical. |
 | `_archive/` | Fully superseded canonical pages removed from active navigation. Created on demand. |
 | `indexes/` | Static retrieval manifests, chunks, source maps, and retrieval policy. |
-| `packages/` | Service-specific context bundles and prompts. |
+| `packages/` | Service-specific context bundles and prompts, plus `explanation-rules.json`, the registry of rules more than one document must agree on. A rule enters it only when a second artifact must reflect it; a prohibition with one home stays prose in that document. No package may list the registry as bundle context — it instructs the documents, not the model. |
 | `harness/` | Scenarios, fixtures, and smoke checks for this wiki. |
 | `scripts/` | Repo-local batch scripts. Must run without secrets. |
 | `templates/` | Record and page skeletons. Not evidence, not canonical, never a `sources` target. |
