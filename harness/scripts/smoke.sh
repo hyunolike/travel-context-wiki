@@ -302,10 +302,12 @@ jq -e '
         and (.basis | length) > 0
         and (.homes | length) >= 2
         and (.detector == null or (.detector as $d | any($known[]; . == $d)))
-        and all(.homes[]; has("mustContain") or has("mustNotContain"))))
+        and all(.homes[]; has("mustContain") or has("mustNotContain"))
+        and all(.homes[]; (.path | type == "string") and (.path | length) > 0)))
   and all(.rules[].homes[];
         ((.mustContain // "") + (.mustNotContain // "")) | contains("\n") | not)
-' "$rules_file" >/dev/null || fail "$rules_file is malformed: every rule needs a unique upper-case id, a statement, a basis, a known detector or null, at least two homes, and single-line anchors"
+  and all(.rules[].homes[]; ((.mustContain // .mustNotContain) | length) > 0)
+' "$rules_file" >/dev/null || fail "$rules_file is malformed: every rule needs a unique upper-case id, a statement, a basis, a known detector or null, at least two homes, a non-empty path, and single-line, non-empty anchors"
 
 jq -r '.rules[].homes[].path' "$rules_file" | sort -u | while IFS= read -r home_path; do
   [ -f "$home_path" ] || fail "$rules_file names a home that does not exist: $home_path"
@@ -315,26 +317,38 @@ done
 # character in bash, so consecutive tabs collapse and an absent mustContain would
 # shift mustNotContain into its place — the check would pass while testing
 # nothing.
-jq -r '.rules[] | .id as $id | .homes[] | select(has("mustContain"))
-       | [$id, .path, .mustContain] | @tsv' "$rules_file" \
-| while IFS=$'\t' read -r rule_id home_path anchor; do
+checked_positive=0
+while IFS=$'\t' read -r rule_id home_path anchor; do
   grep -qF -- "$anchor" "$home_path" || fail "$rule_id: $home_path no longer carries \"$anchor\" — update the anchor in $rules_file, and while you are there, check the rule's other homes listed beside it"
-done
+  checked_positive=$((checked_positive + 1))
+done < <(jq -r '.rules[] | .id as $id | .homes[] | select(has("mustContain"))
+       | [$id, .path, .mustContain] | @tsv' "$rules_file")
 
-jq -r '.rules[] | .id as $id | .homes[] | select(has("mustNotContain"))
-       | [$id, .path, .mustNotContain] | @tsv' "$rules_file" \
-| while IFS=$'\t' read -r rule_id home_path anchor; do
+declared_positive="$(jq '[.rules[].homes[] | select(has("mustContain"))] | length' "$rules_file")"
+[ "$checked_positive" -eq "$declared_positive" ] \
+  || fail "checked $checked_positive mustContain anchors but the registry declares $declared_positive"
+
+checked_negative=0
+while IFS=$'\t' read -r rule_id home_path anchor; do
   if grep -qF -- "$anchor" "$home_path"; then
     fail "$rule_id: $home_path contradicts the rule by carrying \"$anchor\" — see $rules_file for the rule's other homes"
   fi
-done
+  checked_negative=$((checked_negative + 1))
+done < <(jq -r '.rules[] | .id as $id | .homes[] | select(has("mustNotContain"))
+       | [$id, .path, .mustNotContain] | @tsv' "$rules_file")
+
+declared_negative="$(jq '[.rules[].homes[] | select(has("mustNotContain"))] | length' "$rules_file")"
+[ "$checked_negative" -eq "$declared_negative" ] \
+  || fail "checked $checked_negative mustNotContain anchors but the registry declares $declared_negative"
 
 # The registry instructs the documents, never the model. A package that listed it
 # would put it in the bundle and spend cache prefix on rules the prompt already
 # states in the voice the answer has to be written in.
-if jq -e --arg p "$rules_file" 'any(.canonicalContext[]?, .recordContext[]?; . == $p)' packages/*/context-bundle.json >/dev/null 2>&1; then
-  fail "a package lists $rules_file as bundle context; the registry instructs the documents, not the model"
-fi
+for bundle_file in packages/*/context-bundle.json; do
+  if jq -e --arg p "$rules_file" 'any(.canonicalContext[]?, .recordContext[]?; . == $p)' "$bundle_file" >/dev/null; then
+    fail "$bundle_file lists $rules_file as bundle context; the registry instructs the documents, not the model"
+  fi
+done
 
 # Keep the diff. Sending it to /dev/null made a stale index fail with exit 1 and
 # no message at all, which is the least useful way a check can fail.

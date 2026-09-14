@@ -95,9 +95,9 @@
       "detector": "LLM_CHOSE",
       "homes": [
         { "path": "packages/hanjeok/prompt.md", "mustContain": "name the system that produced any of this" },
-        { "path": "harness/scenarios/travel-context-explanation.md", "mustNotContain": "states that the backend selected" },
-        { "path": "packages/generic-travel/prompt.md", "mustNotContain": "State that the service backend selected" },
-        { "path": "queries/why-this-place-today.md", "mustNotContain": "avoid claiming that the LLM selected or ordered anything" }
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not name the system that produced the course", "mustNotContain": "states that the backend selected" },
+        { "path": "packages/generic-travel/prompt.md", "mustContain": "Write for the traveller, never about the system that produced the answer", "mustNotContain": "State that the service backend selected" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "claim that the LLM selected or ordered anything", "mustNotContain": "avoid claiming that the LLM selected or ordered anything" }
       ]
     }
   ]
