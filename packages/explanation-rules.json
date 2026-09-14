@@ -86,6 +86,18 @@
         { "path": "concepts/congestion-diagnosis.md", "mustContain": "inventing one is the exact failure" },
         { "path": "queries/why-this-place-today.md", "mustContain": "there is no grade, percentile, or better-date list" }
       ]
+    },
+    {
+      "id": "NO_SYSTEM_NAME",
+      "statement": "The answer never names the system that produced it, and never argues about what the model did or did not do.",
+      "basis": "The traveller is reading about their day. Measured on live courses: two of three explanations ended in a spiral of denials, and one named the backend by a mangled transliteration of its own name.",
+      "detector": "LLM_CHOSE",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "name the system that produced any of this" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustNotContain": "states that the backend selected" },
+        { "path": "packages/generic-travel/prompt.md", "mustNotContain": "State that the service backend selected" },
+        { "path": "queries/why-this-place-today.md", "mustNotContain": "avoid claiming that the LLM selected or ordered anything" }
+      ]
     }
   ]
 }
