@@ -83,6 +83,7 @@ require_file packages/generic-travel/context-bundle.json
 require_file packages/generic-travel/prompt.md
 require_file packages/hanjeok/context-bundle.json
 require_file packages/hanjeok/prompt.md
+require_file packages/explanation-rules.json
 require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
 require_file scripts/collect-period-snapshot.sh
@@ -274,6 +275,66 @@ jq '.period = "2028-02" | .snapshotId = "smoke-2028-02"
   harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/leap-period.json"
 scripts/collect-period-snapshot.sh "$TMP_DIR/leap-period.json" "$TMP_DIR/leap" >/dev/null
 [ ! -f "$TMP_DIR/leap/2028-02.json" ] || fail "a 28-day February was stored for a leap year that has 29"
+
+# A rule that more than one document must agree on has one home:
+# packages/explanation-rules.json. Each of its homes carries a literal substring
+# already present in — or deliberately absent from — that file, and the anchors
+# below are what keep the documents from drifting apart. Five consecutive commits
+# taught packages/hanjeok/prompt.md prohibitions that reached nothing else, and
+# the scenario ended up requiring, under Then, the one sentence the prompt
+# forbids. Nothing caught it because nothing was looking.
+#
+# No marker is added to any document. packages/hanjeok/prompt.md is sent to the
+# model, and a rule marker in it would be one more sentence about the system
+# rather than the trip.
+rules_file=packages/explanation-rules.json
+
+# An anchor spanning a line break can never match, because grep is line-oriented.
+# The citation rule's first anchor did exactly that and reported absent against
+# text that was present.
+jq -e '
+  (.rules | length) > 0
+  and (.detectors | length) > 0
+  and ([.rules[].id] | length) == ([.rules[].id] | unique | length)
+  and (.detectors as $known | all(.rules[];
+        (.id | test("^[A-Z][A-Z0-9_]*$"))
+        and (.statement | length) > 0
+        and (.basis | length) > 0
+        and (.homes | length) >= 2
+        and (.detector == null or (.detector as $d | any($known[]; . == $d)))
+        and all(.homes[]; has("mustContain") or has("mustNotContain"))))
+  and all(.rules[].homes[];
+        ((.mustContain // "") + (.mustNotContain // "")) | contains("\n") | not)
+' "$rules_file" >/dev/null || fail "$rules_file is malformed: every rule needs a unique upper-case id, a statement, a basis, a known detector or null, at least two homes, and single-line anchors"
+
+jq -r '.rules[].homes[].path' "$rules_file" | sort -u | while IFS= read -r home_path; do
+  [ -f "$home_path" ] || fail "$rules_file names a home that does not exist: $home_path"
+done
+
+# Two separate streams, never one with an empty column. Tab is an IFS whitespace
+# character in bash, so consecutive tabs collapse and an absent mustContain would
+# shift mustNotContain into its place — the check would pass while testing
+# nothing.
+jq -r '.rules[] | .id as $id | .homes[] | select(has("mustContain"))
+       | [$id, .path, .mustContain] | @tsv' "$rules_file" \
+| while IFS=$'\t' read -r rule_id home_path anchor; do
+  grep -qF -- "$anchor" "$home_path" || fail "$rule_id: $home_path no longer carries \"$anchor\" — update the anchor in $rules_file, and while you are there, check the rule's other homes listed beside it"
+done
+
+jq -r '.rules[] | .id as $id | .homes[] | select(has("mustNotContain"))
+       | [$id, .path, .mustNotContain] | @tsv' "$rules_file" \
+| while IFS=$'\t' read -r rule_id home_path anchor; do
+  if grep -qF -- "$anchor" "$home_path"; then
+    fail "$rule_id: $home_path contradicts the rule by carrying \"$anchor\" — see $rules_file for the rule's other homes"
+  fi
+done
+
+# The registry instructs the documents, never the model. A package that listed it
+# would put it in the bundle and spend cache prefix on rules the prompt already
+# states in the voice the answer has to be written in.
+if jq -e --arg p "$rules_file" 'any(.canonicalContext[]?, .recordContext[]?; . == $p)' packages/*/context-bundle.json >/dev/null 2>&1; then
+  fail "a package lists $rules_file as bundle context; the registry instructs the documents, not the model"
+fi
 
 # Keep the diff. Sending it to /dev/null made a stale index fail with exit 1 and
 # no message at all, which is the least useful way a check can fail.
