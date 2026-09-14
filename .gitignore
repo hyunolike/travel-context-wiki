@@ -23,3 +23,14 @@ tmp/
 *.token
 raw/private/
 
+
+# iCloud Drive conflict copies. This repository lives in iCloud Drive, which
+# resolves a sync conflict by writing "<name> 2.<ext>" beside the original
+# instead of merging. Sixteen accumulated here unnoticed, one of them a second
+# copy of a scheduled workflow — committing that would have registered the
+# collector's cron twice. Two more landed inside .git/ itself, where a stray
+# refs/heads/main 2 pointing at an August commit made git read it as a branch
+# whose name contains a space and fail every fetch with "bad object
+# refs/heads/main 2". No tracked file here has a space in its name, so this
+# pattern cannot hide real work.
+* [2-9].*
