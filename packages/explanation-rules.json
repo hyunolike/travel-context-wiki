@@ -36,6 +36,7 @@
       "basis": "CourseRoutePolicy.bestOrder returns listOf(originId) + best, so the original destination is always the first visit and is never deferred.",
       "detector": "DEFERRED_DESTINATION",
       "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "say the crowded destination was moved to a later position" },
         { "path": "concepts/travel-context-layer.md", "mustContain": "pushed to a later slot" },
         { "path": "queries/why-this-place-today.md", "mustContain": "say the crowded destination was moved later" },
         { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not say the crowded destination was moved to a later position" }
