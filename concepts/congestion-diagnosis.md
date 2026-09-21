@@ -1,7 +1,7 @@
 ---
 title: Congestion Diagnosis
 created: 2026-08-03
-updated: 2026-08-19
+updated: 2026-09-21
 type: concept
 tags:
   - congestion
@@ -38,8 +38,13 @@ The raw concentration is reported alongside the grade but is not the grade's inp
 
 When an attraction has no forecast coverage the response is `hasCongestionData: false` with **HTTP 200 and success true**, carrying a message and a list of nearby diagnosable places instead of a diagnosis. Missing coverage is a product state, not a failure. An explanation layer must handle this branch: there is no grade, no percentile, and no better-date list to talk about, and inventing one is the exact failure this wiki exists to prevent.
 
+## Regional Visitor Series Is Not A Substitute
+
+[[regional-visitor-api]] is the only observed visitor series in this repository, and it is tempting to read a grade from it. It does not support one. It stops at the district, while a grade is per attraction, and its figures are modelled estimates. It can say that a district was busier than usual on a given day, not that a place inside it was.
+
 ## Related Pages
 
 - [[congestion-forecast-api]]
+- [[regional-visitor-api]]
 - [[alternative-scoring]]
 - [[course-generation-policy]]

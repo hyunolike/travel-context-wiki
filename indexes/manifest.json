@@ -169,6 +169,22 @@
       ]
     },
     {
+      "id": "entity:air-quality-station-api",
+      "path": "entities/air-quality-station-api.md",
+      "type": "entity",
+      "title": "Air Quality Station API",
+      "confidence": "medium",
+      "tags": [
+        "weather",
+        "openapi",
+        "public-data",
+        "data-lineage"
+      ],
+      "sources": [
+        "raw/external-snapshots/air-quality-airkorea-station-list.json"
+      ]
+    },
+    {
       "id": "entity:congestion-forecast-api",
       "path": "entities/congestion-forecast-api.md",
       "type": "entity",
@@ -182,6 +198,23 @@
       "sources": [
         "raw/public-tourism-api/2026-openapi-briefing.txt",
         "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "entity:regional-visitor-api",
+      "path": "entities/regional-visitor-api.md",
+      "type": "entity",
+      "title": "Regional Visitor API",
+      "confidence": "medium",
+      "tags": [
+        "congestion",
+        "openapi",
+        "public-data",
+        "data-lineage"
+      ],
+      "sources": [
+        "raw/external-snapshots/tourism-visitors/2026-06.json",
+        "raw/external-snapshots/tourism-visitors/2026-07.json"
       ]
     },
     {

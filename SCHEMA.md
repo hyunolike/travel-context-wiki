@@ -221,6 +221,14 @@ live readings or anything about a person.
     completeness is then nobody's to check but a reviewer's. If a source
     permanently omits a day, dropping `coverage.dayField` for that capture is
     the deliberate, reviewable way to admit it.
+11. **A new source kind is merged with the page that explains it.** Rule 7 keeps
+    canonical promotion human, and nothing made it happen: the air-quality and
+    tourism-visitors captures sat in `raw/` for weeks with no page citing them,
+    so no retrieval, bundle, or explanation could reach them. The smoke check
+    therefore fails while any `sourceKind` under `raw/external-snapshots/` has
+    no canonical page listing one of its files in `sources`. It checks the kind,
+    not the file, so a new month of a documented series passes; only the first
+    capture of a new kind needs an entity page added to its pull request.
 
 ## Generated Artifact Rules
 
