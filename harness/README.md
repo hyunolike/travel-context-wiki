@@ -6,7 +6,6 @@ This harness fixes the expected behavior of Travel Context Wiki before automatio
 
 - `scenarios/travel-context-explanation.md`: user-facing service scenario.
 - `fixtures/course-explanation-request.json`: sample backend output and user preferences.
-- `fixtures/wiki-retrieval-context.json`: expected wiki pages to retrieve.
 - `scripts/smoke.sh`: deterministic repository health check.
 
 ## Run

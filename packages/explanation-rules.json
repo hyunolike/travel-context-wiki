@@ -1,0 +1,104 @@
+{
+  "version": "2026-09-13",
+  "description": "Rules more than one document must agree on. Not a bundle document: no package lists it, so no model reads it. A rule with a single home stays prose in that document.",
+  "detectors": [
+    "INVENTED_PLACE",
+    "REORDERED_COURSE",
+    "LLM_CHOSE",
+    "UNCITED_CLAIM",
+    "DEFERRED_DESTINATION",
+    "TIME_OF_DAY_REASON"
+  ],
+  "rules": [
+    {
+      "id": "NO_INVENTED_PLACE",
+      "statement": "Every place the answer names appears in the backend facts, spelled exactly as the facts spell it.",
+      "basis": "A name is an identifier. 광복궁 for 경복궁 points at a place that does not exist, and a reader who searches for it finds nothing.",
+      "detector": "INVENTED_PLACE",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "alter a place name by even one character" },
+        { "path": "concepts/travel-context-layer.md", "mustContain": "Inventing an attraction the backend did not return" }
+      ]
+    },
+    {
+      "id": "NO_REORDER",
+      "statement": "The answer states the visit order the backend returned and no other.",
+      "basis": "Ranking and ordering belong to the consuming service's backend. See decisions/keep-llm-out-of-ranking.md.",
+      "detector": "REORDERED_COURSE",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "change visit order" },
+        { "path": "concepts/travel-context-layer.md", "mustContain": "Reordering course items" }
+      ]
+    },
+    {
+      "id": "NO_DEFERRED_DESTINATION",
+      "statement": "The answer never says the crowded destination was moved to a later position.",
+      "basis": "CourseRoutePolicy.bestOrder returns listOf(originId) + best, so the original destination is always the first visit and is never deferred.",
+      "detector": "DEFERRED_DESTINATION",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "say the crowded destination was moved to a later position" },
+        { "path": "concepts/travel-context-layer.md", "mustContain": "pushed to a later slot" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "say the crowded destination was moved later" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not say the crowded destination was moved to a later position" }
+      ]
+    },
+    {
+      "id": "NO_TIME_OF_DAY_REASON",
+      "statement": "The answer gives no time-of-day, day-of-week, or hourly reason for crowding or for a visit time.",
+      "basis": "Every congestion fact covers a whole date and nothing finer; a visit time is departure plus travel time. The 2026-08-03 spike settled that the public congestion API carries a date and no time field.",
+      "detector": "TIME_OF_DAY_REASON",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "say that crowding depends on the hour" },
+        { "path": "concepts/travel-context-layer.md", "mustContain": "Giving a time-of-day reason for a visit time" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "give a time-of-day reason for a visit time" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not give a time-of-day reason" }
+      ]
+    },
+    {
+      "id": "NO_WEATHER_CLAIM",
+      "statement": "The answer asserts no weather condition.",
+      "basis": "No consumer service supplies a weather fact. records/weather/rules.json and concepts/weather-aware-travel-recommendation.md are evidence without a producer.",
+      "detector": null,
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "claim any weather condition" },
+        { "path": "concepts/travel-context-layer.md", "mustContain": "Asserting a weather condition" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "assert a weather condition" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not claim a weather condition" }
+      ]
+    },
+    {
+      "id": "CITATIONS_IN_BUNDLE",
+      "statement": "Every path in citations is one of the separator-line paths of the assembled bundle, and the array is never empty.",
+      "basis": "A source that cannot be verified is treated exactly like an invented one, so an answer whose citations cannot be resolved is discarded before it reaches anyone.",
+      "detector": "UNCITED_CLAIM",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "copied **exactly**, including its directory and its file extension" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "Every path the explanation cites exists in the assembled bundle" },
+        { "path": "harness/scenarios/context-bundle-assembly.md", "mustContain": "so a citation can be checked against the bundle" }
+      ]
+    },
+    {
+      "id": "NO_INVENTED_DIAGNOSIS",
+      "statement": "When a place has no forecast coverage the answer says so and supplies no grade, percentile, concentration, or better-date list.",
+      "basis": "hasCongestionData false is HTTP 200 with success true: missing coverage is a product state, not a failure, and reaching for a number here is the exact failure this wiki exists to prevent.",
+      "detector": null,
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "invent a diagnosis when there is none" },
+        { "path": "concepts/congestion-diagnosis.md", "mustContain": "inventing one is the exact failure" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "there is no grade, percentile, or better-date list" }
+      ]
+    },
+    {
+      "id": "NO_SYSTEM_NAME",
+      "statement": "The answer never names the system that produced it, and never argues about what the model did or did not do.",
+      "basis": "The traveller is reading about their day. Measured on live courses: two of three explanations ended in a spiral of denials, and one named the backend by a mangled transliteration of its own name.",
+      "detector": "LLM_CHOSE",
+      "homes": [
+        { "path": "packages/hanjeok/prompt.md", "mustContain": "name the system that produced any of this" },
+        { "path": "harness/scenarios/travel-context-explanation.md", "mustContain": "does not name the system that produced the course", "mustNotContain": "states that the backend selected" },
+        { "path": "packages/generic-travel/prompt.md", "mustContain": "Write for the traveller, never about the system that produced the answer", "mustNotContain": "State that the service backend selected" },
+        { "path": "queries/why-this-place-today.md", "mustContain": "claim that the LLM selected or ordered anything", "mustNotContain": "avoid claiming that the LLM selected or ordered anything" }
+      ]
+    }
+  ]
+}

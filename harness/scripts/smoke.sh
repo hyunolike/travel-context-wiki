@@ -67,6 +67,8 @@ require_file raw/service-snapshots/hanjeok/attractions.fixture.json
 require_file harness/fixtures/user-input-capture.valid.json
 require_file harness/fixtures/external-tourism-snapshot.valid.json
 require_file harness/fixtures/period-snapshot.valid.json
+require_file harness/fixtures/period-snapshot.complete.json
+require_file harness/fixtures/period-snapshot.incomplete.json
 require_file raw/project-guides/open-source-ai-agent-project-guide.md
 require_file records/places/gyeongbokgung.json
 require_file records/weather/rules.json
@@ -81,6 +83,7 @@ require_file packages/generic-travel/context-bundle.json
 require_file packages/generic-travel/prompt.md
 require_file packages/hanjeok/context-bundle.json
 require_file packages/hanjeok/prompt.md
+require_file packages/explanation-rules.json
 require_file scripts/collect-user-input.sh
 require_file scripts/collect-external-snapshot.sh
 require_file scripts/collect-period-snapshot.sh
@@ -221,6 +224,131 @@ jq '.period = "2026-08" | .snapshotId = "kto-regional-visitors-2026-08"' harness
 scripts/collect-period-snapshot.sh "$TMP_DIR/next-period.json" "$TMP_DIR/periods" >/dev/null
 [ -f "$TMP_DIR/periods/2026-08.json" ] || fail "period snapshot did not write a second period alongside the first"
 [ "$(cksum < "$period_path")" = "$period_before" ] || fail "writing a new period altered an existing one"
+
+# SCHEMA "Scheduled Collection Rules" rule 10: a period is stored only once the
+# source has published all of it. The first real capture returned nine days of
+# August and would have frozen the month at 29%, after which the immutability
+# check above refuses the complete month for as long as the file exists — the
+# two rules combine into a permanent hole unless the incomplete period is never
+# written. A period declaring coverage.dayField is admitted only when the days
+# present in its payload cover the calendar month.
+coverage_dir="$TMP_DIR/coverage"
+
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.complete.json "$coverage_dir" >/dev/null
+[ -f "$coverage_dir/2026-06.json" ] || fail "a period covering every day of its month was not stored"
+
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.incomplete.json "$coverage_dir" >/dev/null
+[ ! -f "$coverage_dir/2026-08.json" ] || fail "a period covering 9 of 31 days was stored"
+
+# Skipping is not failing. The newest month is partially published every time
+# this runs, which is the expected state rather than a broken run, so the
+# collector reports and continues instead of turning a monthly notice into a red
+# workflow. Only a period carrying days the month does not have is an error.
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.incomplete.json "$coverage_dir" >/dev/null \
+  || fail "an incomplete period exited non-zero instead of skipping"
+
+jq '.payload.response.body.items.item += [{"baseYmd": "20260701", "signguCode": "11110", "signguNm": "종로구", "touDivCd": "1", "touDivNm": "현지인(a)", "touNum": "1"}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/overflowing-period.json"
+if scripts/collect-period-snapshot.sh "$TMP_DIR/overflowing-period.json" "$TMP_DIR/overflow" >/dev/null 2>&1; then
+  fail "a period carrying a day outside its own month was accepted"
+fi
+
+# Verified the other way: the same nine-day payload with no coverage declared is
+# stored. What refuses it is the rule, not some unrelated property of the
+# fixture, and a source with no day field keeps the old behaviour.
+jq 'del(.coverage)' harness/fixtures/period-snapshot.incomplete.json > "$TMP_DIR/uncovered-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/uncovered-period.json" "$TMP_DIR/uncovered" >/dev/null
+[ -f "$TMP_DIR/uncovered/2026-08.json" ] || fail "a period declaring no coverage was refused"
+
+# February is where a day-count table goes wrong, and 2028 is the leap year this
+# series reaches next. Neither calendar is exercised by the fixtures above.
+jq '.period = "2027-02" | .snapshotId = "smoke-2027-02"
+    | .payload.response.body.items.item = [range(1;29) as $d
+        | {baseYmd: ("202702" + ($d | tostring | if length == 1 then "0" + . else . end))}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/february-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/february-period.json" "$TMP_DIR/february" >/dev/null
+[ -f "$TMP_DIR/february/2027-02.json" ] || fail "a complete 28-day February was refused"
+
+jq '.period = "2028-02" | .snapshotId = "smoke-2028-02"
+    | .payload.response.body.items.item = [range(1;29) as $d
+        | {baseYmd: ("202802" + ($d | tostring | if length == 1 then "0" + . else . end))}]' \
+  harness/fixtures/period-snapshot.complete.json > "$TMP_DIR/leap-period.json"
+scripts/collect-period-snapshot.sh "$TMP_DIR/leap-period.json" "$TMP_DIR/leap" >/dev/null
+[ ! -f "$TMP_DIR/leap/2028-02.json" ] || fail "a 28-day February was stored for a leap year that has 29"
+
+# A rule that more than one document must agree on has one home:
+# packages/explanation-rules.json. Each of its homes carries a literal substring
+# already present in — or deliberately absent from — that file, and the anchors
+# below are what keep the documents from drifting apart. Five consecutive commits
+# taught packages/hanjeok/prompt.md prohibitions that reached nothing else, and
+# the scenario ended up requiring, under Then, the one sentence the prompt
+# forbids. Nothing caught it because nothing was looking.
+#
+# No marker is added to any document. packages/hanjeok/prompt.md is sent to the
+# model, and a rule marker in it would be one more sentence about the system
+# rather than the trip.
+rules_file=packages/explanation-rules.json
+
+# An anchor spanning a line break can never match, because grep is line-oriented.
+# The citation rule's first anchor did exactly that and reported absent against
+# text that was present.
+jq -e '
+  (.rules | length) > 0
+  and (.detectors | length) > 0
+  and ([.rules[].id] | length) == ([.rules[].id] | unique | length)
+  and (.detectors as $known | all(.rules[];
+        (.id | test("^[A-Z][A-Z0-9_]*$"))
+        and (.statement | length) > 0
+        and (.basis | length) > 0
+        and (.homes | length) >= 2
+        and (.detector == null or (.detector as $d | any($known[]; . == $d)))
+        and all(.homes[]; has("mustContain") or has("mustNotContain"))
+        and all(.homes[]; (.path | type == "string") and (.path | length) > 0)))
+  and all(.rules[].homes[];
+        ((.mustContain // "") + (.mustNotContain // "")) | contains("\n") | not)
+  and all(.rules[].homes[]; ((.mustContain // .mustNotContain) | length) > 0)
+' "$rules_file" >/dev/null || fail "$rules_file is malformed: every rule needs a unique upper-case id, a statement, a basis, a known detector or null, at least two homes, a non-empty path, and single-line, non-empty anchors"
+
+jq -r '.rules[].homes[].path' "$rules_file" | sort -u | while IFS= read -r home_path; do
+  [ -f "$home_path" ] || fail "$rules_file names a home that does not exist: $home_path"
+done
+
+# Two separate streams, never one with an empty column. Tab is an IFS whitespace
+# character in bash, so consecutive tabs collapse and an absent mustContain would
+# shift mustNotContain into its place — the check would pass while testing
+# nothing.
+checked_positive=0
+while IFS=$'\t' read -r rule_id home_path anchor; do
+  grep -qF -- "$anchor" "$home_path" || fail "$rule_id: $home_path no longer carries \"$anchor\" — update the anchor in $rules_file, and while you are there, check the rule's other homes listed beside it"
+  checked_positive=$((checked_positive + 1))
+done < <(jq -r '.rules[] | .id as $id | .homes[] | select(has("mustContain"))
+       | [$id, .path, .mustContain] | @tsv' "$rules_file")
+
+declared_positive="$(jq '[.rules[].homes[] | select(has("mustContain"))] | length' "$rules_file")"
+[ "$checked_positive" -eq "$declared_positive" ] \
+  || fail "checked $checked_positive mustContain anchors but the registry declares $declared_positive"
+
+checked_negative=0
+while IFS=$'\t' read -r rule_id home_path anchor; do
+  if grep -qF -- "$anchor" "$home_path"; then
+    fail "$rule_id: $home_path contradicts the rule by carrying \"$anchor\" — see $rules_file for the rule's other homes"
+  fi
+  checked_negative=$((checked_negative + 1))
+done < <(jq -r '.rules[] | .id as $id | .homes[] | select(has("mustNotContain"))
+       | [$id, .path, .mustNotContain] | @tsv' "$rules_file")
+
+declared_negative="$(jq '[.rules[].homes[] | select(has("mustNotContain"))] | length' "$rules_file")"
+[ "$checked_negative" -eq "$declared_negative" ] \
+  || fail "checked $checked_negative mustNotContain anchors but the registry declares $declared_negative"
+
+# The registry instructs the documents, never the model. A package that listed it
+# would put it in the bundle and spend cache prefix on rules the prompt already
+# states in the voice the answer has to be written in.
+for bundle_file in packages/*/context-bundle.json; do
+  if jq -e --arg p "$rules_file" 'any(.canonicalContext[]?, .recordContext[]?; . == $p)' "$bundle_file" >/dev/null; then
+    fail "$bundle_file lists $rules_file as bundle context; the registry instructs the documents, not the model"
+  fi
+done
 
 # Keep the diff. Sending it to /dev/null made a stale index fail with exit 1 and
 # no message at all, which is the least useful way a check can fail.

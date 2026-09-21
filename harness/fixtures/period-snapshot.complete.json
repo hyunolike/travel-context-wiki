@@ -1,0 +1,272 @@
+{
+  "snapshotId": "kto-regional-visitors-2026-06",
+  "sourceKind": "tourism-visitors",
+  "period": "2026-06",
+  "sourceUrl": "https://www.data.go.kr/data/15101972/openapi.do",
+  "license": "이용허락범위 제한 없음",
+  "collectedAt": "2026-09-13T00:00:00Z",
+  "coverage": {
+    "dayField": "baseYmd"
+  },
+  "request": {
+    "startYmd": "20260601",
+    "endYmd": "20260630",
+    "pages": 1,
+    "totalCount": 30
+  },
+  "payload": {
+    "response": {
+      "header": {
+        "resultCode": "0000",
+        "resultMsg": "OK"
+      },
+      "body": {
+        "totalCount": 30,
+        "items": {
+          "item": [
+            {
+              "baseYmd": "20260601",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100037"
+            },
+            {
+              "baseYmd": "20260602",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100074"
+            },
+            {
+              "baseYmd": "20260603",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100111"
+            },
+            {
+              "baseYmd": "20260604",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100148"
+            },
+            {
+              "baseYmd": "20260605",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100185"
+            },
+            {
+              "baseYmd": "20260606",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100222"
+            },
+            {
+              "baseYmd": "20260607",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100259"
+            },
+            {
+              "baseYmd": "20260608",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100296"
+            },
+            {
+              "baseYmd": "20260609",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100333"
+            },
+            {
+              "baseYmd": "20260610",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100370"
+            },
+            {
+              "baseYmd": "20260611",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100407"
+            },
+            {
+              "baseYmd": "20260612",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100444"
+            },
+            {
+              "baseYmd": "20260613",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100481"
+            },
+            {
+              "baseYmd": "20260614",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100518"
+            },
+            {
+              "baseYmd": "20260615",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100555"
+            },
+            {
+              "baseYmd": "20260616",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100592"
+            },
+            {
+              "baseYmd": "20260617",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100629"
+            },
+            {
+              "baseYmd": "20260618",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100666"
+            },
+            {
+              "baseYmd": "20260619",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100703"
+            },
+            {
+              "baseYmd": "20260620",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100740"
+            },
+            {
+              "baseYmd": "20260621",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100777"
+            },
+            {
+              "baseYmd": "20260622",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100814"
+            },
+            {
+              "baseYmd": "20260623",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100851"
+            },
+            {
+              "baseYmd": "20260624",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100888"
+            },
+            {
+              "baseYmd": "20260625",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100925"
+            },
+            {
+              "baseYmd": "20260626",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100962"
+            },
+            {
+              "baseYmd": "20260627",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "100999"
+            },
+            {
+              "baseYmd": "20260628",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "101036"
+            },
+            {
+              "baseYmd": "20260629",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "101073"
+            },
+            {
+              "baseYmd": "20260630",
+              "signguCode": "11110",
+              "signguNm": "종로구",
+              "touDivCd": "1",
+              "touDivNm": "현지인(a)",
+              "touNum": "101110"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

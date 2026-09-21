@@ -22,9 +22,8 @@ When a travel service generates a place or route recommendation, the service exp
 
 ## Then
 
-- The explanation states that the backend selected the course.
 - The explanation mentions congestion, distance or relatedness, and visit ordering.
-- The explanation does not claim that the LLM re-ranked attractions.
+- The explanation does not name the system that produced the course — not a backend, a service, an API, a wiki, or the model — and does not argue about what was or was not considered. `NO_SYSTEM_NAME` in `packages/explanation-rules.json` is the rule; the traveller is reading about their day, and a sentence answering an accusation nobody made invites the suspicion it was meant to avoid.
 - The explanation does not say the crowded destination was moved to a later position. It is the first visit, and the backend's own `reason` string says so.
 - The explanation does not give a time-of-day reason for any `timeLabel`.
 - The explanation does not claim a weather condition, because no weather fact was supplied.

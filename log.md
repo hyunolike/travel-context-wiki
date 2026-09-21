@@ -155,3 +155,40 @@
 - Updated: `harness/scripts/smoke.sh` with an assertion that builds a throwaway package whose prompt carries such a line and requires the script to refuse it. Verified the other way too: appending a marker line to `packages/hanjeok/prompt.md` made the script exit 1 naming that file, and removing it restored the same 9 files and 15,681 bytes as before.
 - Updated: `harness/scenarios/context-bundle-assembly.md`, adding the precondition and the outcome, and recording why the check cannot live in the consumer.
 - No canonical page, record, or package changed, so no bundle content moved. Canonical pages unchanged at 13.
+
+## 2026-09-13 - ingest - first regional visitor periods, minus the month the source had not finished
+
+- Merged the first real capture of the visitor series: `raw/external-snapshots/tourism-visitors/2026-06.json` and `2026-07.json`, 49,137 daily rows across 270 기초지자체, stored unaggregated as the source returned them. The pull request had been open since 2026-09-07.
+- Dropped `2026-08.json` from that pull request before merging. The source had published 08-01 through 08-09 — nine days of thirty-one — and rule 9 makes a stored period immutable, so merging it would have frozen August at 29% and then refused the complete month for as long as the file existed. The two rules that each make sense alone combine into a permanent hole in the evidence layer.
+- Measured, and it contradicts the design: the daily series does not lag four days. On 2026-09-07 the newest published day was 2026-08-09, a lag of about twenty-nine. `.github/workflows/collect-regional-visitors.yml` said four in the comment that justifies its cron date; the comment now records what was observed. The schedule itself is kept — requesting three months means a month too fresh for one run is complete by the next.
+
+## 2026-09-13 - update - refuse to store a period the source has not finished publishing
+
+- Added rule 10 to "Scheduled Collection Rules" in `SCHEMA.md`. A period-partitioned envelope declares `coverage.dayField`, and `scripts/collect-period-snapshot.sh` admits the period only when the distinct days in its payload cover the calendar month.
+- The count is taken from the payload, not from a number the collector declares, so a collector cannot assert coverage it does not have. Expected days are computed from the period rather than asked of `date`, whose `-d` spelling differs between the GNU date in CI and the BSD date on a developer's machine.
+- A short period is skipped and reported, not failed. The newest month is partially published on every scheduled run; painting the workflow red for that would train the reader to ignore it. A period carrying days its month does not have fails, because that is the source or the query being wrong.
+- Added `harness/fixtures/period-snapshot.complete.json` and `period-snapshot.incomplete.json`, the second shaped like the August that caused this. Seven assertions in `harness/scripts/smoke.sh` pin the rule, including February in a common year and in the 2028 leap year, and the break-it check: the same nine-day payload with `coverage` deleted is stored, which shows it is the rule doing the refusing.
+- Verified against the real captures rather than only the fixtures: the 24,120-row June file is stored, and the nine-day August file is refused, both through the envelope the workflow itself builds.
+- Existing behaviour is unchanged for a source that declares no coverage, which is why `period-snapshot.valid.json` and its assertions needed no edit.
+- Canonical pages unchanged at 14.
+
+## 2026-09-13 - update - say when a capture is waiting
+
+- Added `.github/workflows/stale-capture-check.yml`, failing daily while a `collect/*` pull request has been open more than three days. The first visitor capture sat for six days: a collector opens its pull request with `GITHUB_TOKEN`, which by design triggers no other workflow, so the pull request carries no checks — and a pull request with no checks is also what an abandoned one looks like. Nothing was wrong, and nothing said so.
+- It is a separate workflow rather than a step in `collection-stats.yml`, which already runs daily. That workflow may push to `main` without review only because it redraws committed evidence and adds no claim of its own; a failure condition about pull request state is a claim of its own, and it would also block the redraw whenever a capture was waiting.
+- Evidence captured but not merged is evidence this repository does not have. `docs/collection-stats.svg` counts committed files, so an unmerged capture reads there as a month that was never collected — which is precisely what it showed for the six days.
+
+## 2026-09-14 - update - stop requiring the sentence the prompt forbids
+
+- `harness/scenarios/travel-context-explanation.md` required, under **Then**, that "the explanation states that the backend selected the course". `packages/hanjeok/prompt.md` forbids exactly that: the traveller is reading about their day, not about a backend. An implementation satisfying the scenario failed the prompt and the other way round, and the scenario is the contract.
+- Repaired: the scenario. The clause is gone, and the narrow one beside it — "does not claim that the LLM re-ranked attractions" — is now the rule it should always have been, because forbidding only that claim still permitted naming the backend, which a live run did, by a mangled transliteration of the backend's own name.
+- Repaired: `packages/generic-travel/prompt.md`, whose first required behaviour instructed the same sentence. It has no consumer, so nothing had failed yet; the contradiction was waiting rather than absent.
+- Repaired: `queries/why-this-place-today.md`. "avoid claiming that the LLM selected or ordered anything" sat in the **should** list — a prohibition among things to do, inside a document that ships in the bundle. `1c12819` diagnosed this shape: reading such a line reads as an instruction to make the denial, and two of three live explanations ended in a spiral of them. The item moved to **must not**, where it belongs.
+- Recorded: `NO_SYSTEM_NAME` in `packages/explanation-rules.json`, with all four documents as its homes. The two that contradicted it are pinned by `mustNotContain`, so the contradiction cannot come back quietly.
+- Canonical pages unchanged at 14.
+
+## 2026-09-14 - delete - retire the retrieval-context fixture
+
+- Deleted `harness/fixtures/wiki-retrieval-context.json`. No script read it, so it could not drift *into* anything — but its `forbiddenBehavior` array listed three rules where `packages/explanation-rules.json` now lists eight, and it is the first thing a reader greps for. A stale count nothing enforces is worse than no count.
+- `harness/README.md` no longer names it. `docs/superpowers/plans/2026-08-03-travel-context-wiki-pivot.md` still does, and stays as written: it records what was planned on that day.
+- The registry is now the only place that answers how many forbidden behaviours there are. The counts in the plans and in `decisions/choose-explanation-model.md` record what was measured when they were written and are left alone.
