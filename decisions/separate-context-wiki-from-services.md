@@ -1,7 +1,7 @@
 ---
 title: Separate Context Wiki From Services
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-09-22
 type: decision
 tags:
   - travel-context
@@ -26,7 +26,7 @@ Service repositories contain frontend, backend, and runtime harness implementati
 
 ## Consequences
 
-- Product code can vendor, fetch, or retrieve generated summaries later.
+- Product code can vendor, fetch, or retrieve generated summaries later. The first consumer took the package route: Hermes Agent, in its own repository, loads `packages/hanjeok/context-bundle.json` as assembled by `scripts/build-bundle.sh`, and needed no change to the Hanjeok repository.
 - Raw source snapshots are versioned independently.
 - The wiki has its own harness and Spec Kit workflow.
 

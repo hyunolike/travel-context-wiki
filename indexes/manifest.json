@@ -85,7 +85,9 @@
       ],
       "sources": [
         "raw/service-snapshots/hanjeok/design-v3.md",
-        "raw/public-tourism-api/2026-openapi-briefing.txt"
+        "raw/public-tourism-api/2026-openapi-briefing.txt",
+        "raw/external-snapshots/air-quality-airkorea-station-list.json",
+        "raw/external-snapshots/tourism-visitors/2026-07.json"
       ]
     },
     {
@@ -197,7 +199,8 @@
       ],
       "sources": [
         "raw/public-tourism-api/2026-openapi-briefing.txt",
-        "raw/service-snapshots/hanjeok/design-v3.md"
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
@@ -246,7 +249,8 @@
       ],
       "sources": [
         "raw/public-tourism-api/2026-openapi-briefing.txt",
-        "raw/service-snapshots/hanjeok/design-v3.md"
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
@@ -262,7 +266,8 @@
       ],
       "sources": [
         "raw/public-tourism-api/2026-openapi-briefing.txt",
-        "raw/service-snapshots/hanjeok/design-v3.md"
+        "raw/service-snapshots/hanjeok/design-v3.md",
+        "raw/service-snapshots/hanjeok/api-contract-v4.md"
       ]
     },
     {
