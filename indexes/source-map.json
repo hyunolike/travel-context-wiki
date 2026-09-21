@@ -14,6 +14,7 @@
   "raw/external-snapshots/air-quality-airkorea-station-list.json": {
     "kind": "external-snapshots",
     "usedBy": [
+      "concepts/raw-derived-data-separation.md",
       "entities/air-quality-station-api.md"
     ]
   },
@@ -26,6 +27,7 @@
   "raw/external-snapshots/tourism-visitors/2026-07.json": {
     "kind": "external-snapshots",
     "usedBy": [
+      "concepts/raw-derived-data-separation.md",
       "entities/regional-visitor-api.md"
     ]
   },
@@ -54,6 +56,9 @@
       "concepts/congestion-diagnosis.md",
       "concepts/course-generation-policy.md",
       "concepts/travel-context-layer.md",
+      "entities/congestion-forecast-api.md",
+      "entities/related-attraction-api.md",
+      "entities/tourapi-korservice2.md",
       "queries/why-this-place-today.md"
     ]
   },

@@ -222,3 +222,14 @@
 
 - Deleted `.github/workflows/capture-weather-forecast-sample.yml`. Its one run, on 2026-09-21, got HTTP 403 from the data.go.kr gateway, most likely because the service key is not approved for dataset 15084084. The owner chose not to apply for it, so a workflow that cannot succeed is removed rather than left to look usable.
 - Updated `entities/kma-short-term-forecast-api.md` to stop naming the workflow and to say plainly that no response has been captured: the page rests on the provider's guide alone. Its `confidence` stays `medium`, and `records/weather/rules.json` keeps citing the guide.
+
+## 2026-09-22 - update - review the pages untouched since 2026-08-03
+
+- Reviewed every canonical page last changed on 2026-08-03 against the evidence that arrived after it, chiefly `raw/service-snapshots/hanjeok/api-contract-v4.md`.
+- `entities/congestion-forecast-api.md`: the time-slot question is closed. The response is daily, and v4 deleted the slot fields. `contentId` compatibility and the unit of 10,731 (spike B3) remain open.
+- `entities/related-attraction-api.md`: the relatedness score is still unverified, but v4 specifies a binary fallback, so the scoring formula does not wait on it.
+- `entities/tourapi-korservice2.md`: records the provisional `ldong*` and `lclsSystm*` field names from v4 (pending spike B5), and a new open question: whether TourAPI's legal-dong codes moved with the 2026-07-01 district change seen in the visitor series.
+- `concepts/raw-derived-data-separation.md`: adds how the principle applies to this repository's own collectors, including that the air-quality list's no-modification license makes separation a license question.
+- `decisions/separate-context-wiki-from-services.md`: records that the first consumer reached the wiki through a package bundle, with no change to the Hanjeok repository.
+- Reviewed and left unchanged: `decisions/keep-llm-out-of-ranking.md` and `concepts/project-artifact-linking.md`. Both still match their sources.
+- `index.md` is unchanged, because no page was added, removed, or retitled. Updated the files under `indexes/`.

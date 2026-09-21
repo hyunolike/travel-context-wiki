@@ -1,7 +1,7 @@
 ---
 title: Related Attraction API
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-09-22
 type: entity
 tags:
   - openapi
@@ -10,6 +10,7 @@ tags:
 sources:
   - raw/public-tourism-api/2026-openapi-briefing.txt
   - raw/service-snapshots/hanjeok/design-v3.md
+  - raw/service-snapshots/hanjeok/api-contract-v4.md
 confidence: low
 contested: true
 contradictions: []
@@ -23,7 +24,7 @@ Travel services can use it before distance filtering, congestion filtering, and 
 
 ## Spike Requirements
 
-- Verify whether the API returns a numeric relatedness score.
+- Verify whether the API returns a numeric relatedness score. Still unverified. The v4 consumer contract already reserves `relationScore` in the alternative score and says a binary weight replaces it if the API provides none, so the formula survives either answer. ^[raw/service-snapshots/hanjeok/api-contract-v4.md]
 - Verify identifier compatibility with TourAPI and congestion records.
 - Verify candidate volume for demo regions.
 
