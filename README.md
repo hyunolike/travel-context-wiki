@@ -36,6 +36,7 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 - [Batch Collection Model](#-batch-collection-model)
 - [Knowledge Store Boundary](#-knowledge-store-boundary)
 - [Agent Delivery](#-agent-delivery)
+- [Explanation Model](#-explanation-model)
 - [Project Artifact Links](#-project-artifact-links)
 - [Quick Start](#-quick-start)
 - [Spec-Driven Workflow](#-spec-driven-workflow)
@@ -79,26 +80,38 @@ wiki** to produce explanations such as:
 
 ## 🗃 Data Sources
 
-The canonical knowledge in this wiki is grounded in **Korea Tourism Organization (KTO) public
-open data**, opened through the national public-data portal. Every derived record and canonical
-page traces back to a raw evidence snapshot under `raw/`.
+The canonical knowledge in this wiki is grounded in **Korean public open data** — Korea Tourism
+Organization (KTO) tourism data, plus air-quality reference data — opened through the national
+public-data portal. Every derived record and canonical page traces back to a raw evidence
+snapshot under `raw/`.
 
 [![KTO TourAPI](https://img.shields.io/badge/한국관광공사-TourAPI-0088cc.svg)](https://www.data.go.kr/)
 [![data.go.kr](https://img.shields.io/badge/공공데이터포털-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
 [![Congestion](https://img.shields.io/badge/관광지-집중률예측-e07b39.svg)](https://www.data.go.kr/)
 [![Related](https://img.shields.io/badge/관광지-연관정보-6f42c1.svg)](https://www.data.go.kr/)
+[![AirKorea](https://img.shields.io/badge/에어코리아-측정소목록-2e8b57.svg)](https://www.data.go.kr/data/15073877/openapi.do)
+[![Visitors](https://img.shields.io/badge/한국관광%20데이터랩-지역별%20방문자수-e07b39.svg)](https://www.data.go.kr/data/15101972/openapi.do)
 
 | Data source | Provider | Used for | Raw evidence |
 | --- | --- | --- | --- |
 | TourAPI KorService2 (국문 관광정보) | 한국관광공사 (KTO) | Attraction detail, coordinates, images, overview | `raw/public-tourism-api/2026-openapi-briefing.txt` |
 | 관광지 집중률 방문자 추이 예측 (Congestion Forecast) | 한국관광공사 (KTO) | `congestion-diagnosis` congestion grading | `raw/public-tourism-api/2026-openapi-briefing.txt` |
 | 관광지별 연관 관광지 (Related Attraction) | 한국관광공사 (KTO) | `alternative-scoring` candidate sets | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| 에어코리아 측정소 목록 (Air-quality station list) | 한국환경공단 (KECO) | Naming the station a region's air-quality claim comes from | `raw/external-snapshots/air-quality-airkorea-station-list.json` |
+| 지역별 방문자 수 (Regional visitor counts, 한국관광 데이터랩) | 한국관광공사 (KTO) | Grounding the congestion percentile scale in observed visits | `raw/external-snapshots/tourism-visitors/<YYYY-MM>.json` _(2026-06 onward)_ |
 | Weather / seasonality data | Meteorological open API _(planned)_ | Weather-aware recommendation & indoor/outdoor fallback | `raw/weather-api/` _(to be captured)_ |
 
 > The 2026-05 OpenAPI briefing describes the KTO open-data service that opens roughly **4.58 million
 > tourism records** as real-time OpenAPI. Source snapshots are preserved verbatim under `raw/` and
 > are never edited — updates arrive as new snapshots. Confirm the exact license terms
 > (e.g. KOGL) on the [public-data portal](https://www.data.go.kr/) before redistribution.
+
+The first three rows are documented sources read out of that briefing. The last two arrive by
+themselves — see [Scheduled Workflows](#scheduled-workflows) — and carry their own terms: the
+AirKorea station list is **KOGL type 3** (attribution required, modification prohibited), while
+the visitor series is published with no usage restriction. Visitor rows are stored exactly as the
+source returned them, split by `touDivCd` into 현지인 / 외지인 / 외국인 with no rollup, because
+aggregating before storage would put derived data in `raw/`.
 
 ---
 
@@ -113,6 +126,11 @@ because the collectors skip an unchanged payload and treat a stored period as
 immutable, it is precisely the last capture that **differed** — not the last one
 that ran.
 
+The figure counts what the evidence layer actually holds — periods stored, daily rows, 기초지자체
+covered in the newest period, and monitoring stations — and nothing it has not captured. Coverage
+is counted in the newest period only; unioning every period would report which regions have
+_ever_ appeared, which is a more flattering number and a different claim.
+
 ---
 
 ## 🗂 Knowledge Layers
@@ -124,6 +142,9 @@ Layer 1: Evidence
   raw/tourism-research/       Papers/reports on tourism, congestion, weather impact
   raw/service-snapshots/      Design/harness snapshots of consuming services
   raw/experiments/            Real API-call validation results
+  raw/external-snapshots/     Scheduled captures: reference lists and period series
+  raw/user-input/             Sanitized, consented user-input captures
+  raw/project-guides/         Project guides / PRDs behind the artifact links
 
 Layer 2: Canonical Memory
   entities/                   Tourism/weather APIs, agencies, datasets, key systems
@@ -136,6 +157,7 @@ Layer 3: Operation Metadata
   SCHEMA.md                   Wiki contract
   index.md                    Active canonical catalog
   log.md                      Append-only operation history
+  harness/                    Scenarios, fixtures, and the smoke gate
 ```
 
 ---
@@ -150,6 +172,8 @@ Layer 3: Operation Metadata
 | Canonical memory | `concepts/`, `entities/`, `queries/`, `decisions/`, `comparisons/` | Human-readable, LLM-retrievable knowledge |
 | Retrieval indexes | `indexes/` | Static RAG manifest, chunks, source map |
 | Service packages | `packages/` | Per-service context bundle + prompt |
+| Contract & gate | `harness/`, `scripts/` | Scenarios, fixtures, the smoke gate, and the batch scripts |
+| Design record | `docs/superpowers/` | Specs and plans for this wiki and its consuming agent |
 
 ---
 
@@ -244,8 +268,12 @@ flowchart TD
 ```bash
 scripts/collect-user-input.sh harness/fixtures/user-input-capture.valid.json /tmp/wiki-user-input
 scripts/collect-external-snapshot.sh harness/fixtures/external-tourism-snapshot.valid.json /tmp/wiki-external
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.valid.json /tmp/wiki-periods
 scripts/build-index.sh
 scripts/build-index.sh --check
+scripts/build-bundle.sh --list
+scripts/build-bundle.sh hanjeok
+scripts/build-collection-stats.sh --check
 ./harness/scripts/smoke.sh
 ```
 
@@ -253,9 +281,35 @@ scripts/build-index.sh --check
 
 - `collect-user-input.sh` rejects input unless `consentForWiki` is `true` and `containsPersonalData` is `false`.
 - `collect-external-snapshot.sh` requires source URL, license, collection time, and payload.
+- `collect-period-snapshot.sh` handles a **growing series**: one file per `YYYY-MM`, and a stored
+  period is never rewritten. The single-file collector cannot express this — its payload changes
+  on every run, so its unchanged-payload filter stops filtering anything.
 - `build-index.sh --check` is the CI-safe mode; it fails if committed retrieval artifacts are stale.
-- Authenticated live API polling should be added later in a service backend or a secret-managed
-  scheduled job — **not** directly in this public wiki repo.
+- `build-bundle.sh <service>` assembles a package into the string an agent sends. See
+  [Agent Delivery](#-agent-delivery).
+- Authenticated API polling now runs **in this repo**, but only through the narrow exception in
+  `SCHEMA.md` → _Scheduled Collection Rules_: slowly changing public reference data, at most once
+  a day, the service key read only by the workflow step that fetches, never printed in a URL,
+  landing in `raw/` and opening a pull request. Live readings, per-user data, and anything
+  meaningful at a finer interval than a day stay in the consumer service backend.
+
+### Scheduled Workflows
+
+| Workflow | What it does | Cadence |
+| --- | --- | --- |
+| `collect-air-quality-stations.yml` | Captures the AirKorea monitoring **station list** — a reference list, never a concentration reading | Weekly, Tue 06:00 KST |
+| `collect-regional-visitors.yml` | Captures daily visitor counts per 기초지자체 as immutable monthly period snapshots | Monthly, 8th 06:00 KST |
+| `collection-stats.yml` | Redraws `docs/collection-stats.svg` from evidence already committed here | Daily, and on a push touching `raw/external-snapshots/` |
+| `wiki-batch.yml` | Runs `smoke.sh` and `build-index.sh --check` | Every push and pull request, plus weekly |
+| `stale-capture-check.yml` | Fails while a `collect/*` pull request has been open more than three days | Daily, 07:00 KST |
+
+- Without `DATA_GO_KR_SERVICE_KEY` a collector logs a notice and skips. A missing secret never
+  fails a run, and no script under `scripts/` needs one.
+- A capture lands in `raw/` and opens a pull request; deriving `records/`, rebuilding `indexes/`,
+  and promoting canonical pages stay human work, so the review gate is never bypassed.
+- `collection-stats.yml` is the only workflow that pushes to `main`. It redraws committed
+  evidence and adds no claim of its own, so there is no judgement for a reviewer to make —
+  the exception is written down in `SCHEMA.md` → _Generated Artifact Rules_.
 
 ---
 
@@ -315,6 +369,65 @@ There are three ways to deliver this repo's knowledge to a running agent.
 
 `packages/<service>/context-bundle.json` and `indexes/manifest.json` are the artifacts built for
 this delivery. All three methods use these two files as entry points.
+
+### Building the Bundle
+
+```bash
+scripts/build-bundle.sh --list
+scripts/build-bundle.sh hanjeok
+```
+
+`build-bundle.sh` concatenates a package's canonical pages, its normalized records, and the
+service prompt into one deterministic string, meant to sit behind a `cache_control` breakpoint in
+the LLM `system` block. Order is declared by the package, never discovered: policy pages first,
+the values those policies refer to next, the service prompt last so its instructions sit closest
+to the user turn.
+
+Determinism is the point. The output depends on file contents and declared order only — no
+timestamp, no hostname, no run counter, no directory listing order — because a single varying
+byte turns every request into a cache miss, which costs money and fails no test. `smoke.sh`
+compares two consecutive runs byte for byte. The script also refuses any source file carrying a
+`----- FILE: … -----` marker line: such a line would let a document fabricate a path, and a
+fabricated path is exactly what a citation check would then accept as real. A bundle past a 40 KB
+soft limit warns; today's are far below it, which is also why static local retrieval beats a
+vector store here.
+
+---
+
+## 🧪 Explanation Model
+
+The bundle is not a plan on paper; it has been run. `harness/scripts/explain-spike.sh` sends an
+assembled bundle plus a fixture's backend facts to a model and prints the explanation, its
+citations, and the usage the provider reported — the smallest thing that answers _"does this
+wiki work"_ with no server, no database, and no container.
+
+```bash
+./harness/scripts/explain-spike.sh --provider openrouter
+```
+
+It builds the request for either provider from the same bundle and the same fixture, so a
+comparison measures the model rather than the prompt, and both paths return the same
+`{ explanation, citations }` contract — enforced by a schema on one side and by a
+`tool_choice`-pinned function call on the other. It lives under `harness/` rather than `scripts/`
+because it needs an API key, which every script under `scripts/` is forbidden to require; with no
+key present it prints the exact request body it would have sent and exits clean.
+
+**What the measurement settled** (`decisions/choose-explanation-model.md`): the forbidden
+behaviours this harness counts **do not separate the candidates**. `gpt-4o-mini` and `gpt-4o`
+both scored 0% on all seven, five runs each, same prompt and fixture. What separated them was the
+axis no rule sees — Korean readability, 1.2 findings per run against 0.5 — where the smaller
+model left an alphabet fragment mid-sentence, copied an English field name out of the JSON, and
+attached a particle that does not exist in Korean. None of that trips a rule, and the sentence is
+the only thing this layer produces: the service makes the course and the grades, the agent adds
+prose. So the showcase runs `gpt-4o`.
+
+Seven is what the harness counted on the day of that measurement. Which rules are in force
+now, and how many, is settled in `packages/explanation-rules.json` — eight, each carrying the
+list of documents that must agree on it.
+
+The limits are recorded with the number rather than around it: Anthropic was never measured (no
+key), the judge was `gpt-4o` grading its own output in one arm, and the whole table rests on one
+fixture and five runs per model.
 
 ---
 
@@ -389,6 +502,8 @@ under `harness/fixtures/`, and a Spec Kit feature branch.
 - Preserve the initial tourism OpenAPI briefing extract and first consumer-service snapshots as raw evidence.
 - Maintain canonical wiki pages for tourism data, weather-aware recommendation, congestion-aware routing, and LLM explanation boundaries.
 - Maintain normalized `records/`, retrieval `indexes/`, and service `packages/` as derived artifacts.
+- Capture slowly changing public reference data on a schedule, as pull requests, with no secret leaving the workflow step that fetches.
+- Assemble a deterministic, cacheable context bundle per service, and prove it end to end with the explanation spike.
 - Provide a deterministic smoke script that checks frontmatter, source paths, index entries, log entries, and Spec Kit files.
 - Use Spec Kit for future feature work through `$speckit-specify`, `$speckit-plan`, `$speckit-tasks`, and `$speckit-implement`.
 
@@ -398,6 +513,7 @@ under `harness/fixtures/`, and a Spec Kit feature branch.
 
 - Letting an LLM decide the actual travel course.
 - Real-time paper search per user request.
+- Capturing live readings — air-quality concentrations, live congestion — or anything meaningful at a finer interval than a day.
 - Storing API keys, public-data service keys, Telegram tokens, or user travel history in Git.
 - Replacing each consumer service's deterministic recommendation logic.
 
