@@ -192,3 +192,13 @@
 - Deleted `harness/fixtures/wiki-retrieval-context.json`. No script read it, so it could not drift *into* anything — but its `forbiddenBehavior` array listed three rules where `packages/explanation-rules.json` now lists eight, and it is the first thing a reader greps for. A stale count nothing enforces is worse than no count.
 - `harness/README.md` no longer names it. `docs/superpowers/plans/2026-08-03-travel-context-wiki-pivot.md` still does, and stays as written: it records what was planned on that day.
 - The registry is now the only place that answers how many forbidden behaviours there are. The counts in the plans and in `decisions/choose-explanation-model.md` record what was measured when they were written and are left alone.
+
+## 2026-09-21 - create - explain the two scheduled captures no page cited
+
+- Added `entities/regional-visitor-api.md` and `entities/air-quality-station-api.md`. Both collectors had been landing evidence for weeks, and until now no canonical page cited `raw/external-snapshots/tourism-visitors/` or `raw/external-snapshots/air-quality-airkorea-station-list.json`, so no retrieval, bundle, or explanation could reach them.
+- Found while writing them: district codes changed on 2026-07-01. The 5 Gwangju (`29xxx`) and 22 South Jeolla (`46xxx`) codes became 27 codes under `12`, and Incheon's 중구, 동구, and 서구 were reorganised into 제물포구, 영종구, 서해구, and 검단구, with `28260` 서구 lingering for five days of July. July passed the completeness rule anyway, because that rule counts days across the month, not per district. Both facts are recorded on the visitor page.
+- Also recorded: `signguNm` is not unique, `touNum` is a fractional estimate, `dmX` in the station list is latitude, station addresses are not normalised, and the station list's no-modification license has not been checked against derived records, which is why that page is contested.
+- Updated `concepts/congestion-diagnosis.md` to say the district series cannot stand in for a per-attraction grade, and `concepts/weather-aware-travel-recommendation.md` to say air-quality readings are not collected here.
+- Added `harness/scenarios/captured-evidence-reachability.md`, a smoke check that fails while any captured `sourceKind` has no citing page, and rule 11 of "Scheduled Collection Rules" in `SCHEMA.md`. The check failed on `air-quality` before these pages existed.
+- Updated `index.md`, `harness/scripts/smoke.sh`, `harness/README.md`, and the files under `indexes/`.
+- Canonical pages 14 → 16.

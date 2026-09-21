@@ -95,6 +95,7 @@ require_file docs/collection-stats.svg
 require_file harness/scripts/explain-spike.sh
 require_file harness/scenarios/context-bundle-assembly.md
 require_file harness/scenarios/collection-stats-image.md
+require_file harness/scenarios/captured-evidence-reachability.md
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
@@ -139,6 +140,25 @@ find concepts entities comparisons queries decisions -type f -name '*.md' | whil
   ' "$file" | while IFS= read -r source_path; do
     [ -f "$source_path" ] || fail "$file references missing source $source_path"
   done
+done
+
+# Scenario "Captured evidence reachability": every sourceKind a collector has
+# landed in raw/external-snapshots/ must be cited by at least one canonical page.
+# Checked per kind, not per file, so a new month of an already-documented series
+# does not block its capture pull request.
+CITED_SOURCES="$TMP_DIR/cited-sources.txt"
+find concepts entities comparisons queries decisions -type f -name '*.md' -exec awk '
+  /^sources:/ { in_sources=1; next }
+  in_sources && /^  - / { sub(/^  - /, ""); print; next }
+  in_sources && /^[^ ]/ { in_sources=0 }
+' {} + | LC_ALL=C sort -u > "$CITED_SOURCES"
+find raw/external-snapshots -type f -name '*.json' | while IFS= read -r snapshot; do
+  printf '%s\t%s\n' "$(jq -r '.sourceKind // empty' "$snapshot")" "$snapshot"
+done > "$TMP_DIR/snapshot-kinds.tsv"
+cut -f1 "$TMP_DIR/snapshot-kinds.tsv" | grep -v '^$' | LC_ALL=C sort -u | while IFS= read -r kind; do
+  awk -F'\t' -v k="$kind" '$1 == k { print $2 }' "$TMP_DIR/snapshot-kinds.tsv" \
+    | grep -qxFf "$CITED_SOURCES" \
+    || fail "sourceKind $kind is captured under raw/external-snapshots/ but no canonical page cites it"
 done
 
 grep -q 'initial evidence wiki scaffold' log.md || fail "log.md missing initial scaffold entry"

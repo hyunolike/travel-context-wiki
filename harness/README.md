@@ -5,6 +5,7 @@ This harness fixes the expected behavior of Travel Context Wiki before automatio
 ## Assets
 
 - `scenarios/travel-context-explanation.md`: user-facing service scenario.
+- `scenarios/captured-evidence-reachability.md`: every captured `sourceKind` must be cited by a canonical page.
 - `fixtures/course-explanation-request.json`: sample backend output and user preferences.
 - `scripts/smoke.sh`: deterministic repository health check.
 

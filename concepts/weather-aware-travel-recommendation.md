@@ -1,7 +1,7 @@
 ---
 title: Weather Aware Travel Recommendation
 created: 2026-08-03
-updated: 2026-08-19
+updated: 2026-09-21
 type: concept
 tags:
   - weather
@@ -25,6 +25,8 @@ The first implementation may use service-provided weather facts such as conditio
 
 No running service produces the weather facts this page explains. Hanjeok, the only implemented consumer, has no weather code and no weather section in its design document, so `weather` was removed from `packages/hanjeok/context-bundle.json` on 2026-08-19. The `packages/generic-travel/` package still lists it, but no service implements that package.
 
+Air quality is in the same position. [[air-quality-station-api]] captures where the monitoring stations are, but readings are live data and are not collected here, so the wiki cannot say today's air is good or bad.
+
 This page and `records/weather/rules.json` are kept rather than deleted, for the same reason `raw/` is preserved: the evidence outlives the absence of a consumer. Nothing here may be asserted in an explanation until a backend supplies the facts.
 
 ## Explanation Policy
@@ -47,3 +49,4 @@ The LLM must not:
 - [[travel-context-layer]]
 - [[why-this-place-today]]
 - [[keep-llm-out-of-ranking]]
+- [[air-quality-station-api]]
