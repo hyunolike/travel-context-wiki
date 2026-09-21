@@ -1,6 +1,6 @@
 # Travel Context Wiki Index
 
-Active canonical pages: 16
+Active canonical pages: 17
 
 ## Concepts
 
@@ -16,6 +16,7 @@ Active canonical pages: 16
 
 - [[air-quality-station-api]] - 에어코리아 대기질 측정소 목록. 측정값이 아니라 위치 목록이고, dmX가 위도다.
 - [[congestion-forecast-api]] - 관광지 집중률 방문자 추이 예측 API.
+- [[kma-short-term-forecast-api]] - 기상청 단기예보 조회서비스. 하루 8회 발표되고, 폭염 여부나 실외 적합도는 주지 않는다.
 - [[regional-visitor-api]] - 기초지자체별 일별 방문자 추정치. 2026-07-01에 광주, 전남, 인천의 시군구 코드가 바뀌었다.
 - [[related-attraction-api]] - 관광지별 연관 관광지 정보 API.
 - [[tourapi-korservice2]] - 국문 관광정보 서비스 KorService2.

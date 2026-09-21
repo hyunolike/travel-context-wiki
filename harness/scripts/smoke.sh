@@ -96,6 +96,7 @@ require_file harness/scripts/explain-spike.sh
 require_file harness/scenarios/context-bundle-assembly.md
 require_file harness/scenarios/collection-stats-image.md
 require_file harness/scenarios/captured-evidence-reachability.md
+require_file harness/scenarios/weather-rules-evidence.md
 require_file .github/workflows/wiki-batch.yml
 
 [ -x scripts/collect-user-input.sh ] || fail "scripts/collect-user-input.sh is not executable"
@@ -160,6 +161,17 @@ cut -f1 "$TMP_DIR/snapshot-kinds.tsv" | grep -v '^$' | LC_ALL=C sort -u | while 
     | grep -qxFf "$CITED_SOURCES" \
     || fail "sourceKind $kind is captured under raw/external-snapshots/ but no canonical page cites it"
 done
+
+# Scenario "Weather rules evidence": the rules file says it must be backed by raw
+# weather records before it is used. Every rule has to name that record.
+jq -r '.rules[] | [.id, (.source // "")] | @tsv' records/weather/rules.json | while IFS="$(printf '\t')" read -r rule_id rule_source; do
+  case "$rule_source" in
+    raw/weather-api/*) [ -f "$rule_source" ] || fail "weather rule $rule_id cites missing source $rule_source" ;;
+    *) fail "weather rule $rule_id does not cite a source under raw/weather-api/" ;;
+  esac
+done
+jq -e '.rules | all(has("unsourcedFacts"))' records/weather/rules.json >/dev/null \
+  || fail "every weather rule must list unsourcedFacts, even when empty"
 
 grep -q 'initial evidence wiki scaffold' log.md || fail "log.md missing initial scaffold entry"
 grep -q 'Travel context explanation' harness/scenarios/travel-context-explanation.md || fail "scenario missing expected title"

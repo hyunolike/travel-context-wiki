@@ -1,0 +1,167 @@
+name: Capture Weather Forecast Sample
+
+# Captures ONE short-term forecast response from the KMA village forecast
+# service as a response sample under raw/weather-api/, so the wiki's weather
+# pages can cite what the API actually returns instead of what it is assumed to.
+#
+# Manual only, by design. A forecast is live data, and under "Scheduled
+# Collection Rules" in SCHEMA.md live readings belong in a consumer backend. A
+# sample is evidence of the response contract, not a feed; run it when the
+# contract needs re-checking, not on a timer.
+#
+# Endpoint, parameters, base times, result codes, and the grid point were read
+# out of 기상청41_단기예보 조회서비스_오픈API활용가이드_260623.docx and its grid
+# workbook, from dataset 15084084 on data.go.kr, on 2026-09-22. The guide is
+# stored as raw/weather-api/kma-vilage-fcst-guide-260623.txt. The default grid
+# point 60,127 is 서울특별시 종로구 (1111000000) in that workbook, the region
+# records/regions/seoul-jongno.json describes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      nx:
+        description: "Forecast grid X. Default is 서울 종로구."
+        required: false
+        default: "60"
+      ny:
+        description: "Forecast grid Y. Default is 서울 종로구."
+        required: false
+        default: "127"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  ENDPOINT: https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst
+  SOURCE_KIND: weather-forecast
+  SOURCE_URL: https://www.data.go.kr/data/15084084/openapi.do
+  LICENSE: 공공누리 제1유형 (출처표시)
+  SNAPSHOT_DIR: raw/weather-api
+  # Since the 2024-11-28 extension a forecast reaches 글피 (02-14시 base) or
+  # 그글피 (17-23시 base), across a dozen categories. 1000 rows can fall short,
+  # and the validate step fails rather than store a truncated page.
+  ROWS: "2000"
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    # Inputs reach the shell through env, never by expression interpolation into
+    # a run script, so a crafted input cannot become a command.
+    env:
+      NX: ${{ inputs.nx }}
+      NY: ${{ inputs.ny }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for the service key
+        id: guard
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "::error::DATA_GO_KR_SERVICE_KEY is not configured."
+            exit 1
+          fi
+          case "${NX}${NY}" in
+            *[!0-9]*) echo "::error::nx and ny must be integers"; exit 1 ;;
+          esac
+
+      # The guide lists eight base times a day, each served from ten minutes
+      # after the hour. Pick the latest one at least fifteen minutes old in KST.
+      - name: Choose the latest published base time
+        id: base
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'EOF'
+          from datetime import datetime, timedelta, timezone
+          now = datetime.now(timezone(timedelta(hours=9))) - timedelta(minutes=15)
+          for back in range(0, 25):
+              t = now - timedelta(hours=back)
+              if t.hour in (2, 5, 8, 11, 14, 17, 20, 23):
+                  print(f"date={t:%Y%m%d}")
+                  print(f"time={t:%H}00")
+                  break
+          EOF
+
+      # The service key travels as a query parameter, and logs on a public
+      # repository are public. Never print the URL, never use curl -v.
+      - name: Fetch the forecast
+        env:
+          SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+          BASE_DATE: ${{ steps.base.outputs.date }}
+          BASE_TIME: ${{ steps.base.outputs.time }}
+        run: |
+          curl -sS --fail-with-body --get "$ENDPOINT" \
+            --data-urlencode "serviceKey=$SERVICE_KEY" \
+            --data-urlencode "dataType=JSON" \
+            --data-urlencode "numOfRows=$ROWS" \
+            --data-urlencode "pageNo=1" \
+            --data-urlencode "base_date=${BASE_DATE}" \
+            --data-urlencode "base_time=${BASE_TIME}" \
+            --data-urlencode "nx=${NX}" \
+            --data-urlencode "ny=${NY}" \
+            -o response.json
+
+      # A rejected key still answers HTTP 200, sometimes as XML, and an error
+      # body can echo the request. Validate the shape without printing the body.
+      - name: Validate response
+        run: |
+          jq empty response.json 2>/dev/null || { echo "::error::response was not JSON; the key may not be approved for this dataset"; exit 1; }
+          code="$(jq -r '.response.header.resultCode // "missing"' response.json)"
+          if [ "$code" != "00" ]; then
+            echo "::error::public data API returned resultCode=$code"
+            exit 1
+          fi
+          total="$(jq -r '.response.body.totalCount // "missing"' response.json)"
+          got="$(jq -r '.response.body.items.item | length' response.json)"
+          if [ "$total" != "$got" ]; then
+            echo "::error::totalCount=$total but $got items arrived; the sample would be truncated"
+            exit 1
+          fi
+
+      # No --sort-arrays: the items are a time series, and their order carries
+      # meaning. No --skip-unchanged: every base time is a distinct sample.
+      - name: Capture as raw evidence
+        env:
+          BASE_DATE: ${{ steps.base.outputs.date }}
+          BASE_TIME: ${{ steps.base.outputs.time }}
+        run: |
+          jq -n \
+            --slurpfile payload response.json \
+            --arg snapshotId "kma-vilage-fcst-${NX}-${NY}-${BASE_DATE}${BASE_TIME}" \
+            --arg sourceKind "$SOURCE_KIND" \
+            --arg sourceUrl "$SOURCE_URL" \
+            --arg license "$LICENSE" \
+            --arg collectedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{snapshotId: $snapshotId, sourceKind: $sourceKind, sourceUrl: $sourceUrl,
+              license: $license, collectedAt: $collectedAt, payload: $payload[0]}' \
+            > envelope.json
+          scripts/collect-external-snapshot.sh envelope.json "$SNAPSHOT_DIR"
+          rm -f response.json envelope.json
+
+      - name: Verify the capture still satisfies the contract
+        run: ./harness/scripts/smoke.sh
+
+      - name: Open a pull request
+        env:
+          BASE_DATE: ${{ steps.base.outputs.date }}
+          BASE_TIME: ${{ steps.base.outputs.time }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="collect/weather-forecast-sample-$(date -u +%Y%m%d-%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add "$SNAPSHOT_DIR"
+          git commit -m "chore: capture a weather forecast response sample"
+          git push -u origin "$branch"
+          printf '%s\n' \
+            "One manual capture of a KMA village forecast response, for grid ${NX},${NY}, base ${BASE_DATE} ${BASE_TIME} KST." \
+            "" \
+            "Evidence only: this touches \`$SNAPSHOT_DIR/\` and nothing else. It is a sample of the response contract, not a forecast anyone should read as today's weather." \
+            "" \
+            "No checks will appear below. A pull request opened with \`GITHUB_TOKEN\` does not trigger other workflows. The capturing run already executed \`./harness/scripts/smoke.sh\` against this exact tree." \
+            > pr-body.md
+          gh pr create --base main --head "$branch" \
+            --title "chore: capture a weather forecast response sample" \
+            --body-file pr-body.md
