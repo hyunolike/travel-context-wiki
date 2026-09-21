@@ -36,6 +36,7 @@
 - [バッチ収集モデル](#-バッチ収集モデル)
 - [ナレッジストアの境界](#-ナレッジストアの境界)
 - [エージェントへの配信](#-エージェントへの配信)
+- [説明モデル](#-説明モデル)
 - [プロジェクト成果物のリンク](#-プロジェクト成果物のリンク)
 - [クイックスタート](#-クイックスタート)
 - [仕様駆動ワークフロー](#-仕様駆動ワークフロー)
@@ -75,26 +76,37 @@
 
 ## 🗃 データ出典
 
-この wiki の canonical ナレッジは **韓国観光公社 (KTO) の公共データ OpenAPI** に基づいており、
-韓国の公共データポータルを通じて公開されている資料です。すべての派生レコードと canonical page は
-`raw/` 配下の原本証拠スナップショットまで逆追跡できます。
+この wiki の canonical ナレッジは **公共データ OpenAPI** に基づいています。韓国観光公社 (KTO) の
+観光データと大気質の参照データを、韓国の公共データポータルを通じて取得しており、すべての派生
+レコードと canonical page は `raw/` 配下の原本証拠スナップショットまで逆追跡できます。
 
 [![KTO TourAPI](https://img.shields.io/badge/韓国観光公社-TourAPI-0088cc.svg)](https://www.data.go.kr/)
 [![data.go.kr](https://img.shields.io/badge/公共データポータル-data.go.kr-1a4b8c.svg)](https://www.data.go.kr/)
 [![Congestion](https://img.shields.io/badge/観光地-混雑度予測-e07b39.svg)](https://www.data.go.kr/)
 [![Related](https://img.shields.io/badge/観光地-関連情報-6f42c1.svg)](https://www.data.go.kr/)
+[![AirKorea](https://img.shields.io/badge/エアコリア-測定所リスト-2e8b57.svg)](https://www.data.go.kr/data/15073877/openapi.do)
+[![Visitors](https://img.shields.io/badge/韓国観光データラボ-地域別訪問者数-e07b39.svg)](https://www.data.go.kr/data/15101972/openapi.do)
 
 | データ出典 | 提供機関 | 用途 | 原本証拠 |
 | --- | --- | --- | --- |
 | TourAPI KorService2 (韓国語観光情報) | 韓国観光公社 (KTO) | 観光地の詳細、座標、画像、概要 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
 | 観光地混雑度・訪問者推移予測 | 韓国観光公社 (KTO) | `congestion-diagnosis` の混雑度グレーディング | `raw/public-tourism-api/2026-openapi-briefing.txt` |
 | 観光地別の関連観光地 | 韓国観光公社 (KTO) | `alternative-scoring` の代替候補構成 | `raw/public-tourism-api/2026-openapi-briefing.txt` |
+| エアコリア測定所リスト | 韓国環境公団 (KECO) | 地域の大気質の根拠がどの測定所から来たかを明示 | `raw/external-snapshots/air-quality-airkorea-station-list.json` |
+| 地域別訪問者数 (韓国観光データラボ) | 韓国観光公社 (KTO) | 混雑度のパーセンタイル尺度を実測の訪問量に接地させる | `raw/external-snapshots/tourism-visitors/<YYYY-MM>.json` _(2026-06 以降)_ |
 | 天気 / 季節性データ | 気象 OpenAPI _(予定)_ | 天気認識推薦と屋内/屋外フォールバック | `raw/weather-api/` _(取得予定)_ |
 
 > 2026-05 の OpenAPI 説明会資料は、約 **458 万件** の観光データをリアルタイム OpenAPI として公開する
 > 韓国観光公社の公共データサービスを説明しています。原本スナップショットは `raw/` 配下に原文のまま
 > 保存され、決して編集されず、更新は新しいスナップショットとしてのみ行われます。再配布の前に、
 > [公共データポータル](https://www.data.go.kr/) で正確なライセンス条件 (例: KOGL) を確認してください。
+
+上の 3 行は説明会資料から読み取った文書上の出典で、下の 2 行はスケジュールされたワークフローが
+自動で取得します ([スケジュールされたワークフロー](#スケジュールされたワークフロー) を参照)。
+ライセンスはそれぞれ異なります。エアコリアの測定所リストは **KOGL 第 3 類型** (出典表示 + 変更禁止)
+であり、訪問者数の時系列には利用許諾範囲の制限がありません。訪問者の行はソースが返したまま保存し、
+`touDivCd` が分ける 現地人 / 外地人 / 外国人 を集約しません。保存前に集約すると派生データが `raw/`
+に入ってしまうからです。
 
 ---
 
@@ -107,6 +119,11 @@
 証拠が最後に取得された日です。さらに収集器は変化のないペイロードをスキップし、保存済みの期間を
 不変として扱うため、正確には最後に実行された日ではなく最後に**変化した**日を指します。
 
+図が数えるのは、証拠レイヤーが実際に保持しているものだけです。保存済みの期間数、日次の行数、最新
+期間に含まれる基礎自治体 (기초지자체) の数、そして測定所の数であり、取得していないものは描きません。地域の
+カバレッジは最新期間だけで数えます。すべての期間を合算すると「一度でも登場した」地域を報告する
+ことになり、それはより見栄えのする数字であって、同じ主張ではありません。
+
 ---
 
 ## 🗂 ナレッジレイヤー
@@ -118,6 +135,9 @@ Layer 1: Evidence
   raw/tourism-research/       観光・混雑・天気影響に関する論文/レポート
   raw/service-snapshots/      この wiki を消費するサービスの設計/ハーネススナップショット
   raw/experiments/            API 実呼び出しの検証結果
+  raw/external-snapshots/     スケジュール取得: 参照リストと期間スナップショットの時系列
+  raw/user-input/             同意を得てサニタイズしたユーザー入力キャプチャ
+  raw/project-guides/         成果物リンクの根拠となるプロジェクトガイド/PRD
 
 Layer 2: Canonical Memory
   entities/                   観光/天気 API、機関、データセット、主要システム
@@ -130,6 +150,7 @@ Layer 3: Operation Metadata
   SCHEMA.md                   wiki 契約
   index.md                    active canonical catalog
   log.md                      append-only operation history
+  harness/                    シナリオ、フィクスチャ、smoke ゲート
 ```
 
 ---
@@ -239,8 +260,12 @@ flowchart TD
 ```bash
 scripts/collect-user-input.sh harness/fixtures/user-input-capture.valid.json /tmp/wiki-user-input
 scripts/collect-external-snapshot.sh harness/fixtures/external-tourism-snapshot.valid.json /tmp/wiki-external
+scripts/collect-period-snapshot.sh harness/fixtures/period-snapshot.valid.json /tmp/wiki-periods
 scripts/build-index.sh
 scripts/build-index.sh --check
+scripts/build-bundle.sh --list
+scripts/build-bundle.sh hanjeok
+scripts/build-collection-stats.sh --check
 ./harness/scripts/smoke.sh
 ```
 
@@ -248,9 +273,35 @@ scripts/build-index.sh --check
 
 - `collect-user-input.sh` は `consentForWiki` が `true` かつ `containsPersonalData` が `false` でなければ入力を拒否します。
 - `collect-external-snapshot.sh` はソース URL、ライセンス、収集時刻、ペイロードを要求します。
+- `collect-period-snapshot.sh` は**増え続ける時系列**を扱います。`YYYY-MM` の期間ごとに 1 ファイルを
+  書き、すでに保存した期間は決して書き換えません。単一ファイルの収集器ではこれを表現できません。
+  ペイロードが毎回変わるため、「変化がなければスキップ」というフィルタが何も濾さなくなるからです。
 - `build-index.sh --check` は CI 安全モードで、コミット済みの検索成果物が古い場合に失敗します。
-- 認証が必要なリアルタイム API ポーリングは、この公開 wiki リポジトリではなく、**サービス
-  バックエンドまたはシークレット管理されたスケジュールジョブ**に後から追加すべきです。
+- `build-bundle.sh <service>` はパッケージを、エージェントが実際に送る文字列へ組み立てます。
+  [エージェントへの配信](#-エージェントへの配信) を参照してください。
+- 認証が必要な API ポーリングは、いまや**このリポジトリの中で**動きます。ただし `SCHEMA.md` の
+  _Scheduled Collection Rules_ が定める狭い例外の中だけです。ゆっくり変わる公開参照データであること、
+  1 日 1 回を超えないこと、サービスキーは実際に取得するワークフローステップだけが読むこと、URL を
+  ログに出さないこと、`raw/` に着地してプルリクエストを開くこと。リアルタイムの観測値、個人に関する
+  データ、1 日より細かい粒度で意味を持つデータは、消費サービスのバックエンドに残ります。
+
+### スケジュールされたワークフロー
+
+| ワークフロー | 内容 | 周期 |
+| --- | --- | --- |
+| `collect-air-quality-stations.yml` | エアコリアの**測定所リスト**を取得します。参照リストであり、濃度の実測値ではありません | 毎週火 06:00 KST |
+| `collect-regional-visitors.yml` | 基礎自治体別の日次訪問者数を、月単位の不変な期間スナップショットとして取得 | 毎月 8 日 06:00 KST |
+| `collection-stats.yml` | すでにコミットされた証拠から `docs/collection-stats.svg` を描き直す | 毎日、および `raw/external-snapshots/` を変更する push ごと |
+| `wiki-batch.yml` | `smoke.sh` と `build-index.sh --check` を実行 | すべての push と PR、および毎週 |
+| `stale-capture-check.yml` | `collect/*` の PR が3日以上開いたままなら失敗 | 毎日 07:00 KST |
+
+- `DATA_GO_KR_SERVICE_KEY` がなければ収集器は notice を残してスキップします。シークレットの不在で
+  実行が失敗することはなく、`scripts/` 配下のどのスクリプトもシークレットを必要としません。
+- 取得物は `raw/` までで止まり、プルリクエストを開きます。`records/` の導出、`indexes/` の再構築、
+  canonical page への昇格は人の仕事として残り、レビューゲートは迂回されません。
+- `main` へ直接 push するワークフローは `collection-stats.yml` だけです。コミット済みの証拠を描き
+  直すだけで独自の主張を加えないため、レビュアーが下す判断が存在しないからで、この例外は
+  `SCHEMA.md` の _Generated Artifact Rules_ に明記されています。
 
 ---
 
@@ -309,6 +360,61 @@ flowchart TD
 
 `packages/<service>/context-bundle.json` と `indexes/manifest.json` が、この配信を前提に作られた
 成果物です。3 つの方式すべてがこの 2 ファイルをエントリポイントとして使います。
+
+### バンドルの構築
+
+```bash
+scripts/build-bundle.sh --list
+scripts/build-bundle.sh hanjeok
+```
+
+`build-bundle.sh` は、パッケージの canonical page、正規化レコード、サービス prompt を 1 本の決定的な
+文字列に連結します。LLM の `system` ブロックで `cache_control` のブレークポイントの背後にそのまま
+置くための出力です。順序は探索せず、パッケージが宣言します。ポリシーのページが先、そのポリシーが
+指す値が次、サービス prompt が最後で、指示がユーザーターンに最も近く座るようにしています。
+
+決定性が核心です。出力はファイルの内容と宣言された順序だけに依存し、タイムスタンプもホスト名も
+実行回数もディレクトリの列挙順も混ざりません。1 バイト変わるだけであらゆるリクエストがキャッシュ
+ミスになり、費用が出ていくのに、どのテストも失敗しないからです。`smoke.sh` は連続 2 回の実行を
+バイト単位で比較します。さらに `----- FILE: … -----` という形の行を含むソースファイルは拒否します。
+その行があると文書が存在しないパスを捏造でき、引用チェックはまさにその捏造されたパスを実在するもの
+として受け入れてしまいます。バンドルが 40KB のソフト上限を超えると警告しますが、現在ははるかに
+下回っています。静的なローカル検索がベクトルストアに勝る理由でもあります。
+
+---
+
+## 🧪 説明モデル
+
+バンドルは紙の上の計画ではなく、すでに走らせたものです。`harness/scripts/explain-spike.sh` は、
+組み立てたバンドルとフィクスチャのバックエンド事実をモデルへ送り、説明と引用、そしてプロバイダが
+返した使用量を出力します。サーバーも DB もコンテナもなしに「この wiki は機能するのか」に答える、
+最小の装置です。
+
+```bash
+./harness/scripts/explain-spike.sh --provider openrouter
+```
+
+両プロバイダのリクエストを同じバンドルと同じフィクスチャから組み立てるため、比較はプロンプトでは
+なくモデルを測ります。出力契約もどちらも同じ `{ explanation, citations }` で、一方はスキーマで、
+もう一方は `tool_choice` で固定した関数呼び出しで強制します。このスクリプトが `scripts/` ではなく
+`harness/` にあるのは API キーが要るからです。`scripts/` 配下のスクリプトはシークレットを要求できま
+せん。キーがなければ、送るはずだったリクエストボディをそのまま出力して正常終了します。
+
+**測定が決めたこと** (`decisions/choose-explanation-model.md`): ハーネスが数える禁止行動は
+候補を**分けられませんでした**。同じプロンプト、同じフィクスチャ、各 5 回の実行で `gpt-4o-mini` と
+`gpt-4o` はどちらも 7 種すべて 0% でした。分けたのは規則には見えない軸、韓国語の可読性です。実行
+あたりの指摘は 1.2 件対 0.5 件で、小さいモデルの側では文の途中にアルファベットの断片が残り、JSON の
+英語のフィールド名がそのまま写り、韓国語に存在しない助詞が付きました。どれも規則には触れませんが、
+このレイヤーが生み出すものは文だけです。コースと等級はサービスが作り、エージェントが足すのは文章
+です。だからショーケースは `gpt-4o` で走らせます。
+
+7 種はその測定を行った日にハーネスが数えていた数です。いま何が規則で何個あるかは
+`packages/explanation-rules.json` が定めます。八つで、それぞれが一致すべき文書の一覧を持って
+います。
+
+限界は数字を避けずに数字の隣に記録しています。Anthropic はキーがなく測定していません。判定者が
+`gpt-4o` であり、片方の実行では自分の出力を自分で採点しました。そしてこの表全体が、フィクスチャ 1 件と
+モデルあたり 5 回の実行に載っています。
 
 ---
 
@@ -382,6 +488,8 @@ $speckit-implement
 - 最初の観光 OpenAPI 説明会の抽出物と、最初の消費サービスのスナップショットを原本証拠として保存。
 - 観光データ、天気認識推薦、混雑認識ルーティング、LLM 説明境界の canonical wiki page を維持。
 - 正規化 `records/`、検索 `indexes/`、サービス `packages/` を派生成果物として維持。
+- ゆっくり変わる公開参照データをスケジュール取得し、プルリクエストとして上げる。シークレットは取得ステップの外に出さない。
+- サービスごとに決定的でキャッシュ可能な context bundle を組み立て、説明スパイクで最後まで確かめる。
 - frontmatter、source path、index エントリ、log エントリ、Spec Kit ファイルを検査する決定的な smoke スクリプトを提供。
 - 今後の機能作業は `$speckit-specify`、`$speckit-plan`、`$speckit-tasks`、`$speckit-implement` で進める。
 
@@ -391,6 +499,7 @@ $speckit-implement
 
 - LLM が実際の旅行コースを決定すること。
 - ユーザーのリクエストごとにリアルタイムで論文検索すること。
+- リアルタイムの観測値の取得。大気質の濃度やライブの混雑度など、1 日より細かい粒度で意味を持つ値は扱いません。
 - API キー、公共データサービスキー、Telegram トークン、ユーザーの旅行履歴を Git に保存すること。
 - 各消費サービスの決定的な推薦ロジックを置き換えること。
 
