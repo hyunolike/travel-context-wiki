@@ -1,21 +1,56 @@
 {
-  "version": "2026-08-03",
+  "version": "2026-09-22",
   "sourcePolicy": "Rules are derived records. They must be backed by raw weather API records or tourism research before being used as evidence.",
   "rules": [
     {
       "id": "weather:rain:outdoor-limited",
       "condition": "RAIN",
       "effect": "Prefer indoor or short-walk alternatives when backend weather context marks outdoor suitability as limited.",
-      "explanationTags": ["weather", "indoor-alternative", "short-walk"],
-      "requiredBackendFacts": ["condition", "outdoorSuitability"]
+      "explanationTags": [
+        "weather",
+        "indoor-alternative",
+        "short-walk"
+      ],
+      "requiredBackendFacts": [
+        "condition",
+        "outdoorSuitability"
+      ],
+      "source": "raw/weather-api/kma-vilage-fcst-guide-260623.txt",
+      "sourceFields": {
+        "PTY": [
+          "1",
+          "2",
+          "4"
+        ],
+        "POP": "percent"
+      },
+      "unsourcedFacts": [
+        "outdoorSuitability"
+      ],
+      "note": "RAIN means getVilageFcst PTY 1 (비), 2 (비/눈), or 4 (소나기). The guide defines no rule for when rain makes an outdoor visit unsuitable, so outdoorSuitability must come from the backend and must not be derived here."
     },
     {
       "id": "weather:heat:duration-shortening",
       "condition": "HEAT",
       "effect": "Explain shorter outdoor stays, shade, indoor breaks, or late-afternoon scheduling when heat is material.",
-      "explanationTags": ["weather", "heat", "seasonality"],
-      "requiredBackendFacts": ["temperatureC", "heatRisk"]
+      "explanationTags": [
+        "weather",
+        "heat",
+        "seasonality"
+      ],
+      "requiredBackendFacts": [
+        "temperatureC",
+        "heatRisk"
+      ],
+      "source": "raw/weather-api/kma-vilage-fcst-guide-260623.txt",
+      "sourceFields": {
+        "TMP": "celsius",
+        "TMX": "celsius"
+      },
+      "unsourcedFacts": [
+        "heatRisk"
+      ],
+      "note": "The forecast gives TMP and TMX, not heat risk. No source in this repository sets a TMX threshold for heat, so heatRisk must come from the backend and must not be computed from TMX here."
     }
   ]
 }
-

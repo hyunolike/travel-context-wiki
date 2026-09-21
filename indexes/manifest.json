@@ -118,7 +118,7 @@
         "travel-context"
       ],
       "sources": [
-        "raw/service-snapshots/hanjeok/design-v3.md"
+        "raw/weather-api/kma-vilage-fcst-guide-260623.txt"
       ]
     },
     {
@@ -198,6 +198,22 @@
       "sources": [
         "raw/public-tourism-api/2026-openapi-briefing.txt",
         "raw/service-snapshots/hanjeok/design-v3.md"
+      ]
+    },
+    {
+      "id": "entity:kma-short-term-forecast-api",
+      "path": "entities/kma-short-term-forecast-api.md",
+      "type": "entity",
+      "title": "KMA Short-Term Forecast API",
+      "confidence": "medium",
+      "tags": [
+        "weather",
+        "openapi",
+        "public-data",
+        "weather-aware-recommendation"
+      ],
+      "sources": [
+        "raw/weather-api/kma-vilage-fcst-guide-260623.txt"
       ]
     },
     {

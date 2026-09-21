@@ -1,7 +1,7 @@
 ---
 title: Weather Aware Travel Recommendation
 created: 2026-08-03
-updated: 2026-09-21
+updated: 2026-09-22
 type: concept
 tags:
   - weather
@@ -9,17 +9,18 @@ tags:
   - weather-aware-recommendation
   - travel-context
 sources:
-  - raw/service-snapshots/hanjeok/design-v3.md
+  - raw/weather-api/kma-vilage-fcst-guide-260623.txt
 confidence: low
 contested: true
-contradictions: []
+contradictions:
+  - "Until 2026-09-22 this page cited raw/service-snapshots/hanjeok/design-v3.md as its only source. That document contains no weather content at all; the citation was removed rather than kept as support."
 ---
 
 # Weather Aware Travel Recommendation
 
 Weather Aware Travel Recommendation adds weather and seasonality context to travel explanations without letting the LLM change backend ranking.
 
-The first implementation may use service-provided weather facts such as condition, precipitation probability, temperature, heat/cold warnings, and indoor/outdoor suitability. Later source records under `raw/weather-api/` and `raw/tourism-research/` should strengthen this page.
+The first implementation may use service-provided weather facts such as condition, precipitation probability, temperature, and indoor/outdoor suitability. [[kma-short-term-forecast-api]] records the forecast contract those facts would come from: sky state, precipitation type and probability, and hourly and daily temperatures. It carries no heat or cold warning and no suitability judgement, so those two remain facts a backend must supply from a source this wiki does not yet hold. Research under `raw/tourism-research/` would still be needed before any claim about how travellers respond to weather.
 
 ## Consumer Status
 
@@ -50,3 +51,4 @@ The LLM must not:
 - [[why-this-place-today]]
 - [[keep-llm-out-of-ranking]]
 - [[air-quality-station-api]]
+- [[kma-short-term-forecast-api]]

@@ -202,3 +202,18 @@
 - Added `harness/scenarios/captured-evidence-reachability.md`, a smoke check that fails while any captured `sourceKind` has no citing page, and rule 11 of "Scheduled Collection Rules" in `SCHEMA.md`. The check failed on `air-quality` before these pages existed.
 - Updated `index.md`, `harness/scripts/smoke.sh`, `harness/README.md`, and the files under `indexes/`.
 - Canonical pages 14 → 16.
+
+## 2026-09-22 - ingest - the KMA short-term forecast guide
+
+- Added `raw/weather-api/kma-vilage-fcst-guide-260623.docx` and `raw/weather-api/kma-vilage-fcst-guide-260623.txt`, the provider's guide from the `.zip` attached to dataset 15084084 on data.go.kr, downloaded 2026-09-22 (zip SHA-256 `07f53cd9…8842e`). The `.docx` is the original; the `.txt` is a `textutil` conversion kept so pages can cite something readable. It is the first file ever stored under `raw/weather-api/`.
+
+## 2026-09-22 - create - ground the weather pages in a weather source
+
+- Added `entities/kma-short-term-forecast-api.md`: operations, the eight daily base times, the 2024-11-28 extension that turns `PCP`, `SNO`, and `WSD` into qualitative codes on the far days, the `SKY` and `PTY` code tables, `PCP` as a string, and result codes.
+- Repaired: `concepts/weather-aware-travel-recommendation.md` cited `raw/service-snapshots/hanjeok/design-v3.md` as its only source, and that file has no weather content. The citation is replaced by the guide and recorded under `contradictions`. The page stays `low` and contested, because the guide supports the forecast fields, not the explanation policy.
+- Updated `records/weather/rules.json`: each rule now names its `source`, the forecast fields it reads, and `unsourcedFacts`. `outdoorSuitability` and `heatRisk` are unsourced. The guide gives temperatures, not heat risk, and no file here sets a threshold.
+- Added `harness/scenarios/weather-rules-evidence.md` and a smoke check that fails while a weather rule cites nothing under `raw/weather-api/`. It failed on `weather:rain:outdoor-limited` before this change.
+- Added `.github/workflows/capture-weather-forecast-sample.yml`, manual only, to capture one `getVilageFcst` response for 종로구 (grid 60, 127) as a response sample. A forecast is live data, so it has no schedule. It cannot run until this lands on `main`.
+- Not repaired, noted: `records/places/gyeongbokgung.json` and `records/regions/seoul-jongno.json` carry weather sensitivity notes whose `source` is the same weather-free `design-v3.md`.
+- Updated `index.md`, `harness/scripts/smoke.sh`, `harness/README.md`, and the files under `indexes/`.
+- Canonical pages 16 → 17.
