@@ -233,3 +233,8 @@
 - `decisions/separate-context-wiki-from-services.md`: records that the first consumer reached the wiki through a package bundle, with no change to the Hanjeok repository.
 - Reviewed and left unchanged: `decisions/keep-llm-out-of-ranking.md` and `concepts/project-artifact-linking.md`. Both still match their sources.
 - `index.md` is unchanged, because no page was added, removed, or retitled. Updated the files under `indexes/`.
+
+## 2026-09-22 - repair - the cause of the forecast sample's 403
+
+- The `drop the weather forecast sample capture` entry above says the 403 was "most likely because the service key is not approved for dataset 15084084." That is wrong. The consuming service Hanjeok has hit the same rejection since 2026-09-10: the data.go.kr portal shows 기상청_단기예보 as approved for the same key, the same key gets `NORMAL_SERVICE` from the mid-term forecast, and the short-term forecast alone answers result code `30`, `SERVICE_KEY_IS_NOT_REGISTERED`. Six hypotheses were ruled out there by live calls, and recovery waits on the portal. Applying again would not have fixed it.
+- The decision to drop the capture stands, and nothing else changes. `entities/kma-short-term-forecast-api.md` never stated a cause.
