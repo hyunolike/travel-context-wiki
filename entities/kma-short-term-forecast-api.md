@@ -19,7 +19,7 @@ contradictions: []
 
 The Korea Meteorological Administration's 단기예보 조회서비스 (`VilageFcstInfoService_2.0`, dataset 15084084 on data.go.kr) returns forecasts on a 5 km grid. It is the weather source this wiki's weather rules are written against. The provider's guide, dated 2026-06-23, is stored under `raw/weather-api/`, both as the original `.docx` and as a text conversion.
 
-This repository keeps the contract, not the weather. A forecast is live data. Only a consumer backend should fetch it for a trip, and the manual `capture-weather-forecast-sample` workflow exists only to record what one response looks like.
+This repository keeps the contract, not the weather. A forecast is live data. Only a consumer backend should fetch it for a trip. No response has been captured here, so everything below comes from the provider's guide, not from an observed response.
 
 ## Operations
 
@@ -34,7 +34,7 @@ Requests take `base_date`, `base_time`, and the grid point `nx`, `ny`. The grid 
 
 ## When A Forecast Exists
 
-`getVilageFcst` is issued eight times a day, at `0200`, `0500`, `0800`, `1100`, `1400`, `1700`, `2000`, and `2300` KST, and each one is served from ten minutes past the hour. ^[raw/weather-api/kma-vilage-fcst-guide-260623.txt] A caller has to pick the latest base time already served; the guide lists `03` no data among its result codes, and the sample workflow picks one at least fifteen minutes old.
+`getVilageFcst` is issued eight times a day, at `0200`, `0500`, `0800`, `1100`, `1400`, `1700`, `2000`, and `2300` KST, and each one is served from ten minutes past the hour. ^[raw/weather-api/kma-vilage-fcst-guide-260623.txt] A caller has to pick the latest base time already served; the guide lists `03` no data among its result codes.
 
 Since the extension of 2024-11-28, a forecast issued at 02 to 14시 reaches 글피, and one issued at 17 to 23시 reaches 그글피. The extended days are three-hourly, and on them `PCP`, `SNO`, and `WSD` arrive as qualitative codes `1` to `3` instead of amounts. ^[raw/weather-api/kma-vilage-fcst-guide-260623.txt] The same category therefore changes type within one response depending on how far ahead the row is.
 

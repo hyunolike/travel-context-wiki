@@ -217,3 +217,8 @@
 - Not repaired, noted: `records/places/gyeongbokgung.json` and `records/regions/seoul-jongno.json` carry weather sensitivity notes whose `source` is the same weather-free `design-v3.md`.
 - Updated `index.md`, `harness/scripts/smoke.sh`, `harness/README.md`, and the files under `indexes/`.
 - Canonical pages 16 → 17.
+
+## 2026-09-22 - update - drop the weather forecast sample capture
+
+- Deleted `.github/workflows/capture-weather-forecast-sample.yml`. Its one run, on 2026-09-21, got HTTP 403 from the data.go.kr gateway, most likely because the service key is not approved for dataset 15084084. The owner chose not to apply for it, so a workflow that cannot succeed is removed rather than left to look usable.
+- Updated `entities/kma-short-term-forecast-api.md` to stop naming the workflow and to say plainly that no response has been captured: the page rests on the provider's guide alone. Its `confidence` stays `medium`, and `records/weather/rules.json` keeps citing the guide.
