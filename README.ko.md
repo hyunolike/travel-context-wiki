@@ -360,6 +360,35 @@ flowchart TD
 `packages/<service>/context-bundle.json`과 `indexes/manifest.json`이 이 전달을 전제로 만들어진
 산출물입니다. 세 방식 모두 이 두 파일을 진입점으로 씁니다.
 
+### Hanjeok의 빌드 단계와 요청 처리
+
+이 브랜치의 변경은 로컬에서 테스트했으며 배포하지 않았습니다. 빌드 단계에서는
+wiki의 출처 hash와 Git revision을 검사한 뒤 전체 번들 본문과 JSON sidecar를
+만듭니다. agent는 두 산출물을 함께 패키징합니다. sidecar는 무결성 검사와
+`/agent/provenance` 조회에 쓰며 모델 입력에는 넣지 않습니다. 요청 시점에는
+백엔드 facts가 우선하고 추천 순위는 백엔드가 결정합니다.
+
+`POST /agent/explain`은 매 요청 facts를 새로 조회한 뒤 코스 UUID와 facts의
+실제 UTF-8 바이트 SHA-256으로 캐시와 진행 중 호출을 구분합니다. 적중하면 저장된
+설명과 실제 생성 시각을 반환합니다. 없거나 만료됐으면 모델 생성과 검증을 마친
+설명을 저장하며 TTL은 생성 완료부터 5분입니다. facts가 바뀌면 새 키를 쓰고,
+조회나 생성이 실패해도 오래된 설명으로 대신하지 않습니다. `retrievedAt`은
+facts 조회 완료 시각이며 예보 발표 시각이나 자료의 신선함을 보증하지 않습니다.
+
+`POST /agent/ask/stream`은 별도 경로입니다. facts와 대화 맥락을 받아 모델이
+혼잡도나 대안 조회를 제안하면 서버가 인자를 검증하고 도구를 실행합니다. 결과를
+루프에 돌려주고 인용 게이트를 통과한 뒤 본문을 스트리밍합니다. 대화 이력은
+새 사실이 아니며 거부되거나 실패한 조회는 근거 합집합에 넣지 않습니다.
+비스트리밍 `POST /agent/ask`에는 도구 루프가 없습니다. 두 ASK 경로에는
+설명 캐시를 적용하지 않습니다.
+
+hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미적 진실이나 실험
+승인을 증명하지 않습니다. 초기 주장은 `unverified`이고 변경된 출처는 재검토가
+필요합니다. wiki 생성기와 계약을 먼저 반영한 뒤 agent를 통합하고 번들 본문과
+sidecar를 함께 동기화해야 합니다.
+[출처 판본 결정](decisions/bind-claims-to-source-versions.md)을 참고하세요.
+
+
 ### 번들 만들기
 
 ```bash

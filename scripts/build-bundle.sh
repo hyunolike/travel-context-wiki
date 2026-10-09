@@ -41,6 +41,8 @@ package="packages/$service/context-bundle.json"
 [ -f "$package" ] || fail "no such package: $package"
 jq empty "$package" >/dev/null 2>&1 || fail "$package is not valid JSON"
 
+python3 scripts/provenance.py check >&2
+
 # Order is declared, never discovered. canonicalContext explains the policy,
 # recordContext supplies the normalized values those policies refer to, and the
 # service prompt comes last so its instructions sit closest to the user turn.

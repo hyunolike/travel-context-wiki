@@ -1,21 +1,27 @@
 ---
 title: Choose Explanation Model By Readability, Not By Rule Violations
 created: 2026-09-03
-updated: 2026-09-03
+updated: 2026-10-09
 type: decision
 tags:
   - llm-rag
   - evaluation
   - cost
-sources:
-  - packages/hanjeok/prompt.md
-  - concepts/congestion-diagnosis.md
-confidence: medium
+sources: []
+confidence: low
 contested: false
 contradictions: []
 ---
 
 # Choose Explanation Model By Readability, Not By Rule Violations
+
+## Evidence status
+
+**미검증 기록.** 아래 수치와 문장은 기존 문서의 기록을 보존한 것이다.
+`raw/experiments/`에는 실행 결과, 입력 hash, 판정 원문 또는 승인 기록이 없다.
+prompt와 canonical 페이지는 관련 문서이며 실험 결과의 원문 증거가 아니다.
+이 문서를 재현 가능한 비교 결과나 모델 선택의 검증된 근거로 사용하지 않는다.
+새 실험은 별도 raw 스냅샷과 source revision을 남긴 뒤 재검토한다.
 
 ## Decision
 

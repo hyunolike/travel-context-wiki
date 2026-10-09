@@ -14,3 +14,11 @@ Travel Context Wiki starts with static local retrieval.
 
 The retrieval layer may select context. It must not select travel destinations, modify route order, invent weather, or override backend facts.
 
+
+## Source versions and uncertainty
+
+Keep the full static package. Use its provenance sidecar to inspect claim scope,
+source hash/revision and review state. Contested/low confidence/unverified/needs-review
+context is qualified policy context; it cannot establish a verified runtime fact.
+Path membership and bounded topic checks do not guarantee semantic correctness.
+Hanjeok has no weather facts or weather tools; context does not activate them.

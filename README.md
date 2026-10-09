@@ -370,6 +370,40 @@ There are three ways to deliver this repo's knowledge to a running agent.
 `packages/<service>/context-bundle.json` and `indexes/manifest.json` are the artifacts built for
 this delivery. All three methods use these two files as entry points.
 
+### Hanjeok build-time and runtime contract
+
+This branch has been tested locally and has not been deployed. At build time,
+the wiki passes source hash/revision checks, then produces the full bundle text
+and a JSON sidecar with document, source and claim review metadata. The agent
+packages both artifacts together. The sidecar is used for integrity checks and
+`/agent/provenance`; it is never model input. Backend facts take priority at
+runtime, and backend ranking stays deterministic.
+
+At runtime, the browser calls Hanjeok Agent, which fetches facts from Hanjeok
+Backend before checking the explanation cache. `POST /agent/explain` uses
+course UUID plus SHA-256 of the exact facts UTF-8 bytes for cache and in-flight
+coalescing. A hit returns the saved explanation and its actual generation time.
+A miss or expiry generates and validates an explanation, then saves it for five
+minutes from generation completion. Changed facts use a new key; failed facts
+queries or generation do not fall back to a stale explanation. `retrievedAt`
+records facts query completion, not forecast publication or source freshness.
+
+`POST /agent/ask/stream` follows a separate path: facts and conversation history
+enter the agent loop, the model proposes congestion/alternative lookups, and the
+server validates arguments and executes them. Tool results return to the loop,
+then a citation gate runs before body text streams. History is context rather
+than new evidence, and rejected or failed lookups are excluded from the facts
+union. The blocking `POST /agent/ask` has no tool loop. Neither ASK endpoint uses
+the explanation cache.
+
+Hash/revision integrity and limited citation-topic checks cannot prove every
+claim's meaning or attest to experiment approval. Imported claims remain
+`unverified`; changed sources require review. Land the wiki generator and
+contract before the agent consumer, and synchronize bundle text and sidecar
+together. See [the source-version decision](decisions/bind-claims-to-source-versions.md)
+and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/codex/source-cache-contract/docs/source-cache-contract/plan.md).
+
+
 ### Building the Bundle
 
 ```bash

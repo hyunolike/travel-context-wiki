@@ -22,6 +22,9 @@ require_dir() {
   [ -d "$1" ] || fail "missing directory: $1"
 }
 
+python3 scripts/provenance.py check
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s harness/tests -p 'test_*.py'
+
 require_file README.md
 require_file AGENTS.md
 require_file SCHEMA.md
@@ -604,11 +607,11 @@ while IFS="$(printf '\t')" read -r section slug; do
   [ -f "$section_dir/$slug.md" ] || fail "index.md lists $slug under $section but $section_dir/$slug.md does not exist"
 done < "$INDEX_ENTRIES"
 
-for section in $(cut -f1 "$INDEX_ENTRIES" | sort -u); do
+while IFS= read -r section; do
   listed="$(awk -F'\t' -v s="$section" '$1 == s { print $2 }' "$INDEX_ENTRIES")"
   sorted="$(printf '%s\n' "$listed" | LC_ALL=C sort)"
   [ "$listed" = "$sorted" ] || fail "index.md section $section is not sorted alphabetically"
-done
+done < <(cut -f1 "$INDEX_ENTRIES" | sort -u)
 
 find concepts entities comparisons queries decisions -type f -name '*.md' -exec basename {} .md \; | LC_ALL=C sort > "$TMP_DIR/canonical-slugs.txt"
 cut -f2 "$INDEX_ENTRIES" | LC_ALL=C sort > "$TMP_DIR/indexed-slugs.txt"

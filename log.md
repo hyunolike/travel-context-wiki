@@ -233,3 +233,10 @@
 - `decisions/separate-context-wiki-from-services.md`: records that the first consumer reached the wiki through a package bundle, with no change to the Hanjeok repository.
 - Reviewed and left unchanged: `decisions/keep-llm-out-of-ranking.md` and `concepts/project-artifact-linking.md`. Both still match their sources.
 - `index.md` is unchanged, because no page was added, removed, or retitled. Updated the files under `indexes/`.
+
+## 2026-10-09 - repair - bind claims to source versions without inventing experiment evidence
+
+- Added a source-version contract, validator and deterministic bundle sidecar. Initial migration is unverified; changed bytes require review. Git history and full bundles remain in use.
+- Added the source-version decision and harness regression scenario before automation changes.
+- Marked the model-choice history unverified: raw experiment outputs and approval records are missing. Preserved its historical numbers; prompt and canonical paths are related context, not empirical sources.
+- Updated index, schema and retrieval policy. No raw capture was fabricated or modified. No weather consumer was activated.

@@ -102,7 +102,9 @@ Rules:
 
 - `type` must be one of `entity`, `concept`, `comparison`, `query`, or `decision`.
 - `type` must match the containing directory.
-- `sources` must point to existing files under `raw/`.
+- `sources` must point to existing files under `raw/`. The sole legacy exception is
+  `decisions/choose-explanation-model.md`, with `sources: []` and explicit
+  unverified/missing experiment evidence. Related pages are not source evidence.
 - `confidence` must be `high`, `medium`, or `low`.
 - Use `high` only when multiple source records support the claim.
 - Use `contested: true` when the source evidence is unresolved or conflicting.
@@ -323,3 +325,27 @@ For every canonical create, update, archive, or delete:
 1. Update `index.md`.
 2. Append one entry to `log.md`.
 3. Run `./harness/scripts/smoke.sh`.
+
+## Source Version Contract
+
+`indexes/provenance.json` pins canonical pages, records and package prompts.
+A document-scope claim covers a whole page; quote-scope claims pin selected text.
+Each claim binds its SHA-256 to raw source path, byte hash and last content Git
+revision. All imported claims start unverified; this is not a retroactive review.
+`python3 scripts/provenance.py check` rejects unpinned changes. An explicit
+`refresh` records changed claims as needs-review and removes prior review data.
+A reviewed claim requires raw evidence, reviewer, review revision and exact
+reviewed document hash. Mechanical checks do not certify semantic support.
+The legacy model-choice exception must remain unverified until real experiment
+snapshots are supplied and the exception is removed through human review.
+
+`python3 scripts/provenance.py metadata <service>` emits deterministic JSON for
+exact full bundle bytes, document hashes, claim states and source versions. It
+adds no run timestamp, branch name or HEAD-dependent field. The verification
+report records HEAD and working diff separately. Sidecars never become citable
+model context. CI consumers compare both body and sidecar with regenerated files.
+
+Full bundles keep contested, low-confidence and unverified/needs-review pages as
+qualified policy context, never as verified runtime facts. Backend facts retain
+priority. Prompt documents are instructions, not raw evidence. Hanjeok weather
+remains inactive. See [[bind-claims-to-source-versions]].
