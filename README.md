@@ -203,27 +203,16 @@ flowchart TD
 
 ## 🔌 Service Integration Model
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Service as Travel Service Backend
-    participant Package as packages/&lt;service&gt;
-    participant Index as indexes/manifest.json
-    participant Wiki as Canonical Wiki
-    participant LLM
+The deployed Hanjeok integration has **two inputs**: this repository's static manual and the backend's current facts. Policy pages and normalized records are assembled at **build time**, not retrieved from GitHub per question. At runtime, Hanjeok Agent fetches the backend's course, congestion and alternatives; the backend has already decided ranking and visit order. The model explains those facts using the full manual. Weather and opening-hours facts are not supplied by this integration.
 
-    User->>Service: destination + date + time slot + radius + preferences
-    Service->>Service: calculate candidates, weather context, congestion context, route
-    Service->>Package: load context-bundle.json and prompt.md
-    Package->>Index: read retrieval policy and eligible pages
-    Index->>Wiki: select canonical pages and normalized records
-    Wiki-->>Service: source-grounded context
-    Service->>LLM: backend facts + retrieved context + prompt
-    LLM-->>Service: explanation only, no ranking changes
-    Service-->>User: recommendation + weather/congestion/context explanation
-```
+| Input | Boundary | Purpose |
+| --- | --- | --- |
+| Full manual: 9 documents / 24,703 UTF-8 bytes | Wiki build → agent image → model `system` | Policies and static context |
+| Backend facts | Runtime backend lookup → model `user` | Current course and its facts |
+| Metadata sidecar | Build → agent server integrity/provenance | Server checks only; never model input |
 
-**Key rule:** the LLM produces **explanation only**. It never changes the service's ranking.
+The [diagram specification](docs/readme-diagram-spec.md) gives the replacement image's nodes, arrows and insertion point. The other wiki architecture/storage diagrams describe general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
+
 
 ---
 
@@ -332,8 +321,7 @@ writes, how often, and whether deletion is possible**. This wiki draws that boun
 
 Keeping the knowledge layer in Git makes **provenance a built-in feature**. Conversely, putting
 high-frequency automated collection into Git explodes commit history, creates push contention on
-concurrent writes, and requires history rewrites to erase personal data. So automated collection
-never enters this repo.
+concurrent writes, and requires history rewrites to erase personal data. High-frequency and personal-data collection stay outside this repo. The reviewed, slowly changing public-reference capture described above is a narrow exception.
 
 ```mermaid
 flowchart TD
@@ -372,7 +360,11 @@ this delivery. All three methods use these two files as entry points.
 
 ### Hanjeok build-time and runtime contract
 
-This branch has been tested locally and has not been deployed. At build time,
+<!-- IMAGE SLOT: docs/images/hanjeok-two-inputs.png; docs/readme-diagram-spec.md Image A -->
+
+The soft-3D replacement image is pending; the [code-based specification](docs/readme-diagram-spec.md) is available. It separates build-time packaging from runtime facts and keeps the sidecar outside model input.
+
+Wiki #31 and agent #12 are merged. [Production verification](docs/production-verification.json) at 2026-10-09 09:13 UTC confirmed agent `ea47917` Ready, traffic 100%, health/readiness UP, and matching full bundle/sidecar hashes. The frontend is deployed. No actual LLM call was made in that verification; the separate Hanjeok database/SMTP rollout remains held. At build time,
 the wiki passes source hash/revision checks, then produces the full bundle text
 and a JSON sidecar with document, source and claim review metadata. The agent
 packages both artifacts together. The sidecar is used for integrity checks and
@@ -398,11 +390,13 @@ the explanation cache.
 
 Hash/revision integrity and limited citation-topic checks cannot prove every
 claim's meaning or attest to experiment approval. Imported claims remain
-`unverified`; changed sources require review. Land the wiki generator and
-contract before the agent consumer, and synchronize bundle text and sidecar
-together. See [the source-version decision](decisions/bind-claims-to-source-versions.md)
-and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/codex/source-cache-contract/docs/source-cache-contract/plan.md).
+`unverified`; changed sources require review. The wiki generator and agent consumer are integrated; synchronize bundle text and sidecar together on future updates. See [the source-version decision](decisions/bind-claims-to-source-versions.md)
+and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main/docs/source-cache-contract/plan.md).
 
+
+### Offline selection comparison
+
+The consumer's `SELECTED_EXPERIMENT` is an offline comparison; production keeps **FULL**. Eight policy documents stay mandatory and only `records/places/gyeongbokgung.json` is optional. Unclear questions/references fall back to the verified full bundle; corrupted body/sidecar hashes fail closed. No GraphRAG, vector database or runtime retrieval has been introduced. [Comparison and limitations](docs/context-selection-report.md): the maximum serialized system reduction is 501/24,703 = 2.03%. Scripted provider/tool outputs verify wiring only; paid-model quality, accuracy, latency, tokens and costs are unmeasured.
 
 ### Building the Bundle
 

@@ -195,27 +195,16 @@ flowchart TD
 
 ## 🔌 서비스 연동 모델
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Service as Travel Service Backend
-    participant Package as packages/&lt;service&gt;
-    participant Index as indexes/manifest.json
-    participant Wiki as Canonical Wiki
-    participant LLM
+배포된 한적 연동은 **두 입력**을 받습니다. 이 저장소의 정적 매뉴얼과 백엔드의 현재 facts입니다. 정책 문서와 정규화 레코드는 **빌드 시점**에 조립하고 질문마다 GitHub에서 찾지 않습니다. 런타임에는 Hanjeok Agent가 백엔드의 코스와 혼잡도, 대안을 조회합니다. 순위와 방문 순서는 이미 백엔드가 정했고 모델은 전체 매뉴얼로 그 사실을 설명합니다. 이 연동은 날씨나 운영시간 facts를 제공하지 않습니다.
 
-    User->>Service: destination + date + time slot + radius + preferences
-    Service->>Service: calculate candidates, weather context, congestion context, route
-    Service->>Package: load context-bundle.json and prompt.md
-    Package->>Index: read retrieval policy and eligible pages
-    Index->>Wiki: select canonical pages and normalized records
-    Wiki-->>Service: source-grounded context
-    Service->>LLM: backend facts + retrieved context + prompt
-    LLM-->>Service: explanation only, no ranking changes
-    Service-->>User: recommendation + weather/congestion/context explanation
-```
+| 입력 | 경계 | 용도 |
+| --- | --- | --- |
+| 전체 매뉴얼: 9문서 / UTF-8 24,703 bytes | 위키 빌드 → agent 이미지 → 모델 `system` | 정책과 정적 맥락 |
+| 백엔드 facts | 런타임 백엔드 조회 → 모델 `user` | 현재 코스와 사실 |
+| metadata sidecar | 빌드 → agent 서버 무결성/provenance | 서버 검증 전용, 모델 입력 아님 |
 
-**핵심 규칙:** LLM은 **설명만** 생성하며, 서비스의 추천 순위를 절대 바꾸지 않습니다.
+[그림 명세](docs/readme-diagram-spec.md)에 새 그림의 노드와 화살표, 삽입 위치를 적었습니다. 다른 위키 구조와 저장 경계 그림은 일반적인 저장소 기능을 설명합니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
+
 
 ---
 
@@ -323,7 +312,7 @@ scripts/build-collection-stats.sh --check
 
 지식 계층을 Git에 두면 **출처 추적이 저장소의 기본 기능**이 됩니다. 반대로 고빈도 자동 수집을
 Git에 두면 커밋 이력이 폭증하고, 동시 쓰기에 push 경합이 생기며, 한 번 들어간 개인정보를
-지우려면 히스토리 재작성이 필요합니다. 그래서 자동 수집은 이 리포로 들어오지 않습니다.
+지우려면 히스토리 재작성이 필요합니다. 고빈도 수집과 개인정보 수집은 이 리포 밖에 둡니다. 앞에서 설명한, 천천히 바뀌는 공개 기준 데이터의 검토된 수집만 좁은 예외입니다.
 
 ```mermaid
 flowchart TD
@@ -362,7 +351,11 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-이 브랜치의 변경은 로컬에서 테스트했으며 배포하지 않았습니다. 빌드 단계에서는
+<!-- IMAGE SLOT: docs/images/hanjeok-two-inputs.png; docs/readme-diagram-spec.md Image A -->
+
+새 soft-3D 그림은 준비 중이며 [코드 기준 명세](docs/readme-diagram-spec.md)를 먼저 제공합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
+
+wiki #31과 agent #12는 머지됐습니다. [운영 검증](docs/production-verification.json)은 2026-10-09 09:13 UTC에 agent `ea47917`의 Ready와 트래픽 100%, health/readiness UP, 전체 번들/sidecar hash 일치를 확인했습니다. 프론트도 배포됐습니다. 이 검증에서는 실제 LLM을 호출하지 않았고 별도 한적 본체 DB/SMTP 배포 보류는 유지합니다. 빌드 단계에서는
 wiki의 출처 hash와 Git revision을 검사한 뒤 전체 번들 본문과 JSON sidecar를
 만듭니다. agent는 두 산출물을 함께 패키징합니다. sidecar는 무결성 검사와
 `/agent/provenance` 조회에 쓰며 모델 입력에는 넣지 않습니다. 요청 시점에는
@@ -384,10 +377,13 @@ facts 조회 완료 시각이며 예보 발표 시각이나 자료의 신선함�
 
 hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미적 진실이나 실험
 승인을 증명하지 않습니다. 초기 주장은 `unverified`이고 변경된 출처는 재검토가
-필요합니다. wiki 생성기와 계약을 먼저 반영한 뒤 agent를 통합하고 번들 본문과
-sidecar를 함께 동기화해야 합니다.
+필요합니다. wiki 생성기와 agent 소비 코드는 통합됐습니다. 이후에도 번들 본문과 sidecar를 함께 동기화해야 합니다.
 [출처 판본 결정](decisions/bind-claims-to-source-versions.md)을 참고하세요.
 
+
+### 오프라인 문서 선택 비교
+
+소비 코드의 `SELECTED_EXPERIMENT`는 오프라인 비교이며 운영은 **FULL**을 유지합니다. 정책 문서 8개는 필수이고 `records/places/gyeongbokgung.json`만 선택 대상입니다. 불명확한 질문이나 참조는 검증된 전체 번들로 fallback하고 본문/sidecar hash가 손상되면 fail closed합니다. GraphRAG나 벡터 DB, 런타임 문서 검색은 도입하지 않았습니다. [비교 결과와 한계](docs/context-selection-report.md): 직렬화된 system bytes의 최대 감소는 501/24,703 = 2.03%입니다. scripted provider/tool은 배선만 확인하며 유료 모델 품질과 정확도, 지연, 토큰, 비용은 측정하지 않았습니다.
 
 ### 번들 만들기
 
