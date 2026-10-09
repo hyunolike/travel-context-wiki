@@ -1,16 +1,4 @@
 {
-  "concepts/congestion-diagnosis.md": {
-    "kind": "congestion-diagnosis.md",
-    "usedBy": [
-      "decisions/choose-explanation-model.md"
-    ]
-  },
-  "packages/hanjeok/prompt.md": {
-    "kind": "hanjeok",
-    "usedBy": [
-      "decisions/choose-explanation-model.md"
-    ]
-  },
   "raw/external-snapshots/air-quality-airkorea-station-list.json": {
     "kind": "external-snapshots",
     "usedBy": [
@@ -43,6 +31,7 @@
     "usedBy": [
       "concepts/raw-derived-data-separation.md",
       "concepts/travel-context-layer.md",
+      "decisions/bind-claims-to-source-versions.md",
       "decisions/keep-llm-out-of-ranking.md",
       "entities/congestion-forecast-api.md",
       "entities/related-attraction-api.md",
@@ -87,6 +76,7 @@
       "concepts/course-generation-policy.md",
       "concepts/raw-derived-data-separation.md",
       "concepts/travel-context-layer.md",
+      "decisions/bind-claims-to-source-versions.md",
       "decisions/keep-llm-out-of-ranking.md",
       "decisions/separate-context-wiki-from-services.md",
       "entities/congestion-forecast-api.md",

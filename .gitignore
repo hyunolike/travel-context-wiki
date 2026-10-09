@@ -34,3 +34,5 @@ raw/private/
 # refs/heads/main 2". No tracked file here has a space in its name, so this
 # pattern cannot hide real work.
 * [2-9].*
+
+__pycache__/

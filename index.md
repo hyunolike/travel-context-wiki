@@ -1,6 +1,6 @@
 # Travel Context Wiki Index
 
-Active canonical pages: 17
+Active canonical pages: 18
 
 ## Concepts
 
@@ -27,7 +27,8 @@ Active canonical pages: 17
 
 ## Decisions
 
-- [[choose-explanation-model]] - 설명 모델은 위반율이 아니라 한국어 가독성으로 고른다.
+- [[bind-claims-to-source-versions]] - claim과 raw 출처의 hash 및 Git revision을 연결하고 변경 시 재검토한다.
+- [[choose-explanation-model]] - 모델 선택의 과거 기록. 실행 원문이 없어 미검증 상태다.
 - [[keep-llm-out-of-ranking]] - LLM은 추천 순위를 결정하지 않고 설명만 생성한다.
 - [[separate-context-wiki-from-services]] - 소비 서비스와 Travel Context Wiki를 별도 레포로 유지한다.
 
