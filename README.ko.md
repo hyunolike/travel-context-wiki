@@ -23,6 +23,14 @@
 
 ---
 
+## 한적 위키·에이전트 전체 구조
+
+![수집·빌드, 운영 서비스, 별도 로컬 실험의 전체 구조](docs/images/hanjeok-wiki-agent-overview.ko.png)
+
+[그림 확대 보기](docs/images/hanjeok-wiki-agent-overview.ko.png) · 공개 참고 자료는 원문 보존과 검토·문서화를 거치며 package가 번들 문서를 명시적으로 선택합니다. 검토 상태는 그대로 유지하며 해시·revision 검사는 진실성이나 모든 문서의 검토 완료를 증명하지 않습니다. 운영은 전체 정적 위키와 현재 백엔드 facts를 사용하고 출처 메타데이터는 서버에만 둡니다. 별도 로컬 실험은 LLM 심사 없이 검색 ID를 평가합니다. 브라우저 요청선과 캐시 세부는 생략했으며 요청 경로 그림에서 설명합니다.
+
+---
+
 ## 📖 목차
 
 - [무엇인가요?](#-무엇인가요)
@@ -195,27 +203,16 @@ flowchart TD
 
 ## 🔌 서비스 연동 모델
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Service as Travel Service Backend
-    participant Package as packages/&lt;service&gt;
-    participant Index as indexes/manifest.json
-    participant Wiki as Canonical Wiki
-    participant LLM
+배포된 한적 연동은 **두 입력**을 받습니다. 이 저장소의 정적 매뉴얼과 백엔드의 현재 facts입니다. 정책 문서와 정규화 레코드는 **빌드 시점**에 조립하고 질문마다 GitHub에서 찾지 않습니다. 런타임에는 Hanjeok Agent가 백엔드의 코스와 혼잡도, 대안을 조회합니다. 순위와 방문 순서는 이미 백엔드가 정했고 모델은 전체 매뉴얼로 그 사실을 설명합니다. 이 연동은 날씨나 운영시간 facts를 제공하지 않습니다.
 
-    User->>Service: destination + date + time slot + radius + preferences
-    Service->>Service: calculate candidates, weather context, congestion context, route
-    Service->>Package: load context-bundle.json and prompt.md
-    Package->>Index: read retrieval policy and eligible pages
-    Index->>Wiki: select canonical pages and normalized records
-    Wiki-->>Service: source-grounded context
-    Service->>LLM: backend facts + retrieved context + prompt
-    LLM-->>Service: explanation only, no ranking changes
-    Service-->>User: recommendation + weather/congestion/context explanation
-```
+| 입력 | 경계 | 용도 |
+| --- | --- | --- |
+| 전체 매뉴얼: 9문서 / UTF-8 24,703 bytes | 위키 빌드 → agent 이미지 → 모델 `system` | 정책과 정적 맥락 |
+| 백엔드 facts | 런타임 백엔드 조회 → 모델 `user` | 현재 코스와 사실 |
+| metadata sidecar | 빌드 → agent 서버 무결성/provenance | 서버 검증 전용, 모델 입력 아님 |
 
-**핵심 규칙:** LLM은 **설명만** 생성하며, 서비스의 추천 순위를 절대 바꾸지 않습니다.
+[그림 명세](docs/readme-diagram-spec.md)에 새 그림의 노드와 화살표, 삽입 위치를 적었습니다. 다른 위키 구조와 저장 경계 그림은 일반적인 저장소 기능을 설명합니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
+
 
 ---
 
@@ -323,7 +320,7 @@ scripts/build-collection-stats.sh --check
 
 지식 계층을 Git에 두면 **출처 추적이 저장소의 기본 기능**이 됩니다. 반대로 고빈도 자동 수집을
 Git에 두면 커밋 이력이 폭증하고, 동시 쓰기에 push 경합이 생기며, 한 번 들어간 개인정보를
-지우려면 히스토리 재작성이 필요합니다. 그래서 자동 수집은 이 리포로 들어오지 않습니다.
+지우려면 히스토리 재작성이 필요합니다. 고빈도 수집과 개인정보 수집은 이 리포 밖에 둡니다. 앞에서 설명한, 천천히 바뀌는 공개 기준 데이터의 검토된 수집만 좁은 예외입니다.
 
 ```mermaid
 flowchart TD
@@ -362,7 +359,13 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-이 브랜치의 변경은 로컬에서 테스트했으며 배포하지 않았습니다. 빌드 단계에서는
+![한적 빌드 패키징과 모델의 두 런타임 입력](docs/images/hanjeok-two-inputs-ko.png)
+
+[그림 확대 보기](docs/images/hanjeok-two-inputs-ko.png) · 빌드 시 무결성을 검증한 전체 매뉴얼은 system에, 현재 백엔드 facts는 user에 넣습니다. sidecar는 서버에만 남고 백엔드가 순위와 방문 순서를 결정합니다. 운영은 FULL입니다(9문서 / UTF-8 24,703 bytes). 무결성 검사는 문서 내용의 진실성을 증명하지 않습니다.
+
+새 soft-3D 그림은 [코드 기준 명세](docs/readme-diagram-spec.md)를 반영합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
+
+wiki #31과 agent #12는 머지됐습니다. [운영 검증](docs/production-verification.json)은 2026-10-09 09:13 UTC에 agent `ea47917`의 Ready와 트래픽 100%, health/readiness UP, 전체 번들/sidecar hash 일치를 확인했습니다. 프론트도 배포됐습니다. 이 검증에서는 실제 LLM을 호출하지 않았고 별도 한적 본체 DB/SMTP 배포 보류는 유지합니다. 빌드 단계에서는
 wiki의 출처 hash와 Git revision을 검사한 뒤 전체 번들 본문과 JSON sidecar를
 만듭니다. agent는 두 산출물을 함께 패키징합니다. sidecar는 무결성 검사와
 `/agent/provenance` 조회에 쓰며 모델 입력에는 넣지 않습니다. 요청 시점에는
@@ -384,10 +387,23 @@ facts 조회 완료 시각이며 예보 발표 시각이나 자료의 신선함�
 
 hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미적 진실이나 실험
 승인을 증명하지 않습니다. 초기 주장은 `unverified`이고 변경된 출처는 재검토가
-필요합니다. wiki 생성기와 계약을 먼저 반영한 뒤 agent를 통합하고 번들 본문과
-sidecar를 함께 동기화해야 합니다.
+필요합니다. wiki 생성기와 agent 소비 코드는 통합됐습니다. 이후에도 번들 본문과 sidecar를 함께 동기화해야 합니다.
 [출처 판본 결정](decisions/bind-claims-to-source-versions.md)을 참고하세요.
 
+
+### 로컬 벡터·그래프·RAGAS 실험
+
+![전체·벡터·하이브리드 관계 검색의 별도 로컬 실험](docs/images/local-retrieval-lab-ko.png)
+
+[그림 확대 보기](docs/images/local-retrieval-lab-ko.png) · 실험 전용입니다. TF-IDF 어휘 벡터와 고정 다국어 CPU 의미 임베딩은 서로 다른 검색 방식입니다. 실제 로컬 Neo4j Community 5.26.31은 출처·seed 관계를 최대 2홉/9문서로 검색하며 RAGAS 0.3.9는 문서 ID precision/recall을 평가합니다. 답변 품질 지표는 아닙니다. 필수 정책 8개를 유지하며 응답은 scripted이고 LLM 생성·심사는 미실행입니다. 운영은 FULL을 유지합니다.
+
+소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
+
+실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로입니다. 한국어 실험 그림과 전체도는 반영했고 한국어 두 입력 상세 그림도 반영했습니다. 또한 유료 LLM/judge·외부 업로드·merge/운영 배포·별도 DB/SMTP 배포는 없습니다.
+
+### 오프라인 문서 선택 비교
+
+소비 코드의 `SELECTED_EXPERIMENT`는 오프라인 비교이며 운영은 **FULL**을 유지합니다. 정책 문서 8개는 필수이고 `records/places/gyeongbokgung.json`만 선택 대상입니다. 불명확한 질문이나 참조는 검증된 전체 번들로 fallback하고 본문/sidecar hash가 손상되면 fail closed합니다. 운영에는 GraphRAG나 벡터 DB, 런타임 문서 검색이 없습니다. 별도 로컬 실험 구현은 위 상태 보고서에서 구분합니다. [비교 결과와 한계](docs/context-selection-report.md): 직렬화된 system bytes의 최대 감소는 501/24,703 = 2.03%입니다. scripted provider/tool은 배선만 확인하며 유료 모델 품질과 정확도, 지연, 토큰, 비용은 측정하지 않았습니다.
 
 ### 번들 만들기
 

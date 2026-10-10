@@ -23,6 +23,14 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 
 ---
 
+## Hanjeok Wiki and Agent overview
+
+![Hanjeok collection/build, production and separate local experiment architecture](docs/images/hanjeok-wiki-agent-overview.en.png)
+
+[Open full-size diagram](docs/images/hanjeok-wiki-agent-overview.en.png) · Public-reference snapshots become documented canonical context through review; package selection determines which documents are bundled. Review status is preserved: source hashes/revisions establish integrity, not truth or an all-reviewed admission gate. Production uses the full static manual and current backend facts; provenance stays server-side. The separate local lab evaluates retrieval IDs without LLM judging. Browser request arrows and cache details are omitted here; see the request-path diagram.
+
+---
+
 ## 📖 Table of Contents
 
 - [What Is This?](#-what-is-this)
@@ -203,27 +211,16 @@ flowchart TD
 
 ## 🔌 Service Integration Model
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Service as Travel Service Backend
-    participant Package as packages/&lt;service&gt;
-    participant Index as indexes/manifest.json
-    participant Wiki as Canonical Wiki
-    participant LLM
+The deployed Hanjeok integration has **two inputs**: this repository's static manual and the backend's current facts. Policy pages and normalized records are assembled at **build time**, not retrieved from GitHub per question. At runtime, Hanjeok Agent fetches the backend's course, congestion and alternatives; the backend has already decided ranking and visit order. The model explains those facts using the full manual. Weather and opening-hours facts are not supplied by this integration.
 
-    User->>Service: destination + date + time slot + radius + preferences
-    Service->>Service: calculate candidates, weather context, congestion context, route
-    Service->>Package: load context-bundle.json and prompt.md
-    Package->>Index: read retrieval policy and eligible pages
-    Index->>Wiki: select canonical pages and normalized records
-    Wiki-->>Service: source-grounded context
-    Service->>LLM: backend facts + retrieved context + prompt
-    LLM-->>Service: explanation only, no ranking changes
-    Service-->>User: recommendation + weather/congestion/context explanation
-```
+| Input | Boundary | Purpose |
+| --- | --- | --- |
+| Full manual: 9 documents / 24,703 UTF-8 bytes | Wiki build → agent image → model `system` | Policies and static context |
+| Backend facts | Runtime backend lookup → model `user` | Current course and its facts |
+| Metadata sidecar | Build → agent server integrity/provenance | Server checks only; never model input |
 
-**Key rule:** the LLM produces **explanation only**. It never changes the service's ranking.
+The [diagram specification](docs/readme-diagram-spec.md) gives the replacement image's nodes, arrows and insertion point. The other wiki architecture/storage diagrams describe general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
+
 
 ---
 
@@ -332,8 +329,7 @@ writes, how often, and whether deletion is possible**. This wiki draws that boun
 
 Keeping the knowledge layer in Git makes **provenance a built-in feature**. Conversely, putting
 high-frequency automated collection into Git explodes commit history, creates push contention on
-concurrent writes, and requires history rewrites to erase personal data. So automated collection
-never enters this repo.
+concurrent writes, and requires history rewrites to erase personal data. High-frequency and personal-data collection stay outside this repo. The reviewed, slowly changing public-reference capture described above is a narrow exception.
 
 ```mermaid
 flowchart TD
@@ -372,7 +368,13 @@ this delivery. All three methods use these two files as entry points.
 
 ### Hanjeok build-time and runtime contract
 
-This branch has been tested locally and has not been deployed. At build time,
+![Hanjeok build-time packaging and two runtime model inputs](docs/images/hanjeok-two-inputs.png)
+
+[Open full-size diagram](docs/images/hanjeok-two-inputs.png) · Build-time packaging keeps the verified full manual in system input and current backend facts in user input. The sidecar stays on the server; the backend determines ranking and visit order. Production remains FULL (9 docs / 24,703 UTF-8 bytes).
+
+The installed soft-3D diagram follows the [code-based specification](docs/readme-diagram-spec.md), separating build-time packaging from runtime facts and keeping the sidecar outside model input.
+
+Wiki #31 and agent #12 are merged. [Production verification](docs/production-verification.json) at 2026-10-09 09:13 UTC confirmed agent `ea47917` Ready, traffic 100%, health/readiness UP, and matching full bundle/sidecar hashes. The frontend is deployed. No actual LLM call was made in that verification; the separate Hanjeok database/SMTP rollout remains held. At build time,
 the wiki passes source hash/revision checks, then produces the full bundle text
 and a JSON sidecar with document, source and claim review metadata. The agent
 packages both artifacts together. The sidecar is used for integrity checks and
@@ -398,11 +400,23 @@ the explanation cache.
 
 Hash/revision integrity and limited citation-topic checks cannot prove every
 claim's meaning or attest to experiment approval. Imported claims remain
-`unverified`; changed sources require review. Land the wiki generator and
-contract before the agent consumer, and synchronize bundle text and sidecar
-together. See [the source-version decision](decisions/bind-claims-to-source-versions.md)
-and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/codex/source-cache-contract/docs/source-cache-contract/plan.md).
+`unverified`; changed sources require review. The wiki generator and agent consumer are integrated; synchronize bundle text and sidecar together on future updates. See [the source-version decision](decisions/bind-claims-to-source-versions.md)
+and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main/docs/source-cache-contract/plan.md).
 
+
+### Local vector / graph / RAGAS experiment
+
+![Local retrieval lab comparing FULL, VECTOR and HYBRID_GRAPH outside production](docs/images/local-retrieval-lab.png)
+
+[Open full-size diagram](docs/images/local-retrieval-lab.png) · Experiment only: TF-IDF lexical vectors and pinned multilingual CPU semantic embeddings are distinct retrieval backends. Actual local Neo4j Community 5.26.31 supplies bounded source/seed relations; RAGAS 0.3.9 measures document-ID precision/recall, not answer quality. All eight policies remain mandatory. Responses are scripted; LLM answer generation and judging were not run. Production remains FULL.
+
+The consumer's separate local FULL / VECTOR / HYBRID_GRAPH lab preserves production FULL, the 29 fixtures and six graph-boundary cases. [Execution status and limitations](docs/retrieval-experiment-report.md) separate preserved lexical TF-IDF results from actual pinned multilingual CPU semantic embeddings, actual RAGAS 0.3.9 ID metrics and the in-process provenance/declared-seed graph. Semantic VECTOR / HYBRID candidate recall is 0.645833 / 1.000000 on 24 supported attempts; precision is 0.250000 / 0.172619 on 24 defined rows. Complete final coverage is 30/35 / 35/35; five VECTOR seed omissions remain reported. All eight policies and determinism pass 105/105. Scores do not establish response truth or LLM judging.
+
+Actual isolated Neo4j Community 5.26.31 integration passes: 15 singleton traversals match the in-process graph, with two-hop retrieval, isolated synthetic-edge exclusion and real source/document hash tamper rejection. Both vector backends run 105 rows/210 RAGAS samples each, reproduce byte for byte and pass actual Kotlin citation contract checks. Live checks are separate from mock contracts; the prior approval blocker is resolved. A dedicated bridge disables masquerading, publishes only localhost Bolt and disables HTTP/usage reporting; owned resources are removed. No transport/weather facts or synthetic edges enter the curated graph, and this is not Microsoft's full community GraphRAG. Canonical/raw, operational inputs, the approximately 2.03% reduction ceiling remain unchanged. The operational and English experiment diagrams are installed; English/Korean operational, experiment and overall architecture diagrams are installed and visually reviewed. No paid LLM/judge call, corpus upload, merge/production deployment or separate DB/SMTP rollout occurred.
+
+### Offline selection comparison
+
+The consumer's `SELECTED_EXPERIMENT` is an offline comparison; production keeps **FULL**. Eight policy documents stay mandatory and only `records/places/gyeongbokgung.json` is optional. Unclear questions/references fall back to the verified full bundle; corrupted body/sidecar hashes fail closed. Production has no vector database, GraphRAG or runtime retrieval. The separately implemented local lab is described below. [Comparison and limitations](docs/context-selection-report.md): the maximum serialized system reduction is 501/24,703 = 2.03%. Scripted provider/tool outputs verify wiring only; paid-model quality, accuracy, latency, tokens and costs are unmeasured.
 
 ### Building the Bundle
 

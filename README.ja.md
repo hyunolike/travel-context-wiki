@@ -23,6 +23,14 @@
 
 ---
 
+## Hanjeok Wiki と Agent の全体構造
+
+![収集・ビルド、運用サービス、独立したローカル実験の全体構造](docs/images/hanjeok-wiki-agent-overview.en.png)
+
+[図を拡大](docs/images/hanjeok-wiki-agent-overview.en.png) · 公開参照資料は原文保存とレビュー・文書化を経て、package がバンドル対象を明示的に選びます。レビュー状態を保持し、hash/revision の検査は内容の真実性や全資料のレビュー完了を証明しません。運用は完全な静的 wiki と現在の backend facts を使い、出典メタデータはサーバー専用です。ローカル実験は LLM 判定なしで検索 ID を評価します。ブラウザー要求線とキャッシュ詳細は省略し、要求経路の図で説明します。
+
+---
+
 ## 📖 目次
 
 - [これは何ですか?](#-これは何ですか)
@@ -194,27 +202,16 @@ flowchart TD
 
 ## 🔌 サービス連携モデル
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Service as Travel Service Backend
-    participant Package as packages/&lt;service&gt;
-    participant Index as indexes/manifest.json
-    participant Wiki as Canonical Wiki
-    participant LLM
+デプロイ済みの Hanjeok 連携には**二つの入力**があります。wiki の静的マニュアルとバックエンドの現在の facts です。ポリシーと正規化レコードは**ビルド時**に組み立て、質問ごとに GitHub から検索しません。実行時に agent がコース、混雑度、代替候補を取得します。順位と訪問順はバックエンドが決定し、モデルは全文マニュアルで説明します。天気・営業時間の facts は提供しません。
 
-    User->>Service: destination + date + time slot + radius + preferences
-    Service->>Service: calculate candidates, weather context, congestion context, route
-    Service->>Package: load context-bundle.json and prompt.md
-    Package->>Index: read retrieval policy and eligible pages
-    Index->>Wiki: select canonical pages and normalized records
-    Wiki-->>Service: source-grounded context
-    Service->>LLM: backend facts + retrieved context + prompt
-    LLM-->>Service: explanation only, no ranking changes
-    Service-->>User: recommendation + weather/congestion/context explanation
-```
+| 入力 | 境界 | 用途 |
+| --- | --- | --- |
+| 全文マニュアル: 9 文書 / UTF-8 24,703 bytes | wiki build → agent image → model `system` | ポリシーと静的文脈 |
+| バックエンド facts | 実行時取得 → model `user` | 現在のコースと事実 |
+| metadata sidecar | build → server integrity/provenance | サーバー検証専用、モデル入力ではない |
 
-**重要なルール:** LLM は **説明のみ** を生成し、サービスの推薦順位を決して変更しません。
+[図の仕様](docs/readme-diagram-spec.md)にノード、矢印、挿入位置を記載しています。他の wiki 構造・保存境界の図は一般的な能力を示し、Hanjeok agent の実行時検索や天気対応を示すものではありません。
+
 
 ---
 
@@ -324,7 +321,7 @@ scripts/build-collection-stats.sh --check
 
 ナレッジレイヤーを Git に置くと、**出典追跡がリポジトリの標準機能**になります。逆に高頻度の自動
 収集を Git に置くとコミット履歴が膨張し、同時書き込みで push の競合が発生し、一度入った個人情報を
-消すには履歴の書き換えが必要になります。そのため自動収集はこのリポジトリに入りません。
+消すには履歴の書き換えが必要になります。高頻度・個人データの収集は外部に置きます。前述の、緩やかに変化する公開参照データのレビュー付き収集のみが狭い例外です。
 
 ```mermaid
 flowchart TD
@@ -363,7 +360,13 @@ flowchart TD
 
 ### Hanjeok のビルド時と実行時の契約
 
-このブランチの変更はローカルでテスト済みで、まだデプロイしていません。
+![Hanjeok のビルド時パッケージと二つの実行時入力](docs/images/hanjeok-two-inputs.png)
+
+[図を拡大表示](docs/images/hanjeok-two-inputs.png) · ビルド時に検証した全文マニュアルは system に、現在のバックエンド facts は user に入ります。sidecar はサーバーだけに残り、順位と訪問順序はバックエンドが決めます。運用は FULL です（9 文書 / UTF-8 24,703 bytes）。
+
+soft-3D の図を反映しました。[コードに基づく仕様](docs/readme-diagram-spec.md)でビルドと実行時を分け、sidecar をモデル入力の外に置きます。
+
+wiki #31 と agent #12 は統合済みです。[運用検証](docs/production-verification.json)は 2026-10-09 09:13 UTC に agent `ea47917` の Ready、トラフィック 100%、health/readiness UP、全文バンドルと sidecar hash の一致を確認しました。フロントもデプロイ済みです。この検証で実際の LLM 呼び出しは行っていません。別の Hanjeok DB/SMTP 展開は保留のままです。
 ビルド時に wiki の出典 hash と Git revision を検査し、全文バンドルと文書・
 出典・主張のレビュー状態を持つ JSON sidecar を生成します。agent は両方を
 同時にパッケージ化します。sidecar は整合性検査と `/agent/provenance` に
@@ -386,10 +389,13 @@ UTF-8 バイトの SHA-256 をキャッシュと処理中リクエストのキ�
 
 hash/revision の整合性と限定的な引用トピック検査は、意味的な真実や実験承認の
 証明にはなりません。既存の主張は `unverified`、変更された出典は再レビューが
-必要です。wiki の生成器と契約を先に統合し、その後 agent のバンドル本文と
-sidecar を同時に同期してください。
+必要です。wiki 生成器と agent は統合済みです。今後の更新でもバンドル本文と sidecar を同時に同期してください。
 [出典バージョンの決定](decisions/bind-claims-to-source-versions.md)を参照してください。
 
+
+### オフライン文書選択比較
+
+`SELECTED_EXPERIMENT` はオフライン比較で、運用は **FULL** のままです。8 ポリシー文書は必須、`records/places/gyeongbokgung.json` だけが任意です。不明な質問・参照は検証済み全文へ fallback し、body/sidecar hash の破損は fail closed します。GraphRAG、ベクトル DB、実行時検索は導入していません。[結果と限界](docs/context-selection-report.md): system bytes の最大削減は 501/24,703 = 2.03%。scripted provider/tool は配線検証のみで、有料モデル品質、精度、遅延、トークン、費用は未測定です。
 
 ### バンドルの構築
 
