@@ -1,3 +1,5 @@
+> Historical pre-publication/local verification report. Later Linux ARM64 CPU execution and externally merged PR status are recorded in [current follow-up](linux-semantic-followup-report.md); this snapshot keeps its original measurements.
+
 # Local consumer retrieval API follow-up (2026-10-10)
 
 This wiki continues to provide reviewed Git-based documents, normalized records, package lists and source metadata. It does not host the retrieval API or runtime backend facts. The API/Kotlin implementation is approved for a new Draft PR on `pr/retrieval-api-readiness`; its original local branch `local/retrieval-deployment-ready` is preserved at `245d109f676ba4e47470bf54d4140837c8c4c638` in the sibling `hanjeok-agent` worktree; the latest reviewed code commit is `fa0ccce391b85a8a9b354e1af565d5d84fe451e5`, followed by reporting regression fix `76959aa26b20f2a3f87dbaa20883019d31b13832` and documentation commits. [Verification snapshot](retrieval-api-followup-verification.json) contains the consumer evidence copied for this documentation update. It is an operator record, not an independent signed attestation or a claim of deployment.
