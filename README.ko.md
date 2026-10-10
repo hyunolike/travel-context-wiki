@@ -25,32 +25,15 @@
 
 ## 한적 위키·에이전트 전체 구조
 
-```mermaid
-flowchart LR
-    Source["공개 원천 자료"]
-    Wiki["위키 정책과 정규화 자료"]
-    Bundle["빌드: 전체 번들 + 출처 메타데이터"]
-    Agent["Kotlin 에이전트 / Cloud Run"]
-    Backend["한적 백엔드"]
-    Client["브라우저 / Vercel"]
-    Model["LLM 프로바이더"]
-    Source -->|"보존·검토"| Wiki
-    Wiki -->|"문서 목록 명시"| Bundle
-    Bundle -->|"고정한 산출물"| Agent
-    Backend -->|"현재 사실 데이터"| Agent
-    Client -->|"코스·질문"| Agent
-    Agent -->|"전체 정책 + 현재 사실"| Model
-    Model -->|"답변·인용"| Agent
-    Agent -->|"검증한 응답"| Client
-```
+![수집·빌드, 운영 서비스, 별도 로컬 실험의 전체 구조](docs/images/hanjeok-wiki-agent-overview.ko.png)
 
-이 그림은 현재 FULL 운영 경로입니다. 검색 배포 준비 구조는 아래 변경점에서 따로 설명합니다. 출처 메타데이터는 서버에서만 검사하고 순위는 백엔드가 정합니다.
+이 3D 그림은 현재 FULL 운영 경로입니다. 검색 배포 준비 구조는 아래 변경점에서 따로 설명합니다. 출처 메타데이터는 서버에서만 검사하고 순위는 백엔드가 정합니다.
 
 ---
 
 ## 기존 FULL 방식 대비 달라진 점
 
-**운영은 FULL을 유지합니다.** 마지막 운영 기록은 2026-10-09 09:13 UTC의 agent `ea47917`이며 LLM을 호출하지 않았습니다. 아래 검색 API와 요청별 선택은 별도 브랜치에서 구현·검증했고 새 Draft PR 게시가 승인됐습니다. 클라우드 배포는 보류합니다. 기존 agent #13/wiki #32의 merge는 이 작업 밖에서 확인한 상태이며 검색 기능 배포를 뜻하지 않습니다.
+**운영은 FULL을 유지합니다.** 2026-10-10 Cloud Run 설정을 읽기 전용으로 확인했으며 agent `ea47917`이 Ready·100% 트래픽이고 검색 런타임 설정은 없습니다. agent #14/wiki #33은 외부에서 merge됐고 이번 후속 변경은 별도 feature 브랜치에서 새 Draft PR로 검토합니다. 별도 API·요청별 선택은 구현·검증했으며 클라우드 배포는 보류합니다.
 
 | 구분 | 기존 FULL 방식 | 현재 로컬 구현 |
 | --- | --- | --- |
@@ -61,38 +44,20 @@ flowchart LR
 | 실패·캐시 | 전체 번들 인용 목록과 코스 ID·facts 해시 기반 EXPLAIN 캐시 | 요청별 인용 목록과 컨텍스트 ID를 캐시·진행 중 생성 공유 키에 포함해 동시 선택/FULL 결과도 분리합니다. 인증·시간 초과·잘못된 버전·근거 누락 등은 검증된 FULL로 복귀하고 FULL 원본 손상은 응답을 차단합니다. |
 | 평가 | 고정 응답 기반 fixture 29개 문서 선택 비교와 과거 모델 평가 | 실제 RAGAS 0.3.9 문서 ID 정밀도·재현율을 답변 생성·LLM 심사와 구분합니다. 실제 HTTP·Neo4j·Kotlin 인용 E2E도 프로바이더는 고정 응답이며 유료 LLM·심사 호출은 없습니다. |
 
-**로컬 검증 완료:** Python 19/19·JVM 339/339(56개 suite), 기존 fixture 29개/58개 행이 통과했습니다. native 어휘 API·고정 CPU 의미 API·실제 빌드한 Linux ARM64 어휘 이미지 각각 실제 Neo4j Community 5.26.31을 통해 fixture 35개/설명·질문·스트리밍 105건과 실제 facts 기반 EXPLAIN 1건을 통과했습니다. 실제 graph·본문 변조, 잘못된 버전, 인증·본문·시간 제한 및 정확한 FULL 복구는 [검증 기록](docs/retrieval-api-followup-verification.json)에 있습니다. 생성한 로컬 자원은 정리했습니다.
+**로컬 검증 완료:** Python API 19/19·새 CPU builder 13/13이 통과했습니다. JVM 339/339(56 suite), lab 34/34와 기존 fixture 29개/58개 행도 검증됐습니다. 전체 Linux ARM64 CPU 의미 이미지를 실제 빌드하고 별도 인덱스를 재생성해 Neo4j·HTTP·Kotlin으로 실행했습니다. HYBRID·VECTOR 각각 fixture 35개/105개 경로와 실제 facts EXPLAIN을 검증했습니다. HYBRID는 SELECTED, VECTOR는 필수 seed 누락을 명시하고 원래 FULL로 복구합니다. [Linux 실행·재현 기록](docs/linux-semantic-followup-report.md)을 참고하세요. 기존 native·어휘·RAGAS 기록은 보존하며 새 LLM 또는 Linux RAGAS 점수라고 주장하지 않습니다.
 
-**배포 전 준비사항:** private Cloud Run IAM·호출자·네트워크 설정과 기존 운영 Neo4j Enterprise 읽기 전용 권한은 미검증입니다. 전체 Linux 의미 이미지는 미실행입니다. 공식 CPU wheel `torch 2.14.1+cpu`가 보존한 후보의 정확한 `2.14.1` 버전과 달라 새 Linux CPU 후보를 검증해야 합니다. [재현 명령·배포 준비](docs/retrieval-api-followup-report.md)를 참고하세요. credentials·클라우드 자원·트래픽 변경과 별도 한적 DB/SMTP 배포는 수행하지 않았습니다.
+**amd64 부분 검증:** 기존 builder 이미지 빌드와 x86_64 Python 실행, `pip check`, 실제 모델 가중치 로딩까지 확인했습니다. 새 amd64 인덱스와 health, 최종 fixture 결과는 미확인입니다. 이전 Mac 인덱스를 포함한 builder는 배포용으로 사용할 수 없습니다. [보존한 출력과 복구 기록](docs/amd64-semantic-recovery.md)에서 단계를 구분합니다.
+
+**배포 전 준비사항:** Cloud Run에 맞는 새 linux/amd64 이미지·인덱스가 필요합니다. private IAM·네트워크 경로와 실제 운영 Neo4j Enterprise reader ACL은 미검증이며 조회 범위에서 검색 서비스·reader endpoint/secret을 찾지 못했습니다. [구체적 대상·순서·비용 전제](docs/linux-semantic-followup-report.md)를 기록했습니다. credentials·IAM·클라우드 자원·트래픽 변경과 별도 한적 DB/SMTP 배포는 수행하지 않았습니다.
 
 **측정 한계:** 선택 대상은 501-byte 경복궁 seed 하나뿐이므로 문서 선택 절감은 최대 501/24,703 = 2.03%입니다. guard 추가나 user 입력 이동이 총 토큰·비용 절감을 증명하지 않습니다. 보존한 의미 실험의 VECTOR/HYBRID 후보 precision은 검색 허용 24건에서 0.250000/0.172619, recall은 0.645833/1.000000입니다. 최종 근거 완전성은 30/35 대 35/35이며 VECTOR seed 누락 5건을 기록했습니다. 배포용 guard는 명시적인 필수 seed 누락 시 FULL로 복귀하고 과거 지표를 덮어쓰지 않습니다. 이 제한된 관계 검색은 Microsoft community GraphRAG 전체 구현이나 답변 품질 개선 입증이 아닙니다. 없는 교통·날씨 및 합성 관계는 검증 그래프에 넣지 않습니다.
 
-게시 범위·보존한 원본 브랜치는 [Draft PR 준비 기록](docs/publication-preparation.json)에 있습니다. 검증 JSON은 게시 승인 전 로컬 실행 스냅샷입니다.
+agent #14/wiki #33 게시와 해당 head의 CI는 이미 merge된 PR의 과거 증거이며 이번 후속 작업은 별도 Draft PR로 검토합니다. [기존 게시 준비 기록](docs/publication-preparation.json)과 이전 검증 JSON은 당시 범위를 보존합니다. [현재 그림 수정 기록](docs/readme-illustration-correction.json)에 따라 필요한 기존 3D 그림을 복원하고 중복 도식을 제거했으며 새 이미지를 생성하지 않았습니다.
 
 ### 검색 구조 — 로컬 구현, 운영 미배포
 
-```mermaid
-flowchart LR
-    Index["고정·검증한 인덱스"]
-    API["Python ASGI 검색 API"]
-    Kotlin["Kotlin 요청 컨텍스트"]
-    Vector["어휘 또는 의미 벡터"]
-    Graph["Neo4j 검증 관계 그래프"]
-    Model["LLM 프로바이더"]
-    Client["브라우저 / Vercel"]
-    Index -->|"고정한 산출물"| API
-    Kotlin -->|"제한한 질의·고정 버전"| API
-    API -->|"벡터·하이브리드 검색"| Vector
-    Vector -->|"검색 후보"| API
-    API -->|"하이브리드: 최대 2홉"| Graph
-    Graph -->|"최대 9문서"| API
-    API -->|"문서 ID·해시"| Kotlin
-    Kotlin -->|"필수 정책 8개 + seed 또는 FULL"| Model
-    Model -->|"답변·인용"| Kotlin
-    Kotlin -->|"검증한 응답"| Client
-```
 
-새 API와 Kotlin 설명·인용 경계를 구분한 그림입니다. 런타임 모델 다운로드는 없고 검증된 source hash/revision만 인덱스에 포함합니다. 해시 검사가 내용의 진실성이나 주장의 검토 완료를 증명하지 않습니다.
+새 API와 Kotlin 설명·인용 경계는 본문과 비교 표에서 구분합니다. 런타임 모델 다운로드는 없고 검증된 source hash/revision만 인덱스에 포함합니다. 해시 검사가 내용의 진실성이나 주장의 검토 완료를 증명하지 않습니다.
 
 
 ## 📖 목차
@@ -184,17 +149,15 @@ flowchart LR
 
 ## 📊 수집 현황
 
-![수집 현황](docs/collection-stats.svg)
+| 보존한 공개 참고 자료 | 값 |
+| --- | --- |
+| 수집 기간 | 2개월 (2026-06–2026-07) |
+| 일별 행 | 49,137 |
+| 최신 기간 기초지자체 | 270 |
+| 대기측정소 | 672 |
+| 마지막 변경 수집 | 2026-09-14 |
 
-`scripts/build-collection-stats.sh`가 `raw/external-snapshots/`를 읽어 매일 다시 그립니다.
-숫자가 그대로인 날은 커밋하지 않으므로, 그림에 찍힌 날짜는 그린 날이 아니라 증거가 마지막으로
-수집된 날입니다. 수집기는 값이 바뀌지 않은 페이로드를 건너뛰고 저장된 기간은 불변으로 다루므로,
-정확히는 마지막으로 실행된 날이 아니라 마지막으로 **달라진** 날입니다.
-
-그림이 세는 것은 증거 계층이 실제로 가진 것뿐입니다. 저장된 기간 수, 일별 행 수, 최신 기간에
-포함된 기초지자체 수, 대기측정소 수이고, 수집하지 않은 것은 그리지 않습니다. 기초지자체 수는 최신
-기간만 셉니다. 모든 기간을 합치면 "한 번이라도 등장한" 지역을 보고하게 되는데, 그건 더 좋아 보이는
-숫자이지 같은 주장이 아닙니다.
+커밋한 수집 통계 산출물의 값이며 실시간 관측이 아닙니다. `scripts/build-collection-stats.sh`가 raw 스냅샷에서 계산합니다. 날짜는 마지막으로 내용이 달라진 수집일이고 기초지자체는 최신 기간만 셉니다. 예약 SVG 생성기는 유지하되 중복 그림은 README에서 제거했습니다.
 
 ---
 
@@ -247,21 +210,7 @@ Layer 3: Operation Metadata
 이 구조는 `hyunolike/2nd-brain-template`의 **Evidence → Canonical Memory → Discovery → Human
 Decision** 흐름을 따르되, 여행 서비스 연동을 위해 정규화 레코드와 서비스 패키지를 추가합니다.
 
-```mermaid
-flowchart TD
-    Inbox["inbox/<br/>임시 수집"] --> Raw["raw/<br/>불변 원천 증거"]
-    Raw --> Records["records/<br/>정규화된 파생 레코드"]
-    Raw --> Canonical["canonical pages<br/>entities / concepts / comparisons / queries / decisions"]
-    Canonical --> Indexes["indexes/<br/>manifest + chunks + source map"]
-    Records --> Indexes
-    Indexes --> Packages["packages/<br/>서비스별 context bundle + prompt"]
-    Packages --> Services["consumer services<br/>Hanjeok / generic travel apps"]
-    Services --> Explanation["LLM explanation<br/>추천 설명, 날씨/혼잡 근거, 정책 문장"]
-
-    Raw -. "source paths" .-> Canonical
-    Raw -. "provenance" .-> Records
-    Canonical -. "index.md + log.md" .-> Indexes
-```
+입력은 `inbox/`에서 원본을 보존하는 `raw/`로 옮긴 뒤, 출처가 연결된 `records/`와 canonical 문서로 정리합니다. 두 계층을 `indexes/`에 연결하고 명시한 `packages/` 목록으로 소비 서비스에 전달합니다. 출처 경로·revision을 유지하며 canonical 변경은 `index.md`·`log.md`도 함께 갱신합니다.
 
 ---
 
@@ -275,7 +224,7 @@ flowchart TD
 | 백엔드 facts | 런타임 백엔드 조회 → 모델 `user` | 현재 코스와 사실 |
 | metadata sidecar | 빌드 → agent 서버 무결성/provenance | 서버 검증 전용, 모델 입력 아님 |
 
-현재 FULL 구조는 위 Mermaid 도식에, 로컬 검색 배포 준비는 별도 도식에 표시했습니다. 다른 위키 구조와 저장 경계 그림은 일반적인 저장소 기능을 설명합니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
+현재 FULL 구조는 위 3D 그림에, 로컬 검색 배포 준비는 본문과 비교 표에 표시했습니다. 위키 구조와 저장 경계 설명은 일반적인 저장소 기능을 다룹니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
 
 
 ---
@@ -286,35 +235,7 @@ flowchart TD
 capture**와 **static index build**까지만 담당합니다. 실시간 날씨, 실시간 혼잡도, 사용자별
 추천 이력처럼 빠르게 바뀌거나 개인적인 데이터는 소비 서비스 백엔드가 관리합니다.
 
-```mermaid
-flowchart TD
-    subgraph WikiBatch["Wiki Repo Batch"]
-      UserFixture["sanitized user input JSON"] --> UserCapture["scripts/collect-user-input.sh"]
-      ExternalFixture["external API/document snapshot JSON"] --> ExternalCapture["scripts/collect-external-snapshot.sh"]
-      UserCapture --> RawUser["raw/user-input/"]
-      ExternalCapture --> RawExternal["raw/external-snapshots/"]
-      RawUser --> Records["records/"]
-      RawExternal --> Records
-      Records --> BuildIndex["scripts/build-index.sh"]
-      Canonical["canonical pages"] --> BuildIndex
-      BuildIndex --> Indexes["indexes/"]
-      Indexes --> Packages["packages/"]
-    end
-
-    subgraph BackendBatch["Consumer Backend Batch"]
-      LiveWeather["live weather"]
-      LiveCongestion["live congestion"]
-      UserHistory["private user history"]
-      RuntimeDB["service DB"]
-      LiveWeather --> RuntimeDB
-      LiveCongestion --> RuntimeDB
-      UserHistory --> RuntimeDB
-    end
-
-    Packages --> ContextLoader["service context loader"]
-    RuntimeDB --> ContextLoader
-    ContextLoader --> LLM["LLM explanation"]
-```
+위키 배치는 익명화 fixture·외부 스냅샷을 `raw/`에 보존하고 records·canonical 문서, indexes, 서비스 package를 만듭니다. 실시간 관측과 개인 이력은 소비 백엔드의 런타임 DB에 두며 위키 저장소와 구분합니다.
 
 ### 배치 명령어
 
@@ -386,21 +307,7 @@ scripts/build-collection-stats.sh --check
 Git에 두면 커밋 이력이 폭증하고, 동시 쓰기에 push 경합이 생기며, 한 번 들어간 개인정보를
 지우려면 히스토리 재작성이 필요합니다. 고빈도 수집과 개인정보 수집은 이 리포 밖에 둡니다. 앞에서 설명한, 천천히 바뀌는 공개 기준 데이터의 검토된 수집만 좁은 예외입니다.
 
-```mermaid
-flowchart TD
-    Curator["Curator"] -->|"Pull Request"| Wiki
-    Wiki["GitHub: travel-context-wiki<br/>canonical + records + indexes + packages"]
-    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI 검증"}
-    Gate -->|"merge"| Bundle["context bundle<br/>(빌드 타임 번들)"]
-
-    Sensors["실시간 날씨 / 혼잡도 / 공공 API"] -->|"자동 수집"| Store["객체 스토리지 / 서비스 DB"]
-    UserInput["사용자 입력 / 세션"] --> Store
-
-    Bundle --> Agent["Hermes Agent"]
-    Store -->|"런타임 조회"| Agent
-    Agent <--> LLM["LLM (OpenRouter 등)"]
-    Agent --> Client["Client"]
-```
+큐레이터는 PR로 위키를 수정하고 smoke·index 검증과 검토 뒤 번들을 패키징합니다. 실시간 관측·개인 세션은 소비 백엔드가 담당합니다. 한적 운영은 백엔드 facts와 패키징한 FULL 매뉴얼을 사용하며 이 일반 저장 경계가 날씨 조회나 객체 저장소를 추가하지 않습니다.
 
 에이전트는 **정적 컨텍스트는 번들에서, 실시간 사실은 서비스 저장소에서** 받습니다. 이 우선순위는
 `indexes/retrieval-policy.md`가 이미 규정하고 있습니다: backend facts가 최우선이고, 그다음이
@@ -423,28 +330,9 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-```mermaid
-flowchart LR
-    Client["브라우저 / Vercel"]
-    Agent["Kotlin 에이전트 / Cloud Run"]
-    Backend["한적 백엔드"]
-    Cache["EXPLAIN 설명 캐시"]
-    Model["LLM 프로바이더"]
-    Tools["스트리밍 조회 도구"]
-    Gate["인용 검증"]
-    Client -->|"코스·질문"| Agent
-    Agent -->|"사실 조회"| Backend
-    Backend -->|"현재 사실 데이터"| Agent
-    Agent -->|"코스 ID + 사실 해시"| Cache
-    Cache -->|"적중: 저장한 답변"| Client
-    Cache -->|"미적중"| Model
-    Agent -->|"질문·스트리밍"| Model
-    Model -->|"스트리밍만 사용"| Tools
-    Tools -->|"검증한 조회 사실"| Model
-    Model -->|"답변·인용"| Gate
-    Gate -->|"유효한 EXPLAIN만 저장"| Cache
-    Gate -->|"검증한 응답"| Client
-```
+![한적 빌드 패키징과 모델의 두 런타임 입력](docs/images/hanjeok-two-inputs-ko.png)
+
+현재 FULL 운영 입력입니다. 전체 매뉴얼은 system, 백엔드 facts는 user에 넣고 출처 메타데이터는 서버에만 둡니다. 선택 검색 준비는 별도로 설명합니다.
 
 
 wiki #31과 agent #12는 머지됐습니다. [운영 검증](docs/production-verification.json)은 2026-10-09 09:13 UTC에 agent `ea47917`의 Ready와 트래픽 100%, health/readiness UP, 전체 번들/sidecar hash 일치를 확인했습니다. 프론트도 배포됐습니다. 이 검증에서는 실제 LLM을 호출하지 않았고 별도 한적 본체 DB/SMTP 배포 보류는 유지합니다. 빌드 단계에서는
@@ -475,20 +363,7 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 
 ### 로컬 벡터·그래프·RAGAS 실험
 
-```mermaid
-flowchart LR
-    Fixture["기존 fixture 29개 + 관계 경계 6건"]
-    Index["고정·검증한 인덱스"]
-    Graph["Neo4j 검증 관계 그래프"]
-    Compare["전체·벡터·하이브리드 비교"]
-    Ragas["RAGAS 문서 ID 정밀도·재현율"]
-    Contract["정책·근거 범위·인용 검증"]
-    Fixture --> Compare
-    Index --> Compare
-    Graph -->|"검증한 출처·seed 관계"| Compare
-    Compare -->|"검색 ID·기대 ID"| Ragas
-    Compare -->|"고정 응답으로 확인"| Contract
-```
+![전체·벡터·하이브리드 관계 검색의 별도 로컬 실험](docs/images/local-retrieval-lab-ko.png)
 
 소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
 
@@ -561,18 +436,7 @@ scripts/build-bundle.sh hanjeok
 보고서, 배포 URL, service package, GraphRAG export는 `records/project-artifacts/`에 기록하고
 canonical page와 source-map으로 역추적합니다.
 
-```mermaid
-flowchart TD
-    Guide["project guide / PRD"] --> RawGuide["raw/project-guides/"]
-    Issues["GitHub issues / PRs"] --> Artifacts["records/project-artifacts/"]
-    Eval["RAGAS report"] --> Artifacts
-    Deploy["deployed URL"] --> Artifacts
-    RawGuide --> Canonical["concepts/project-artifact-linking.md"]
-    Artifacts --> Canonical
-    Canonical --> Index["indexes/source-map.json"]
-    Index --> Package["packages/&lt;service&gt;"]
-    Package --> Loader["Context Loader / Hermes Agent"]
-```
+PRD 원본은 `raw/project-guides/`, issue·PR 링크·평가 보고서·배포 URL은 `records/project-artifacts/`에 보존합니다. canonical 산출물 문서에서 `indexes/source-map.json`, 서비스 package와 소비 context loader까지 출처를 연결합니다.
 
 이를 통해 배포된 AI 서비스는 포트폴리오 자산으로 설명 가능해집니다. 서비스 URL에서 이슈, 구현,
 평가, prompt 패키지, 검색 규칙, 최초 프로젝트 요구사항까지 역추적할 수 있습니다.
@@ -590,15 +454,7 @@ flowchart TD
 
 ### 운영 워크플로우
 
-```mermaid
-flowchart LR
-    Capture["1. Capture<br/>PDF, API response, research, service snapshot"] --> Validate["2. Validate<br/>source path, format, JSON, frontmatter"]
-    Validate --> Compile["3. Compile<br/>canonical pages with sources"]
-    Compile --> Sync["4. Sync<br/>index.md + log.md"]
-    Sync --> Index["5. Build static retrieval<br/>indexes/*.json, chunks.jsonl"]
-    Index --> Package["6. Package<br/>packages/&lt;service&gt;/context-bundle.json"]
-    Package --> Review["7. Human review<br/>accept / contest / revise"]
-```
+증거 수집 → 출처 경로·JSON·frontmatter 검증 → 출처를 단 canonical 문서 작성 → `index.md`·`log.md` 동기화 → 정적 index 생성 → 서비스 context 패키징 → 사람이 수용·이의 제기·수정 여부를 검토합니다.
 
 ---
 

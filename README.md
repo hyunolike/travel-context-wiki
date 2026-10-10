@@ -25,32 +25,15 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 
 ## Hanjeok Wiki and Agent overview
 
-```mermaid
-flowchart LR
-    Source["Public sources"]
-    Wiki["Wiki policies and records"]
-    Bundle["Build: full bundle + sidecar"]
-    Agent["Kotlin Agent / Cloud Run"]
-    Backend["Hanjeok Backend"]
-    Client["Browser / Vercel"]
-    Model["LLM provider"]
-    Source -->|"preserve / review"| Wiki
-    Wiki -->|"explicit document list"| Bundle
-    Bundle -->|"pinned artifacts"| Agent
-    Backend -->|"current facts"| Agent
-    Client -->|"course / question"| Agent
-    Agent -->|"FULL system + facts user"| Model
-    Model -->|"answer + citations"| Agent
-    Agent -->|"validated output"| Client
-```
+![Hanjeok collection/build, production and separate local experiment architecture](docs/images/hanjeok-wiki-agent-overview.en.png)
 
-This diagram describes the current FULL production path. The retrieval preparation path is shown separately under “What changed”. The metadata sidecar is server-only, and ranking stays with the backend.
+This 3D diagram describes the current FULL production path. The retrieval preparation path is shown separately under “What changed”. The metadata sidecar is server-only, and ranking stays with the backend.
 
 ---
 
 ## What changed from the FULL-only baseline
 
-**Production remains FULL.** The last recorded production check is agent `ea47917` at 2026-10-09 09:13 UTC; it did not call an LLM. The retrieval API and request selection below are implemented and tested on a separate local branch, for an approved feature-branch Draft PR; cloud deployment remains held. Earlier agent #13/wiki #32 were observed merged outside this follow-up; their merge is not evidence of a retrieval deployment.
+**Production remains FULL.** A read-only Cloud Run configuration check on 2026-10-10 still shows agent `ea47917` Ready at 100% traffic, with no retrieval runtime configuration. Agent #14/wiki #33 were externally merged; this follow-up is on a separate feature branch for new Draft PR review. The separate local API/request-selection implementation is tested; cloud deployment remains held.
 
 | Area | Previous FULL baseline | Current local implementation |
 | --- | --- | --- |
@@ -61,38 +44,20 @@ This diagram describes the current FULL production path. The retrieval preparati
 | Failure and cache | Bundle-wide citation allowlist; UUID + facts-hash EXPLAIN cache | Request-scoped citation allowlist and context identity in cache/single-flight keys isolate selected and FULL results, including overlapping requests. Remote/auth/timeout/stale-index/coverage failures restore verified FULL; a corrupt baseline fails closed. |
 | Evaluation | Scripted 29-fixture selection comparison and historical model evaluation | Actual RAGAS 0.3.9 document-ID precision/recall is separate from answer generation or LLM judging. Real HTTP + Neo4j + Kotlin citation E2E uses scripted providers; no paid LLM/judge calls. |
 
-**Local verification completed:** Python 19/19, JVM 339/339 (56 suites), and the original 29 fixtures/58 rows pass. Native TF-IDF, native pinned CPU semantic and the built Linux ARM64 TF-IDF image each pass 35 fixtures/105 explanation/ask/stream checks plus one actual-facts EXPLAIN query through real Neo4j Community 5.26.31. Actual graph/corpus tampering, stale pins, auth/body/time bounds and exact FULL recovery are recorded in [verification](docs/retrieval-api-followup-verification.json). Generated local resources have been cleaned up.
+**Local verification completed:** Python API 19/19 and the new CPU builder 13/13 pass; JVM 339/339 (56 suites), lab 34/34 and the original 29 fixtures/58 rows remain verified. The full Linux ARM64 CPU semantic image now builds, regenerates an independent index and runs real Neo4j/HTTP/Kotlin. HYBRID and VECTOR each pass 35 fixtures/105 route checks plus actual-facts EXPLAIN: HYBRID is SELECTED; VECTOR records an exact required-seed miss and original FULL recovery. See [Linux execution and reproduction](docs/linux-semantic-followup-report.md). Earlier native/lexical and RAGAS reports remain labelled historical; no new LLM or Linux RAGAS score is claimed.
 
-**Before deployment:** private Cloud Run IAM/invoker/network enforcement and existing production Enterprise Neo4j reader privileges remain unverified. The full Linux semantic image was not run: official `torch 2.14.1+cpu` differs from the preserved candidate's exact `2.14.1` pin, so it needs a newly validated Linux CPU candidate. See [reproduction and release preparation](docs/retrieval-api-followup-report.md). No credentials, cloud resources, traffic changes or separate Hanjeok DB/SMTP rollout were made.
+**amd64 partial verification:** the existing builder image built successfully and ran x86_64 Python, `pip check` and real model-weight loading. The new amd64 index, health and final fixtures remain unconfirmed. This builder contains the old Mac index and is unsuitable for deployment. [Preserved output and recovery](docs/amd64-semantic-recovery.md) distinguish these stages.
+
+**Before deployment:** a fresh linux/amd64 image/index is required for Cloud Run. Private IAM/network routing and actual production Enterprise Neo4j reader ACL remain unverified; read-only inspection found no configured retrieval service or reader endpoint/secret. [Exact targets, order and cost prerequisites](docs/linux-semantic-followup-report.md) record the remaining work. No cloud credentials, IAM/resources, traffic switch or separate Hanjeok DB/SMTP rollout was made.
 
 **Measured limits:** only the 501-byte Gyeongbokgung seed is optional, so corpus selection can remove at most 501/24,703 = 2.03%; guards and moving evidence to user input do not prove total token/cost savings. In the preserved semantic lab, VECTOR/HYBRID candidate precision is 0.250000/0.172619 and recall 0.645833/1.000000 on 24 supported attempts; complete final coverage is 30/35 versus 35/35, including five recorded VECTOR seed omissions. The deployment guard restores FULL on an explicit required-seed miss; it does not rewrite those results. This bounded relationship retrieval is not Microsoft's complete community GraphRAG implementation and proves no improvement in answer quality. No invented transport/weather or synthetic relation enters the curated graph.
 
-Publication scope and preserved source branches: [Draft PR preparation](docs/publication-preparation.json). Verification JSON files are historical local snapshots from before publication approval.
+Agent #14/wiki #33 publication and exact-head CI are historical merged-PR evidence; this follow-up is reviewed separately in a new Draft PR. The preserved [publication preparation](docs/publication-preparation.json) and earlier verification JSON snapshots retain their original scope. [Current illustration correction](docs/readme-illustration-correction.json) restores useful existing 3D figures and removes redundant diagrams; no new image was generated.
 
 ### Local retrieval structure, not deployed
 
-```mermaid
-flowchart LR
-    Index["Immutable validated index"]
-    API["Python ASGI retrieval API"]
-    Kotlin["Kotlin request context"]
-    Vector["Lexical or semantic vectors"]
-    Graph["Neo4j curated graph"]
-    Model["LLM provider"]
-    Client["Browser / Vercel"]
-    Index -->|"pinned artifacts"| API
-    Kotlin -->|"bounded query + version pins"| API
-    API -->|"VECTOR / HYBRID_GRAPH"| Vector
-    Vector -->|"candidates"| API
-    API -->|"HYBRID: up to 2 hops"| Graph
-    Graph -->|"up to 9 documents"| API
-    API -->|"document IDs + hashes"| Kotlin
-    Kotlin -->|"8 policies + seed or FULL"| Model
-    Model -->|"answer + citations"| Kotlin
-    Kotlin -->|"validated output"| Client
-```
 
-The diagram separates the new API from Kotlin's explanation/citation boundary. Runtime downloads are disabled; only verified source hashes/revisions enter the index. Hash integrity does not prove source truth or completed claim review.
+The text and comparison table separate the new API from Kotlin's explanation/citation boundary. Runtime downloads are disabled; only verified source hashes/revisions enter the index. Hash integrity does not prove source truth or completed claim review.
 
 
 ## 📖 Table of Contents
@@ -189,19 +154,15 @@ aggregating before storage would put derived data in `raw/`.
 
 ## 📊 Collection Status
 
-![Collection status](docs/collection-stats.svg)
+| Stored public-reference evidence | Value |
+| --- | --- |
+| Captured periods | 2 (2026-06–2026-07) |
+| Daily rows | 49,137 |
+| Regions in newest period | 270 |
+| Monitoring stations | 672 |
+| Last changed capture | 2026-09-14 |
 
-`scripts/build-collection-stats.sh` reads `raw/external-snapshots/` and redraws this
-figure daily. A day whose numbers did not move is not committed, so the date on the
-figure is the day the evidence was last captured, not the day it was drawn. And
-because the collectors skip an unchanged payload and treat a stored period as
-immutable, it is precisely the last capture that **differed** — not the last one
-that ran.
-
-The figure counts what the evidence layer actually holds — periods stored, daily rows, 기초지자체
-covered in the newest period, and monitoring stations — and nothing it has not captured. Coverage
-is counted in the newest period only; unioning every period would report which regions have
-_ever_ appeared, which is a more flattering number and a different claim.
+These are values from the committed collection-statistics artifact, not live readings. `scripts/build-collection-stats.sh` derives them from stored raw snapshots. The date is the last changed capture; regional coverage counts only the newest period. The scheduled SVG generator remains available, but its duplicate chart is omitted from this README.
 
 ---
 
@@ -255,21 +216,7 @@ This structure follows the **Evidence → Canonical Memory → Discovery → Hum
 `hyunolike/2nd-brain-template`, adding normalized records and service packages for travel-service
 integration.
 
-```mermaid
-flowchart TD
-    Inbox["inbox/<br/>temporary intake"] --> Raw["raw/<br/>immutable source evidence"]
-    Raw --> Records["records/<br/>normalized derived records"]
-    Raw --> Canonical["canonical pages<br/>entities / concepts / comparisons / queries / decisions"]
-    Canonical --> Indexes["indexes/<br/>manifest + chunks + source map"]
-    Records --> Indexes
-    Indexes --> Packages["packages/<br/>per-service context bundle + prompt"]
-    Packages --> Services["consumer services<br/>Hanjeok / generic travel apps"]
-    Services --> Explanation["LLM explanation<br/>recommendation rationale, weather/congestion evidence, policy statements"]
-
-    Raw -. "source paths" .-> Canonical
-    Raw -. "provenance" .-> Records
-    Canonical -. "index.md + log.md" .-> Indexes
-```
+Inputs move from `inbox/` to immutable `raw/`, then into sourced `records/` and canonical pages. Both feed `indexes/`, and explicit `packages/` lists deliver context to consumers. Source paths and revisions remain attached; canonical updates also maintain `index.md` and `log.md`.
 
 ---
 
@@ -283,7 +230,7 @@ The deployed Hanjeok integration has **two inputs**: this repository's static ma
 | Backend facts | Runtime backend lookup → model `user` | Current course and its facts |
 | Metadata sidecar | Build → agent server integrity/provenance | Server checks only; never model input |
 
-The current FULL diagram appears above; the local retrieval-preparation diagram is separate below. The other wiki architecture/storage diagrams describe general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
+The current FULL 3D diagram appears above; local retrieval preparation is explained separately in the text and comparison table. The wiki architecture/storage descriptions cover general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
 
 
 ---
@@ -294,35 +241,7 @@ In the early stage there is **no separate backend batch server**. This repo's ba
 only **sanitized evidence capture** and **static index build**. Fast-changing or personal data —
 live weather, live congestion, per-user history — is managed by the consumer service backend.
 
-```mermaid
-flowchart TD
-    subgraph WikiBatch["Wiki Repo Batch"]
-      UserFixture["sanitized user input JSON"] --> UserCapture["scripts/collect-user-input.sh"]
-      ExternalFixture["external API/document snapshot JSON"] --> ExternalCapture["scripts/collect-external-snapshot.sh"]
-      UserCapture --> RawUser["raw/user-input/"]
-      ExternalCapture --> RawExternal["raw/external-snapshots/"]
-      RawUser --> Records["records/"]
-      RawExternal --> Records
-      Records --> BuildIndex["scripts/build-index.sh"]
-      Canonical["canonical pages"] --> BuildIndex
-      BuildIndex --> Indexes["indexes/"]
-      Indexes --> Packages["packages/"]
-    end
-
-    subgraph BackendBatch["Consumer Backend Batch"]
-      LiveWeather["live weather"]
-      LiveCongestion["live congestion"]
-      UserHistory["private user history"]
-      RuntimeDB["service DB"]
-      LiveWeather --> RuntimeDB
-      LiveCongestion --> RuntimeDB
-      UserHistory --> RuntimeDB
-    end
-
-    Packages --> ContextLoader["service context loader"]
-    RuntimeDB --> ContextLoader
-    ContextLoader --> LLM["LLM explanation"]
-```
+The wiki batch accepts sanitized fixtures and external snapshots into `raw/`, derives records and canonical pages, then builds indexes and service packages. Live readings and private history stay in the consumer backend; its runtime database is a separate boundary.
 
 ### Batch Commands
 
@@ -395,21 +314,7 @@ Keeping the knowledge layer in Git makes **provenance a built-in feature**. Conv
 high-frequency automated collection into Git explodes commit history, creates push contention on
 concurrent writes, and requires history rewrites to erase personal data. High-frequency and personal-data collection stay outside this repo. The reviewed, slowly changing public-reference capture described above is a narrow exception.
 
-```mermaid
-flowchart TD
-    Curator["Curator"] -->|"Pull Request"| Wiki
-    Wiki["GitHub: travel-context-wiki<br/>canonical + records + indexes + packages"]
-    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI validation"}
-    Gate -->|"merge"| Bundle["context bundle<br/>(build-time bundle)"]
-
-    Sensors["live weather / congestion / public API"] -->|"auto collection"| Store["object storage / service DB"]
-    UserInput["user input / session"] --> Store
-
-    Bundle --> Agent["Hermes Agent"]
-    Store -->|"runtime lookup"| Agent
-    Agent <--> LLM["LLM (OpenRouter, etc.)"]
-    Agent --> Client["Client"]
-```
+Curators submit wiki changes by PR; smoke/index gates precede reviewed bundle packaging. Consumer backends own live readings and private sessions. The deployed Hanjeok path uses its backend facts and packaged FULL manual; this general boundary does not add weather lookup or object storage to Hanjeok.
 
 The agent receives **static context from the bundle** and **live facts from the service store**.
 This priority is already defined in `indexes/retrieval-policy.md`: backend facts come first, then
@@ -432,28 +337,9 @@ this delivery. All three methods use these two files as entry points.
 
 ### Hanjeok build-time and runtime contract
 
-```mermaid
-flowchart LR
-    Client["Browser / Vercel"]
-    Agent["Kotlin Agent / Cloud Run"]
-    Backend["Hanjeok Backend"]
-    Cache["EXPLAIN cache"]
-    Model["LLM provider"]
-    Tools["Streaming tools"]
-    Gate["Citation gate"]
-    Client -->|"course / question"| Agent
-    Agent -->|"fetch facts"| Backend
-    Backend -->|"current facts"| Agent
-    Agent -->|"UUID + facts hash"| Cache
-    Cache -->|"hit: saved answer"| Client
-    Cache -->|"miss"| Model
-    Agent -->|"ASK / stream"| Model
-    Model -->|"stream only"| Tools
-    Tools -->|"validated facts"| Model
-    Model -->|"answer + citations"| Gate
-    Gate -->|"valid EXPLAIN only"| Cache
-    Gate -->|"validated output"| Client
-```
+![Hanjeok build-time packaging and two runtime model inputs](docs/images/hanjeok-two-inputs.png)
+
+Current FULL production inputs: the full manual in system, backend facts in user; sidecar stays server-only. Opt-in retrieval preparation is described separately below.
 
 
 Wiki #31 and agent #12 are merged. [Production verification](docs/production-verification.json) at 2026-10-09 09:13 UTC confirmed agent `ea47917` Ready, traffic 100%, health/readiness UP, and matching full bundle/sidecar hashes. The frontend is deployed. No actual LLM call was made in that verification; the separate Hanjeok database/SMTP rollout remains held. At build time,
@@ -488,20 +374,7 @@ and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main
 
 ### Local vector / graph / RAGAS experiment
 
-```mermaid
-flowchart LR
-    Fixture["29 fixtures + 6 graph cases"]
-    Index["Immutable validated index"]
-    Graph["Neo4j curated graph"]
-    Compare["FULL / VECTOR / HYBRID_GRAPH"]
-    Ragas["RAGAS ID precision / recall"]
-    Contract["Policy / coverage / citation checks"]
-    Fixture --> Compare
-    Index --> Compare
-    Graph -->|"verified source / seed graph"| Compare
-    Compare -->|"predicted / reference IDs"| Ragas
-    Compare -->|"scripted responses"| Contract
-```
+![Local retrieval lab comparing FULL, VECTOR and HYBRID_GRAPH outside production](docs/images/local-retrieval-lab.png)
 
 The consumer's separate local FULL / VECTOR / HYBRID_GRAPH lab preserves production FULL, the 29 fixtures and six graph-boundary cases. [Execution status and limitations](docs/retrieval-experiment-report.md) separate preserved lexical TF-IDF results from actual pinned multilingual CPU semantic embeddings, actual RAGAS 0.3.9 ID metrics and the in-process provenance/declared-seed graph. Semantic VECTOR / HYBRID candidate recall is 0.645833 / 1.000000 on 24 supported attempts; precision is 0.250000 / 0.172619 on 24 defined rows. Complete final coverage is 30/35 / 35/35; five VECTOR seed omissions remain reported. All eight policies and determinism pass 105/105. Scores do not establish response truth or LLM judging.
 
@@ -579,18 +452,7 @@ service data but also **portfolio artifacts** as linkable assets. PRDs, GitHub I
 evaluation reports, deployment URLs, service packages, and GraphRAG exports are recorded under
 `records/project-artifacts/` and traced back via canonical pages and the source map.
 
-```mermaid
-flowchart TD
-    Guide["project guide / PRD"] --> RawGuide["raw/project-guides/"]
-    Issues["GitHub issues / PRs"] --> Artifacts["records/project-artifacts/"]
-    Eval["RAGAS report"] --> Artifacts
-    Deploy["deployed URL"] --> Artifacts
-    RawGuide --> Canonical["concepts/project-artifact-linking.md"]
-    Artifacts --> Canonical
-    Canonical --> Index["indexes/source-map.json"]
-    Index --> Package["packages/&lt;service&gt;"]
-    Package --> Loader["Context Loader / Hermes Agent"]
-```
+PRDs are preserved under `raw/project-guides/`; issue/PR links, evaluation reports and deployment URLs are recorded under `records/project-artifacts/`. Canonical artifact pages connect them to `indexes/source-map.json`, service packages and the consumer context loader.
 
 This makes the deployed AI service explainable as a portfolio asset: you can trace from the
 service URL to the issue, implementation, evaluation, prompt package, retrieval rule, and the
@@ -609,15 +471,7 @@ pages, read `SCHEMA.md`, `index.md`, and the latest entries in `log.md`.
 
 ### Operating Workflow
 
-```mermaid
-flowchart LR
-    Capture["1. Capture<br/>PDF, API response, research, service snapshot"] --> Validate["2. Validate<br/>source path, format, JSON, frontmatter"]
-    Validate --> Compile["3. Compile<br/>canonical pages with sources"]
-    Compile --> Sync["4. Sync<br/>index.md + log.md"]
-    Sync --> Index["5. Build static retrieval<br/>indexes/*.json, chunks.jsonl"]
-    Index --> Package["6. Package<br/>packages/&lt;service&gt;/context-bundle.json"]
-    Package --> Review["7. Human review<br/>accept / contest / revise"]
-```
+Capture evidence → validate source paths, JSON and frontmatter → compile sourced canonical pages → update `index.md` and `log.md` → build static indexes → package service context → human review to accept, contest or revise.
 
 ---
 

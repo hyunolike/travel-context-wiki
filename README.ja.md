@@ -25,24 +25,7 @@
 
 ## Hanjeok Wiki と Agent の全体構造
 
-```mermaid
-flowchart LR
-    Source["公開出典"]
-    Wiki["wiki ポリシーと records"]
-    Bundle["ビルド: 全文バンドル + sidecar"]
-    Agent["Kotlin Agent / Cloud Run"]
-    Backend["Hanjeok Backend"]
-    Client["ブラウザー / Vercel"]
-    Model["LLM provider"]
-    Source -->|"保存・レビュー"| Wiki
-    Wiki -->|"文書リストを明示"| Bundle
-    Bundle -->|"固定した成果物"| Agent
-    Backend -->|"現在の facts"| Agent
-    Client -->|"コース・質問"| Agent
-    Agent -->|"全文 system + facts user"| Model
-    Model -->|"回答・引用"| Agent
-    Agent -->|"検証済み出力"| Client
-```
+![収集・ビルド、運用サービス、独立したローカル実験の全体構造](docs/images/hanjeok-wiki-agent-overview.en.png)
 
 この図は現在の FULL 運用経路です。検索の展開準備は変更点で別に示します。sidecar はサーバー専用、順位は backend が決めます。
 
@@ -50,7 +33,7 @@ flowchart LR
 
 ## 従来の FULL 方式から変わった点
 
-**運用は FULL のままです。** 最後の運用記録は 2026-10-09 09:13 UTC の agent `ea47917` で、LLM 呼び出しはありません。新しい検索 API とリクエストごとの選択は独立した branch で実装・検証し、新しい Draft PR への公開を承認済みです。クラウド展開は保留です。agent #13/wiki #32 の統合はこの作業の外で確認した状態であり、検索機能の運用反映を示しません。
+**運用は FULL のままです。** 2026-10-10 の読み取り専用 Cloud Run 設定確認でも agent `ea47917` が Ready・100% traffic で検索設定はありません。agent #14/wiki #33 は外部で merge 済み。この追加作業は別の feature branch から新 Draft PR で確認します。API/選択実装は検証済みで cloud 展開は保留です。
 
 | 項目 | 従来の FULL | 現在のローカル実装 |
 | --- | --- | --- |
@@ -61,38 +44,20 @@ flowchart LR
 | 引用・キャッシュ・復帰 | 全文の引用許可リストと UUID + facts hash | リクエスト別引用検証と context ID 付き cache/single-flight により、同時 selected/FULL も分離。認証・timeout・古い version・根拠不足は検証済み FULL、基準全文の破損は fail closed。 |
 | 評価 | 既存 29 fixture の scripted 比較、過去モデル評価 | 実際の RAGAS 0.3.9 文書 ID precision/recall。HTTP/Neo4j/Kotlin E2E の provider も scripted で、有料 LLM/judge や回答品質の実証はありません。 |
 
-**ローカル検証完了:** Python 19/19、JVM 339/339（56 suite）、既存 29 fixture/58 行が成功。native TF-IDF、固定 CPU 意味 API、ビルド済み Linux ARM64 TF-IDF image の各経路で実際の Neo4j Community 5.26.31 を使い、35 fixture/105 route checks と実 facts EXPLAIN 1 件を確認しました。改ざん、認証、時間/本文制限と FULL 復帰の記録は [検証スナップショット](docs/retrieval-api-followup-verification.json) を参照。作成したローカル資源は削除しました。
+**ローカル検証完了:** Python API 19/19、新 CPU builder 13/13、JVM 339/339（56 suite）、lab 34/34、元の 29 fixture/58 行。全 Linux ARM64 CPU 意味 image を実際に build し、新 index・Neo4j・HTTP・Kotlin で実行しました。HYBRID/VECTOR は各 35 fixture/105 route と実 facts EXPLAIN を検証。HYBRID は SELECTED、VECTOR は必須 seed 欠落を明記して元の FULL に復帰します。[Linux 実行・再現](docs/linux-semantic-followup-report.md)。旧 native/lexical/RAGAS 記録は保存し、新しい Linux RAGAS/LLM 点数とは主張しません。
 
-**展開前:** private Cloud Run IAM/ネットワーク/呼び出し権限と production Enterprise Neo4j reader ACL は未検証。Linux 意味 image は未実行です。公式 CPU wheel `torch 2.14.1+cpu` と保存候補の正確な `2.14.1` pin は異なるため、新しい Linux CPU 候補の検証が必要です。credentials・cloud 資源・traffic 変更、運用展開、別 Hanjeok DB/SMTP 展開は行っていません。Draft PR 公開のみ承認済みです。[ローカル実装の記録](docs/retrieval-api-followup-report.md) を参照してください。
+**amd64 の部分検証:** 既存 builder image の build、x86_64 Python、`pip check`、実モデルの重み読み込みを確認しました。新 amd64 index、health、最終 fixture 結果は未確認です。旧 Mac index を含む builder は展開用ではありません。[保存した出力と復旧記録](docs/amd64-semantic-recovery.md)で段階を区別します。
+
+**展開前:** Cloud Run 用の新 linux/amd64 image/index、private IAM/network 経路、実 production Enterprise Neo4j reader ACL の検証が必要です。検索 service/reader endpoint/secret は確認範囲にありません。[対象・順序・費用の前提](docs/linux-semantic-followup-report.md)。credentials/IAM/resource/traffic や別 Hanjeok DB/SMTP 展開は変更していません。
 
 **限界:** 任意文書は 501-byte Gyeongbokgung seed だけなので、文書選択削減の上限は約 2.03%。総 token/費用削減や回答品質向上は未測定です。保存済み意味実験の VECTOR/HYBRID precision は 0.250000/0.172619、recall は 0.645833/1.000000（24 件）。最終根拠の完全性は 30/35 と 35/35、VECTOR の seed 欠落 5 件を保持します。新しい guard は必要 seed 欠落時に FULL へ戻し、旧指標を変更しません。Microsoft の完全な community GraphRAG ではなく、存在しない交通/天気や合成関係は curated graph に含めません。
 
-公開範囲と保存した元 branch は [Draft PR 準備記録](docs/publication-preparation.json) を参照。検証 JSON は公開承認前のローカル実行スナップショットです。
+agent #14/wiki #33 とその head の CI は merge 済み PR の過去の証拠です。この追加作業は別の Draft PR で確認します。[公開準備記録](docs/publication-preparation.json) と旧検証 JSON は当時の範囲を保存します。[現在の図修正](docs/readme-illustration-correction.json) で有用な既存 3D 図を復元し重複を削除しました。新しい画像は生成していません。
 
 ### 検索構造 — ローカル実装、未デプロイ
 
-```mermaid
-flowchart LR
-    Index["固定・検証したインデックス"]
-    API["Python ASGI 検索 API"]
-    Kotlin["Kotlin request context"]
-    Vector["語彙または意味ベクトル"]
-    Graph["Neo4j 検証済み関係グラフ"]
-    Model["LLM provider"]
-    Client["ブラウザー / Vercel"]
-    Index -->|"固定した成果物"| API
-    Kotlin -->|"制限した質問・固定バージョン"| API
-    API -->|"VECTOR / HYBRID_GRAPH"| Vector
-    Vector -->|"検索候補"| API
-    API -->|"HYBRID: 最大 2 ホップ"| Graph
-    Graph -->|"最大 9 文書"| API
-    API -->|"文書 ID・hash"| Kotlin
-    Kotlin -->|"必須 8 ポリシー + seed または FULL"| Model
-    Model -->|"回答・引用"| Kotlin
-    Kotlin -->|"検証済み出力"| Client
-```
 
-API と Kotlin の境界を示しています。実行時モデル download は禁止し、検証した source hash/revision のみを使用します。整合性は意味的な真実やレビュー完了の証明ではありません。
+API と Kotlin の境界は本文と比較表で区別します。実行時モデル download は禁止し、検証した source hash/revision のみを使用します。整合性は意味的な真実やレビュー完了の証明ではありません。
 
 
 ## 📖 目次
@@ -184,17 +149,15 @@ API と Kotlin の境界を示しています。実行時モデル download は�
 
 ## 📊 収集状況
 
-![収集状況](docs/collection-stats.svg)
+| 保存した公開参照資料 | 値 |
+| --- | --- |
+| 取得期間 | 2 か月 (2026-06–2026-07) |
+| 日次行 | 49,137 |
+| 最新期間の自治体 | 270 |
+| 測定所 | 672 |
+| 最後の変更取得 | 2026-09-14 |
 
-`scripts/build-collection-stats.sh` が `raw/external-snapshots/` を読み、この図を毎日
-描き直します。数値が動かなかった日はコミットしないため、図に記された日付は描画した日ではなく、
-証拠が最後に取得された日です。さらに収集器は変化のないペイロードをスキップし、保存済みの期間を
-不変として扱うため、正確には最後に実行された日ではなく最後に**変化した**日を指します。
-
-図が数えるのは、証拠レイヤーが実際に保持しているものだけです。保存済みの期間数、日次の行数、最新
-期間に含まれる基礎自治体 (기초지자체) の数、そして測定所の数であり、取得していないものは描きません。地域の
-カバレッジは最新期間だけで数えます。すべての期間を合算すると「一度でも登場した」地域を報告する
-ことになり、それはより見栄えのする数字であって、同じ主張ではありません。
+コミット済み統計成果物の値で、リアルタイム観測ではありません。`scripts/build-collection-stats.sh` が raw snapshot から計算します。日付は最後に内容が変わった取得、地域は最新期間のみ。定期 SVG 生成は保持し、重複図は README から削除しました。
 
 ---
 
@@ -246,21 +209,7 @@ Layer 3: Operation Metadata
 Decision** の流れに従いつつ、旅行サービス連携のために正規化レコードとサービスパッケージを
 追加しています。
 
-```mermaid
-flowchart TD
-    Inbox["inbox/<br/>一時受け入れ"] --> Raw["raw/<br/>不変の原本証拠"]
-    Raw --> Records["records/<br/>正規化された派生レコード"]
-    Raw --> Canonical["canonical pages<br/>entities / concepts / comparisons / queries / decisions"]
-    Canonical --> Indexes["indexes/<br/>manifest + chunks + source map"]
-    Records --> Indexes
-    Indexes --> Packages["packages/<br/>サービス別 context bundle + prompt"]
-    Packages --> Services["consumer services<br/>Hanjeok / generic travel apps"]
-    Services --> Explanation["LLM explanation<br/>推薦説明、天気/混雑の根拠、ポリシー文"]
-
-    Raw -. "source paths" .-> Canonical
-    Raw -. "provenance" .-> Records
-    Canonical -. "index.md + log.md" .-> Indexes
-```
+入力は `inbox/` から不変の `raw/` に保存し、出典付き `records/` と canonical 文書に整理します。両者を `indexes/` に接続し、明示した `packages/` 一覧でサービスへ渡します。出典パスと revision を保持し、canonical 更新は `index.md` と `log.md` も更新します。
 
 ---
 
@@ -274,7 +223,7 @@ flowchart TD
 | バックエンド facts | 実行時取得 → model `user` | 現在のコースと事実 |
 | metadata sidecar | build → server integrity/provenance | サーバー検証専用、モデル入力ではない |
 
-現在の FULL とローカル検索準備を別の Mermaid 図で示しています。他の wiki 構造・保存境界の図は一般的な能力を示し、Hanjeok agent の実行時検索や天気対応を示すものではありません。
+現在の FULL は 3D 図、ローカル検索準備は本文と比較表で区別します。wiki 構造・保存境界の説明は一般的な能力を示し、Hanjeok agent の実行時検索や天気対応を示すものではありません。
 
 
 ---
@@ -286,35 +235,7 @@ flowchart TD
 リアルタイムの混雑度、ユーザー別の推薦履歴のように、速く変化したり個人的なデータは消費サービスの
 バックエンドが管理します。
 
-```mermaid
-flowchart TD
-    subgraph WikiBatch["Wiki Repo Batch"]
-      UserFixture["sanitized user input JSON"] --> UserCapture["scripts/collect-user-input.sh"]
-      ExternalFixture["external API/document snapshot JSON"] --> ExternalCapture["scripts/collect-external-snapshot.sh"]
-      UserCapture --> RawUser["raw/user-input/"]
-      ExternalCapture --> RawExternal["raw/external-snapshots/"]
-      RawUser --> Records["records/"]
-      RawExternal --> Records
-      Records --> BuildIndex["scripts/build-index.sh"]
-      Canonical["canonical pages"] --> BuildIndex
-      BuildIndex --> Indexes["indexes/"]
-      Indexes --> Packages["packages/"]
-    end
-
-    subgraph BackendBatch["Consumer Backend Batch"]
-      LiveWeather["live weather"]
-      LiveCongestion["live congestion"]
-      UserHistory["private user history"]
-      RuntimeDB["service DB"]
-      LiveWeather --> RuntimeDB
-      LiveCongestion --> RuntimeDB
-      UserHistory --> RuntimeDB
-    end
-
-    Packages --> ContextLoader["service context loader"]
-    RuntimeDB --> ContextLoader
-    ContextLoader --> LLM["LLM explanation"]
-```
+Wiki batch は匿名化 fixture と外部 snapshot を `raw/` に保存し、records・canonical・indexes・service package を作ります。実時間の観測と個人履歴は消費側 backend の runtime DB に置きます。
 
 ### バッチコマンド
 
@@ -387,21 +308,7 @@ scripts/build-collection-stats.sh --check
 収集を Git に置くとコミット履歴が膨張し、同時書き込みで push の競合が発生し、一度入った個人情報を
 消すには履歴の書き換えが必要になります。高頻度・個人データの収集は外部に置きます。前述の、緩やかに変化する公開参照データのレビュー付き収集のみが狭い例外です。
 
-```mermaid
-flowchart TD
-    Curator["Curator"] -->|"Pull Request"| Wiki
-    Wiki["GitHub: travel-context-wiki<br/>canonical + records + indexes + packages"]
-    Wiki -->|"smoke.sh + build-index --check"| Gate{"CI 検証"}
-    Gate -->|"merge"| Bundle["context bundle<br/>(ビルド時バンドル)"]
-
-    Sensors["リアルタイム天気 / 混雑度 / 公共 API"] -->|"自動収集"| Store["オブジェクトストレージ / サービス DB"]
-    UserInput["ユーザー入力 / セッション"] --> Store
-
-    Bundle --> Agent["Hermes Agent"]
-    Store -->|"ランタイム参照"| Agent
-    Agent <--> LLM["LLM (OpenRouter など)"]
-    Agent --> Client["Client"]
-```
+Curator は PR で wiki を変更し、smoke/index 検証とレビュー後に bundle を作ります。実時間の観測と個人 session は消費側 backend が担当します。Hanjeok 運用は backend facts と FULL manual を使い、この一般的な保存境界は天気検索や object storage を追加しません。
 
 エージェントは **静的コンテキストはバンドルから、リアルタイムの事実はサービスストアから** 受け取り
 ます。この優先順位は `indexes/retrieval-policy.md` がすでに規定しています: backend facts が最優先で、
@@ -424,28 +331,9 @@ flowchart TD
 
 ### Hanjeok のビルド時と実行時の契約
 
-```mermaid
-flowchart LR
-    Client["ブラウザー / Vercel"]
-    Agent["Kotlin Agent / Cloud Run"]
-    Backend["Hanjeok Backend"]
-    Cache["EXPLAIN キャッシュ"]
-    Model["LLM provider"]
-    Tools["ストリーミングツール"]
-    Gate["引用検証"]
-    Client -->|"コース・質問"| Agent
-    Agent -->|"facts 取得"| Backend
-    Backend -->|"現在の facts"| Agent
-    Agent -->|"UUID + facts hash"| Cache
-    Cache -->|"hit: 保存した回答"| Client
-    Cache -->|"miss"| Model
-    Agent -->|"ASK / stream"| Model
-    Model -->|"stream のみ"| Tools
-    Tools -->|"検証した facts"| Model
-    Model -->|"回答・引用"| Gate
-    Gate -->|"有効な EXPLAIN のみ"| Cache
-    Gate -->|"検証済み出力"| Client
-```
+![Hanjeok のビルド時パッケージと二つの実行時入力](docs/images/hanjeok-two-inputs.png)
+
+現在の FULL 運用入力です。全文は system、backend facts は user、sidecar はサーバー専用。選択検索の準備は別に説明します。
 
 
 wiki #31 と agent #12 は統合済みです。[運用検証](docs/production-verification.json)は 2026-10-09 09:13 UTC に agent `ea47917` の Ready、トラフィック 100%、health/readiness UP、全文バンドルと sidecar hash の一致を確認しました。フロントもデプロイ済みです。この検証で実際の LLM 呼び出しは行っていません。別の Hanjeok DB/SMTP 展開は保留のままです。
@@ -477,20 +365,7 @@ hash/revision の整合性と限定的な引用トピック検査は、意味的
 
 ### ローカルのベクトル・関係・RAGAS 実験
 
-```mermaid
-flowchart LR
-    Fixture["既存 29 fixture + 関係境界 6 件"]
-    Index["固定・検証したインデックス"]
-    Graph["Neo4j 検証済み関係グラフ"]
-    Compare["FULL / VECTOR / HYBRID_GRAPH"]
-    Ragas["RAGAS 文書 ID precision / recall"]
-    Contract["ポリシー・根拠・引用検証"]
-    Fixture --> Compare
-    Index --> Compare
-    Graph -->|"検証した出典・seed 関係"| Compare
-    Compare -->|"検索 ID・期待 ID"| Ragas
-    Compare -->|"scripted 応答"| Contract
-```
+![Local retrieval lab comparing FULL, VECTOR and HYBRID_GRAPH outside production](docs/images/local-retrieval-lab.png)
 
 [実験記録](docs/retrieval-experiment-report.md)は実行済み語彙/意味検索、実際の Neo4j と RAGAS 文書 ID 指標を区別します。必須 8 ポリシーを保持し、回答生成/LLM 判定は行いません。
 
@@ -562,18 +437,7 @@ scripts/build-bundle.sh hanjeok
 Issue/PR、RAGAS 評価レポート、デプロイ URL、service package、GraphRAG export は
 `records/project-artifacts/` に記録し、canonical page と source-map で逆追跡します。
 
-```mermaid
-flowchart TD
-    Guide["project guide / PRD"] --> RawGuide["raw/project-guides/"]
-    Issues["GitHub issues / PRs"] --> Artifacts["records/project-artifacts/"]
-    Eval["RAGAS report"] --> Artifacts
-    Deploy["deployed URL"] --> Artifacts
-    RawGuide --> Canonical["concepts/project-artifact-linking.md"]
-    Artifacts --> Canonical
-    Canonical --> Index["indexes/source-map.json"]
-    Index --> Package["packages/&lt;service&gt;"]
-    Package --> Loader["Context Loader / Hermes Agent"]
-```
+PRD は `raw/project-guides/`、issue/PR・評価報告・展開 URL は `records/project-artifacts/` に保存します。canonical ページから `indexes/source-map.json`、service package、consumer context loader に出典を接続します。
 
 これにより、デプロイされた AI サービスをポートフォリオ資産として説明できます。サービス URL から
 Issue、実装、評価、prompt パッケージ、検索ルール、そして最初のプロジェクト要件まで逆追跡できます。
@@ -591,15 +455,7 @@ Issue、実装、評価、prompt パッケージ、検索ルール、そして�
 
 ### 運用ワークフロー
 
-```mermaid
-flowchart LR
-    Capture["1. Capture<br/>PDF, API response, research, service snapshot"] --> Validate["2. Validate<br/>source path, format, JSON, frontmatter"]
-    Validate --> Compile["3. Compile<br/>canonical pages with sources"]
-    Compile --> Sync["4. Sync<br/>index.md + log.md"]
-    Sync --> Index["5. Build static retrieval<br/>indexes/*.json, chunks.jsonl"]
-    Index --> Package["6. Package<br/>packages/&lt;service&gt;/context-bundle.json"]
-    Package --> Review["7. Human review<br/>accept / contest / revise"]
-```
+証拠収集 → 出典パス・JSON・frontmatter 検証 → 出典付き canonical 作成 → `index.md`/`log.md` 同期 → static index 作成 → service context packaging → 人による受容・異議・修正レビュー。
 
 ---
 
