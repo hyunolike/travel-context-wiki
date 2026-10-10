@@ -25,11 +25,75 @@
 
 ## Hanjeok Wiki と Agent の全体構造
 
-![収集・ビルド、運用サービス、独立したローカル実験の全体構造](docs/images/hanjeok-wiki-agent-overview.en.png)
+```mermaid
+flowchart LR
+    Source["公開出典"]
+    Wiki["wiki ポリシーと records"]
+    Bundle["ビルド: 全文バンドル + sidecar"]
+    Agent["Kotlin Agent / Cloud Run"]
+    Backend["Hanjeok Backend"]
+    Client["ブラウザー / Vercel"]
+    Model["LLM provider"]
+    Source -->|"保存・レビュー"| Wiki
+    Wiki -->|"文書リストを明示"| Bundle
+    Bundle -->|"固定した成果物"| Agent
+    Backend -->|"現在の facts"| Agent
+    Client -->|"コース・質問"| Agent
+    Agent -->|"全文 system + facts user"| Model
+    Model -->|"回答・引用"| Agent
+    Agent -->|"検証済み出力"| Client
+```
 
-[図を拡大](docs/images/hanjeok-wiki-agent-overview.en.png) · 公開参照資料は原文保存とレビュー・文書化を経て、package がバンドル対象を明示的に選びます。レビュー状態を保持し、hash/revision の検査は内容の真実性や全資料のレビュー完了を証明しません。運用は完全な静的 wiki と現在の backend facts を使い、出典メタデータはサーバー専用です。ローカル実験は LLM 判定なしで検索 ID を評価します。ブラウザー要求線とキャッシュ詳細は省略し、要求経路の図で説明します。
+この図は現在の FULL 運用経路です。検索の展開準備は変更点で別に示します。sidecar はサーバー専用、順位は backend が決めます。
 
 ---
+
+## 従来の FULL 方式から変わった点
+
+**運用は FULL のままです。** 最後の運用記録は 2026-10-09 09:13 UTC の agent `ea47917` で、LLM 呼び出しはありません。新しい検索 API とリクエストごとの選択は独立した branch で実装・検証し、新しい Draft PR への公開を承認済みです。クラウド展開は保留です。agent #13/wiki #32 の統合はこの作業の外で確認した状態であり、検索機能の運用反映を示しません。
+
+| 項目 | 従来の FULL | 現在のローカル実装 |
+| --- | --- | --- |
+| モデル入力 | 9 文書、UTF-8 24,703 bytes 全文を system、backend facts を user に渡す | 既定 FULL は元の bytes を保持し、検索を呼びません。VECTOR/HYBRID_GRAPH も必須 8 ポリシーを常に保持し、任意 seed JSON は信頼しない user データです。 |
+| 検索と役割 | ビルド時 package の文書リスト。Kotlin が全文から説明 | 独立 Python ASGI API は固定インデックスを検索して文書 ID・hash・出典署名だけを返し、Kotlin がローカル本文・根拠・引用を検証します。facts 原文や履歴は検索 API に送らず、順位は backend が決めます。 |
+| ベクトル・関係 | 実行時検索なし | 語彙 TF-IDF と実行済みの固定 CPU 意味モデルを区別。HYBRID は検証済み文書/出典と seed の場所/地域関係のみ、最大 2 ホップ/9 文書です。 |
+| 固定・公開 | bundle と sidecar を agent image に固定 | index/model/runtime/bundle/sidecar を固定・再検証し、検証後にローカル registry を手動公開/rollback。実行中の再ロードや cloud traffic 変更はありません。 |
+| 引用・キャッシュ・復帰 | 全文の引用許可リストと UUID + facts hash | リクエスト別引用検証と context ID 付き cache/single-flight により、同時 selected/FULL も分離。認証・timeout・古い version・根拠不足は検証済み FULL、基準全文の破損は fail closed。 |
+| 評価 | 既存 29 fixture の scripted 比較、過去モデル評価 | 実際の RAGAS 0.3.9 文書 ID precision/recall。HTTP/Neo4j/Kotlin E2E の provider も scripted で、有料 LLM/judge や回答品質の実証はありません。 |
+
+**ローカル検証完了:** Python 19/19、JVM 339/339（56 suite）、既存 29 fixture/58 行が成功。native TF-IDF、固定 CPU 意味 API、ビルド済み Linux ARM64 TF-IDF image の各経路で実際の Neo4j Community 5.26.31 を使い、35 fixture/105 route checks と実 facts EXPLAIN 1 件を確認しました。改ざん、認証、時間/本文制限と FULL 復帰の記録は [検証スナップショット](docs/retrieval-api-followup-verification.json) を参照。作成したローカル資源は削除しました。
+
+**展開前:** private Cloud Run IAM/ネットワーク/呼び出し権限と production Enterprise Neo4j reader ACL は未検証。Linux 意味 image は未実行です。公式 CPU wheel `torch 2.14.1+cpu` と保存候補の正確な `2.14.1` pin は異なるため、新しい Linux CPU 候補の検証が必要です。credentials・cloud 資源・traffic 変更、運用展開、別 Hanjeok DB/SMTP 展開は行っていません。Draft PR 公開のみ承認済みです。[ローカル実装の記録](docs/retrieval-api-followup-report.md) を参照してください。
+
+**限界:** 任意文書は 501-byte Gyeongbokgung seed だけなので、文書選択削減の上限は約 2.03%。総 token/費用削減や回答品質向上は未測定です。保存済み意味実験の VECTOR/HYBRID precision は 0.250000/0.172619、recall は 0.645833/1.000000（24 件）。最終根拠の完全性は 30/35 と 35/35、VECTOR の seed 欠落 5 件を保持します。新しい guard は必要 seed 欠落時に FULL へ戻し、旧指標を変更しません。Microsoft の完全な community GraphRAG ではなく、存在しない交通/天気や合成関係は curated graph に含めません。
+
+公開範囲と保存した元 branch は [Draft PR 準備記録](docs/publication-preparation.json) を参照。検証 JSON は公開承認前のローカル実行スナップショットです。
+
+### 検索構造 — ローカル実装、未デプロイ
+
+```mermaid
+flowchart LR
+    Index["固定・検証したインデックス"]
+    API["Python ASGI 検索 API"]
+    Kotlin["Kotlin request context"]
+    Vector["語彙または意味ベクトル"]
+    Graph["Neo4j 検証済み関係グラフ"]
+    Model["LLM provider"]
+    Client["ブラウザー / Vercel"]
+    Index -->|"固定した成果物"| API
+    Kotlin -->|"制限した質問・固定バージョン"| API
+    API -->|"VECTOR / HYBRID_GRAPH"| Vector
+    Vector -->|"検索候補"| API
+    API -->|"HYBRID: 最大 2 ホップ"| Graph
+    Graph -->|"最大 9 文書"| API
+    API -->|"文書 ID・hash"| Kotlin
+    Kotlin -->|"必須 8 ポリシー + seed または FULL"| Model
+    Model -->|"回答・引用"| Kotlin
+    Kotlin -->|"検証済み出力"| Client
+```
+
+API と Kotlin の境界を示しています。実行時モデル download は禁止し、検証した source hash/revision のみを使用します。整合性は意味的な真実やレビュー完了の証明ではありません。
+
 
 ## 📖 目次
 
@@ -210,7 +274,7 @@ flowchart TD
 | バックエンド facts | 実行時取得 → model `user` | 現在のコースと事実 |
 | metadata sidecar | build → server integrity/provenance | サーバー検証専用、モデル入力ではない |
 
-[図の仕様](docs/readme-diagram-spec.md)にノード、矢印、挿入位置を記載しています。他の wiki 構造・保存境界の図は一般的な能力を示し、Hanjeok agent の実行時検索や天気対応を示すものではありません。
+現在の FULL とローカル検索準備を別の Mermaid 図で示しています。他の wiki 構造・保存境界の図は一般的な能力を示し、Hanjeok agent の実行時検索や天気対応を示すものではありません。
 
 
 ---
@@ -360,11 +424,29 @@ flowchart TD
 
 ### Hanjeok のビルド時と実行時の契約
 
-![Hanjeok のビルド時パッケージと二つの実行時入力](docs/images/hanjeok-two-inputs.png)
+```mermaid
+flowchart LR
+    Client["ブラウザー / Vercel"]
+    Agent["Kotlin Agent / Cloud Run"]
+    Backend["Hanjeok Backend"]
+    Cache["EXPLAIN キャッシュ"]
+    Model["LLM provider"]
+    Tools["ストリーミングツール"]
+    Gate["引用検証"]
+    Client -->|"コース・質問"| Agent
+    Agent -->|"facts 取得"| Backend
+    Backend -->|"現在の facts"| Agent
+    Agent -->|"UUID + facts hash"| Cache
+    Cache -->|"hit: 保存した回答"| Client
+    Cache -->|"miss"| Model
+    Agent -->|"ASK / stream"| Model
+    Model -->|"stream のみ"| Tools
+    Tools -->|"検証した facts"| Model
+    Model -->|"回答・引用"| Gate
+    Gate -->|"有効な EXPLAIN のみ"| Cache
+    Gate -->|"検証済み出力"| Client
+```
 
-[図を拡大表示](docs/images/hanjeok-two-inputs.png) · ビルド時に検証した全文マニュアルは system に、現在のバックエンド facts は user に入ります。sidecar はサーバーだけに残り、順位と訪問順序はバックエンドが決めます。運用は FULL です（9 文書 / UTF-8 24,703 bytes）。
-
-soft-3D の図を反映しました。[コードに基づく仕様](docs/readme-diagram-spec.md)でビルドと実行時を分け、sidecar をモデル入力の外に置きます。
 
 wiki #31 と agent #12 は統合済みです。[運用検証](docs/production-verification.json)は 2026-10-09 09:13 UTC に agent `ea47917` の Ready、トラフィック 100%、health/readiness UP、全文バンドルと sidecar hash の一致を確認しました。フロントもデプロイ済みです。この検証で実際の LLM 呼び出しは行っていません。別の Hanjeok DB/SMTP 展開は保留のままです。
 ビルド時に wiki の出典 hash と Git revision を検査し、全文バンドルと文書・
@@ -393,9 +475,28 @@ hash/revision の整合性と限定的な引用トピック検査は、意味的
 [出典バージョンの決定](decisions/bind-claims-to-source-versions.md)を参照してください。
 
 
+### ローカルのベクトル・関係・RAGAS 実験
+
+```mermaid
+flowchart LR
+    Fixture["既存 29 fixture + 関係境界 6 件"]
+    Index["固定・検証したインデックス"]
+    Graph["Neo4j 検証済み関係グラフ"]
+    Compare["FULL / VECTOR / HYBRID_GRAPH"]
+    Ragas["RAGAS 文書 ID precision / recall"]
+    Contract["ポリシー・根拠・引用検証"]
+    Fixture --> Compare
+    Index --> Compare
+    Graph -->|"検証した出典・seed 関係"| Compare
+    Compare -->|"検索 ID・期待 ID"| Ragas
+    Compare -->|"scripted 応答"| Contract
+```
+
+[実験記録](docs/retrieval-experiment-report.md)は実行済み語彙/意味検索、実際の Neo4j と RAGAS 文書 ID 指標を区別します。必須 8 ポリシーを保持し、回答生成/LLM 判定は行いません。
+
 ### オフライン文書選択比較
 
-`SELECTED_EXPERIMENT` はオフライン比較で、運用は **FULL** のままです。8 ポリシー文書は必須、`records/places/gyeongbokgung.json` だけが任意です。不明な質問・参照は検証済み全文へ fallback し、body/sidecar hash の破損は fail closed します。GraphRAG、ベクトル DB、実行時検索は導入していません。[結果と限界](docs/context-selection-report.md): system bytes の最大削減は 501/24,703 = 2.03%。scripted provider/tool は配線検証のみで、有料モデル品質、精度、遅延、トークン、費用は未測定です。
+`SELECTED_EXPERIMENT` はオフライン比較で、運用は **FULL** のままです。8 ポリシー文書は必須、`records/places/gyeongbokgung.json` だけが任意です。不明な質問・参照は検証済み全文へ fallback し、body/sidecar hash の破損は fail closed します。運用に GraphRAG、ベクトル DB、実行時検索は導入していません。ローカル実装は下記で区別します。[結果と限界](docs/context-selection-report.md): system bytes の最大削減は 501/24,703 = 2.03%。scripted provider/tool は配線検証のみで、有料モデル品質、精度、遅延、トークン、費用は未測定です。
 
 ### バンドルの構築
 
