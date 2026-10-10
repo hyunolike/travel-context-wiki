@@ -1,0 +1,20 @@
+{
+  "baseMain": "e92675aa8f3f75316c97c83a5518af62734320c7",
+  "publicationBranch": "pr/retrieval-readme-mermaid",
+  "files": [
+    "README.ja.md",
+    "README.ko.md",
+    "README.md",
+    "docs/publication-changed-files.json",
+    "docs/publication-preparation.json",
+    "docs/readme-asset-reference-check.json",
+    "docs/readme-diagram-spec.md",
+    "docs/readme-followup-scope.json",
+    "docs/readme-links-publication-validation.json",
+    "docs/readme-links-validation.json",
+    "docs/readme-mermaid-validation.json",
+    "docs/retrieval-api-followup-report.md",
+    "docs/retrieval-api-followup-verification.json"
+  ],
+  "previousMergedChangesDuplicated": false
+}

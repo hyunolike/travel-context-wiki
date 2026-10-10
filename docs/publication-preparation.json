@@ -26,5 +26,26 @@
     "wiki": "pull_request: smoke/index only; scheduled collectors/stats not invoked"
   },
   "snapshotNote": "verification.json and copied wiki snapshot describe pre-publication local execution; no-follow-up-push flags are historical, not current PR state",
-  "newCredentialsResourcesPaidCallsMergeProductionDeployment": false
+  "newCredentialsResourcesPaidCallsMergeProductionDeployment": false,
+  "localPublicationValidation": {
+    "pythonApi": 19,
+    "retrievalLab": 34,
+    "jvm": {
+      "tests": 339,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "jvmSuites": 56,
+    "gradleBuildCacheUsed": false,
+    "bootJar": true,
+    "offlineOriginalFixtures": 29,
+    "offlineRows": 58,
+    "wikiTests": 8,
+    "wikiCanonicalPages": 18,
+    "wikiIndexCheck": true,
+    "mermaidDiagrams": 35,
+    "localReferences": 205,
+    "localReferenceFailures": 0
+  }
 }
