@@ -25,11 +25,73 @@ Travel services decide the recommendation. This wiki explains and verifies it.
 
 ## Hanjeok Wiki and Agent overview
 
-![Hanjeok collection/build, production and separate local experiment architecture](docs/images/hanjeok-wiki-agent-overview.en.png)
+```mermaid
+flowchart LR
+    Source["Public sources"]
+    Wiki["Wiki policies and records"]
+    Bundle["Build: full bundle + sidecar"]
+    Agent["Kotlin Agent / Cloud Run"]
+    Backend["Hanjeok Backend"]
+    Client["Browser / Vercel"]
+    Model["LLM provider"]
+    Source -->|"preserve / review"| Wiki
+    Wiki -->|"explicit document list"| Bundle
+    Bundle -->|"pinned artifacts"| Agent
+    Backend -->|"current facts"| Agent
+    Client -->|"course / question"| Agent
+    Agent -->|"FULL system + facts user"| Model
+    Model -->|"answer + citations"| Agent
+    Agent -->|"validated output"| Client
+```
 
-[Open full-size diagram](docs/images/hanjeok-wiki-agent-overview.en.png) · Public-reference snapshots become documented canonical context through review; package selection determines which documents are bundled. Review status is preserved: source hashes/revisions establish integrity, not truth or an all-reviewed admission gate. Production uses the full static manual and current backend facts; provenance stays server-side. The separate local lab evaluates retrieval IDs without LLM judging. Browser request arrows and cache details are omitted here; see the request-path diagram.
+This diagram describes the current FULL production path. The retrieval preparation path is shown separately under “What changed”. The metadata sidecar is server-only, and ranking stays with the backend.
 
 ---
+
+## What changed from the FULL-only baseline
+
+**Production remains FULL.** The last recorded production check is agent `ea47917` at 2026-10-09 09:13 UTC; it did not call an LLM. The retrieval API and request selection below are implemented and tested on a separate local branch, with no follow-up push or cloud deployment. Earlier agent #13/wiki #32 were observed merged outside this follow-up; their merge is not evidence of a retrieval deployment.
+
+| Area | Previous FULL baseline | Current local implementation |
+| --- | --- | --- |
+| Model context | All nine documents, 24,703 UTF-8 bytes, in the system manual; facts in user input | Default FULL preserves those exact bytes and makes no retrieval call. Opt-in VECTOR/HYBRID_GRAPH always retains all eight policy documents; optional seed JSON is untrusted user data. |
+| Retrieval | No runtime search; build-time package list | Separate Python ASGI API queries an immutable index using lexical TF-IDF or the separately executed pinned CPU semantic adapter. HYBRID_GRAPH adds verified document/source and declared seed place/region relations, bounded to 2 hops/9 docs. |
+| Responsibilities | Kotlin loads the full bundle and explains backend facts | API returns IDs/hashes/source signatures only. Kotlin resolves local verified text, checks coverage and citations, repairs streams and preserves backend ranking. No raw facts/history are sent to retrieval. |
+| Versions and release | Bundle and sidecar ship together in the agent image | Index/model/runtime/bundle/sidecar identities are pinned and rechecked. Validation precedes manual local registry publication/rollback; neither hot-reloads a running service nor changes cloud traffic. |
+| Failure and cache | Bundle-wide citation allowlist; UUID + facts-hash EXPLAIN cache | Request-scoped citation allowlist and context identity in cache/single-flight keys isolate selected and FULL results, including overlapping requests. Remote/auth/timeout/stale-index/coverage failures restore verified FULL; a corrupt baseline fails closed. |
+| Evaluation | Scripted 29-fixture selection comparison and historical model evaluation | Actual RAGAS 0.3.9 document-ID precision/recall is separate from answer generation or LLM judging. Real HTTP + Neo4j + Kotlin citation E2E uses scripted providers; no paid LLM/judge calls. |
+
+**Local verification completed:** Python 19/19, JVM 339/339 (56 suites), and the original 29 fixtures/58 rows pass. Native TF-IDF, native pinned CPU semantic and the built Linux ARM64 TF-IDF image each pass 35 fixtures/105 explanation/ask/stream checks plus one actual-facts EXPLAIN query through real Neo4j Community 5.26.31. Actual graph/corpus tampering, stale pins, auth/body/time bounds and exact FULL recovery are recorded in [verification](docs/retrieval-api-followup-verification.json). Generated local resources have been cleaned up.
+
+**Before deployment:** private Cloud Run IAM/invoker/network enforcement and existing production Enterprise Neo4j reader privileges remain unverified. The full Linux semantic image was not run: official `torch 2.14.1+cpu` differs from the preserved candidate's exact `2.14.1` pin, so it needs a newly validated Linux CPU candidate. See [reproduction and release preparation](docs/retrieval-api-followup-report.md). No credentials, cloud resources, traffic changes or separate Hanjeok DB/SMTP rollout were made.
+
+**Measured limits:** only the 501-byte Gyeongbokgung seed is optional, so corpus selection can remove at most 501/24,703 = 2.03%; guards and moving evidence to user input do not prove total token/cost savings. In the preserved semantic lab, VECTOR/HYBRID candidate precision is 0.250000/0.172619 and recall 0.645833/1.000000 on 24 supported attempts; complete final coverage is 30/35 versus 35/35, including five recorded VECTOR seed omissions. The deployment guard restores FULL on an explicit required-seed miss; it does not rewrite those results. This bounded relationship retrieval is not Microsoft's complete community GraphRAG implementation and proves no improvement in answer quality. No invented transport/weather or synthetic relation enters the curated graph.
+
+### Local retrieval structure, not deployed
+
+```mermaid
+flowchart LR
+    Index["Immutable validated index"]
+    API["Python ASGI retrieval API"]
+    Kotlin["Kotlin request context"]
+    Vector["Lexical or semantic vectors"]
+    Graph["Neo4j curated graph"]
+    Model["LLM provider"]
+    Client["Browser / Vercel"]
+    Index -->|"pinned artifacts"| API
+    Kotlin -->|"bounded query + version pins"| API
+    API -->|"VECTOR / HYBRID_GRAPH"| Vector
+    Vector -->|"candidates"| API
+    API -->|"HYBRID: up to 2 hops"| Graph
+    Graph -->|"up to 9 documents"| API
+    API -->|"document IDs + hashes"| Kotlin
+    Kotlin -->|"8 policies + seed or FULL"| Model
+    Model -->|"answer + citations"| Kotlin
+    Kotlin -->|"validated output"| Client
+```
+
+The diagram separates the new API from Kotlin's explanation/citation boundary. Runtime downloads are disabled; only verified source hashes/revisions enter the index. Hash integrity does not prove source truth or completed claim review.
+
 
 ## 📖 Table of Contents
 
@@ -219,7 +281,7 @@ The deployed Hanjeok integration has **two inputs**: this repository's static ma
 | Backend facts | Runtime backend lookup → model `user` | Current course and its facts |
 | Metadata sidecar | Build → agent server integrity/provenance | Server checks only; never model input |
 
-The [diagram specification](docs/readme-diagram-spec.md) gives the replacement image's nodes, arrows and insertion point. The other wiki architecture/storage diagrams describe general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
+The current FULL diagram appears above; the local retrieval-preparation diagram is separate below. The other wiki architecture/storage diagrams describe general repository capabilities; they do not imply runtime retrieval, weather support or object storage in the deployed Hanjeok agent.
 
 
 ---
@@ -368,11 +430,29 @@ this delivery. All three methods use these two files as entry points.
 
 ### Hanjeok build-time and runtime contract
 
-![Hanjeok build-time packaging and two runtime model inputs](docs/images/hanjeok-two-inputs.png)
+```mermaid
+flowchart LR
+    Client["Browser / Vercel"]
+    Agent["Kotlin Agent / Cloud Run"]
+    Backend["Hanjeok Backend"]
+    Cache["EXPLAIN cache"]
+    Model["LLM provider"]
+    Tools["Streaming tools"]
+    Gate["Citation gate"]
+    Client -->|"course / question"| Agent
+    Agent -->|"fetch facts"| Backend
+    Backend -->|"current facts"| Agent
+    Agent -->|"UUID + facts hash"| Cache
+    Cache -->|"hit: saved answer"| Client
+    Cache -->|"miss"| Model
+    Agent -->|"ASK / stream"| Model
+    Model -->|"stream only"| Tools
+    Tools -->|"validated facts"| Model
+    Model -->|"answer + citations"| Gate
+    Gate -->|"valid EXPLAIN only"| Cache
+    Gate -->|"validated output"| Client
+```
 
-[Open full-size diagram](docs/images/hanjeok-two-inputs.png) · Build-time packaging keeps the verified full manual in system input and current backend facts in user input. The sidecar stays on the server; the backend determines ranking and visit order. Production remains FULL (9 docs / 24,703 UTF-8 bytes).
-
-The installed soft-3D diagram follows the [code-based specification](docs/readme-diagram-spec.md), separating build-time packaging from runtime facts and keeping the sidecar outside model input.
 
 Wiki #31 and agent #12 are merged. [Production verification](docs/production-verification.json) at 2026-10-09 09:13 UTC confirmed agent `ea47917` Ready, traffic 100%, health/readiness UP, and matching full bundle/sidecar hashes. The frontend is deployed. No actual LLM call was made in that verification; the separate Hanjeok database/SMTP rollout remains held. At build time,
 the wiki passes source hash/revision checks, then produces the full bundle text
@@ -406,13 +486,24 @@ and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main
 
 ### Local vector / graph / RAGAS experiment
 
-![Local retrieval lab comparing FULL, VECTOR and HYBRID_GRAPH outside production](docs/images/local-retrieval-lab.png)
-
-[Open full-size diagram](docs/images/local-retrieval-lab.png) · Experiment only: TF-IDF lexical vectors and pinned multilingual CPU semantic embeddings are distinct retrieval backends. Actual local Neo4j Community 5.26.31 supplies bounded source/seed relations; RAGAS 0.3.9 measures document-ID precision/recall, not answer quality. All eight policies remain mandatory. Responses are scripted; LLM answer generation and judging were not run. Production remains FULL.
+```mermaid
+flowchart LR
+    Fixture["29 fixtures + 6 graph cases"]
+    Index["Immutable validated index"]
+    Graph["Neo4j curated graph"]
+    Compare["FULL / VECTOR / HYBRID_GRAPH"]
+    Ragas["RAGAS ID precision / recall"]
+    Contract["Policy / coverage / citation checks"]
+    Fixture --> Compare
+    Index --> Compare
+    Graph -->|"verified source / seed graph"| Compare
+    Compare -->|"predicted / reference IDs"| Ragas
+    Compare -->|"scripted responses"| Contract
+```
 
 The consumer's separate local FULL / VECTOR / HYBRID_GRAPH lab preserves production FULL, the 29 fixtures and six graph-boundary cases. [Execution status and limitations](docs/retrieval-experiment-report.md) separate preserved lexical TF-IDF results from actual pinned multilingual CPU semantic embeddings, actual RAGAS 0.3.9 ID metrics and the in-process provenance/declared-seed graph. Semantic VECTOR / HYBRID candidate recall is 0.645833 / 1.000000 on 24 supported attempts; precision is 0.250000 / 0.172619 on 24 defined rows. Complete final coverage is 30/35 / 35/35; five VECTOR seed omissions remain reported. All eight policies and determinism pass 105/105. Scores do not establish response truth or LLM judging.
 
-Actual isolated Neo4j Community 5.26.31 integration passes: 15 singleton traversals match the in-process graph, with two-hop retrieval, isolated synthetic-edge exclusion and real source/document hash tamper rejection. Both vector backends run 105 rows/210 RAGAS samples each, reproduce byte for byte and pass actual Kotlin citation contract checks. Live checks are separate from mock contracts; the prior approval blocker is resolved. A dedicated bridge disables masquerading, publishes only localhost Bolt and disables HTTP/usage reporting; owned resources are removed. No transport/weather facts or synthetic edges enter the curated graph, and this is not Microsoft's full community GraphRAG. Canonical/raw, operational inputs, the approximately 2.03% reduction ceiling remain unchanged. The operational and English experiment diagrams are installed; English/Korean operational, experiment and overall architecture diagrams are installed and visually reviewed. No paid LLM/judge call, corpus upload, merge/production deployment or separate DB/SMTP rollout occurred.
+Actual isolated Neo4j Community 5.26.31 integration passes: 15 singleton traversals match the in-process graph, with two-hop retrieval, isolated synthetic-edge exclusion and real source/document hash tamper rejection. Both vector backends run 105 rows/210 RAGAS samples each, reproduce byte for byte and pass actual Kotlin citation contract checks. Live checks are separate from mock contracts; the prior approval blocker is resolved. A dedicated bridge disables masquerading, publishes only localhost Bolt and disables HTTP/usage reporting; owned resources are removed. No transport/weather facts or synthetic edges enter the curated graph, and this is not Microsoft's full community GraphRAG. Canonical/raw, operational inputs, the approximately 2.03% reduction ceiling remain unchanged. This lab made no paid LLM/judge call, corpus upload or production deployment; the separate DB/SMTP rollout remains held.
 
 ### Offline selection comparison
 

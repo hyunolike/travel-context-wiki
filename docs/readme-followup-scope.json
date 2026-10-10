@@ -1,0 +1,18 @@
+{
+  "branch": "local/wiki-selection-docs",
+  "comparisonBase": "99b7d87723a0f7b64441404e85c20bdc9779bb59",
+  "reviewedSmokeCodeHead": null,
+  "files": [
+    "README.ja.md",
+    "README.ko.md",
+    "README.md",
+    "docs/readme-asset-reference-check.json",
+    "docs/readme-diagram-spec.md",
+    "docs/readme-followup-scope.json",
+    "docs/readme-links-validation.json",
+    "docs/readme-mermaid-validation.json",
+    "docs/retrieval-api-followup-report.md",
+    "docs/retrieval-api-followup-verification.json"
+  ],
+  "remotePushOrDeployment": false
+}

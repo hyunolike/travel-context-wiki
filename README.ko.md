@@ -25,11 +25,73 @@
 
 ## 한적 위키·에이전트 전체 구조
 
-![수집·빌드, 운영 서비스, 별도 로컬 실험의 전체 구조](docs/images/hanjeok-wiki-agent-overview.ko.png)
+```mermaid
+flowchart LR
+    Source["공개 원천 자료"]
+    Wiki["위키 정책과 정규화 자료"]
+    Bundle["빌드: 전체 번들 + 출처 메타데이터"]
+    Agent["Kotlin 에이전트 / Cloud Run"]
+    Backend["한적 백엔드"]
+    Client["브라우저 / Vercel"]
+    Model["LLM 프로바이더"]
+    Source -->|"보존·검토"| Wiki
+    Wiki -->|"문서 목록 명시"| Bundle
+    Bundle -->|"고정한 산출물"| Agent
+    Backend -->|"현재 사실 데이터"| Agent
+    Client -->|"코스·질문"| Agent
+    Agent -->|"전체 정책 + 현재 사실"| Model
+    Model -->|"답변·인용"| Agent
+    Agent -->|"검증한 응답"| Client
+```
 
-[그림 확대 보기](docs/images/hanjeok-wiki-agent-overview.ko.png) · 공개 참고 자료는 원문 보존과 검토·문서화를 거치며 package가 번들 문서를 명시적으로 선택합니다. 검토 상태는 그대로 유지하며 해시·revision 검사는 진실성이나 모든 문서의 검토 완료를 증명하지 않습니다. 운영은 전체 정적 위키와 현재 백엔드 facts를 사용하고 출처 메타데이터는 서버에만 둡니다. 별도 로컬 실험은 LLM 심사 없이 검색 ID를 평가합니다. 브라우저 요청선과 캐시 세부는 생략했으며 요청 경로 그림에서 설명합니다.
+이 그림은 현재 FULL 운영 경로입니다. 검색 배포 준비 구조는 아래 변경점에서 따로 설명합니다. 출처 메타데이터는 서버에서만 검사하고 순위는 백엔드가 정합니다.
 
 ---
+
+## 기존 FULL 방식 대비 달라진 점
+
+**운영은 FULL을 유지합니다.** 마지막 운영 기록은 2026-10-09 09:13 UTC의 agent `ea47917`이며 LLM을 호출하지 않았습니다. 아래 검색 API와 요청별 선택은 별도 로컬 브랜치에서 구현·검증했고 후속 push나 클라우드 배포는 없습니다. 기존 agent #13/wiki #32의 merge는 이 작업 밖에서 확인한 상태이며 검색 기능 배포를 뜻하지 않습니다.
+
+| 구분 | 기존 FULL 방식 | 현재 로컬 구현 |
+| --- | --- | --- |
+| 모델 입력 | 문서 9개, UTF-8 24,703 bytes 전체를 system 매뉴얼에 넣고 facts를 user에 전달 | 기본 FULL은 기존 bytes를 그대로 쓰고 검색을 호출하지 않습니다. 선택 모드 VECTOR/HYBRID_GRAPH도 필수 정책 8개를 항상 유지하며 선택 seed JSON은 신뢰하지 않는 user 데이터로 전달합니다. |
+| 검색 | 런타임 검색 없이 빌드 시 package 문서 목록 사용 | 별도 Python ASGI API가 고정 인덱스를 검색합니다. TF-IDF 어휘 벡터와 실제 실행한 고정 CPU 의미 임베딩을 구분합니다. HYBRID_GRAPH는 검증한 문서·출처 및 seed의 장소·지역 관계만 최대 2홉/9문서로 확장합니다. |
+| 역할 | Kotlin이 전체 번들을 읽고 백엔드 facts를 설명 | API는 문서 ID·해시·출처 서명만 반환합니다. Kotlin이 로컬 원문·근거 범위·인용을 검증하고 스트림을 수리합니다. 순위는 계속 백엔드가 정하며 facts 원문·이력은 검색 API에 보내지 않습니다. |
+| 버전·공개 | 번들과 출처 메타데이터를 agent 이미지에 함께 고정 | 인덱스·모델·런타임·번들·출처 메타데이터 버전을 고정·재검사합니다. 검증 후 로컬 registry를 수동 공개·롤백하며 실행 중 서비스 재적재나 클라우드 트래픽 전환은 없습니다. |
+| 실패·캐시 | 전체 번들 인용 목록과 코스 ID·facts 해시 기반 EXPLAIN 캐시 | 요청별 인용 목록과 컨텍스트 ID를 캐시·진행 중 생성 공유 키에 포함해 동시 선택/FULL 결과도 분리합니다. 인증·시간 초과·잘못된 버전·근거 누락 등은 검증된 FULL로 복귀하고 FULL 원본 손상은 응답을 차단합니다. |
+| 평가 | 고정 응답 기반 fixture 29개 문서 선택 비교와 과거 모델 평가 | 실제 RAGAS 0.3.9 문서 ID 정밀도·재현율을 답변 생성·LLM 심사와 구분합니다. 실제 HTTP·Neo4j·Kotlin 인용 E2E도 프로바이더는 고정 응답이며 유료 LLM·심사 호출은 없습니다. |
+
+**로컬 검증 완료:** Python 19/19·JVM 339/339(56개 suite), 기존 fixture 29개/58개 행이 통과했습니다. native 어휘 API·고정 CPU 의미 API·실제 빌드한 Linux ARM64 어휘 이미지 각각 실제 Neo4j Community 5.26.31을 통해 fixture 35개/설명·질문·스트리밍 105건과 실제 facts 기반 EXPLAIN 1건을 통과했습니다. 실제 graph·본문 변조, 잘못된 버전, 인증·본문·시간 제한 및 정확한 FULL 복구는 [검증 기록](docs/retrieval-api-followup-verification.json)에 있습니다. 생성한 로컬 자원은 정리했습니다.
+
+**배포 전 준비사항:** private Cloud Run IAM·호출자·네트워크 설정과 기존 운영 Neo4j Enterprise 읽기 전용 권한은 미검증입니다. 전체 Linux 의미 이미지는 미실행입니다. 공식 CPU wheel `torch 2.14.1+cpu`가 보존한 후보의 정확한 `2.14.1` 버전과 달라 새 Linux CPU 후보를 검증해야 합니다. [재현 명령·배포 준비](docs/retrieval-api-followup-report.md)를 참고하세요. credentials·클라우드 자원·트래픽 변경과 별도 한적 DB/SMTP 배포는 수행하지 않았습니다.
+
+**측정 한계:** 선택 대상은 501-byte 경복궁 seed 하나뿐이므로 문서 선택 절감은 최대 501/24,703 = 2.03%입니다. guard 추가나 user 입력 이동이 총 토큰·비용 절감을 증명하지 않습니다. 보존한 의미 실험의 VECTOR/HYBRID 후보 precision은 검색 허용 24건에서 0.250000/0.172619, recall은 0.645833/1.000000입니다. 최종 근거 완전성은 30/35 대 35/35이며 VECTOR seed 누락 5건을 기록했습니다. 배포용 guard는 명시적인 필수 seed 누락 시 FULL로 복귀하고 과거 지표를 덮어쓰지 않습니다. 이 제한된 관계 검색은 Microsoft community GraphRAG 전체 구현이나 답변 품질 개선 입증이 아닙니다. 없는 교통·날씨 및 합성 관계는 검증 그래프에 넣지 않습니다.
+
+### 검색 구조 — 로컬 구현, 운영 미배포
+
+```mermaid
+flowchart LR
+    Index["고정·검증한 인덱스"]
+    API["Python ASGI 검색 API"]
+    Kotlin["Kotlin 요청 컨텍스트"]
+    Vector["어휘 또는 의미 벡터"]
+    Graph["Neo4j 검증 관계 그래프"]
+    Model["LLM 프로바이더"]
+    Client["브라우저 / Vercel"]
+    Index -->|"고정한 산출물"| API
+    Kotlin -->|"제한한 질의·고정 버전"| API
+    API -->|"벡터·하이브리드 검색"| Vector
+    Vector -->|"검색 후보"| API
+    API -->|"하이브리드: 최대 2홉"| Graph
+    Graph -->|"최대 9문서"| API
+    API -->|"문서 ID·해시"| Kotlin
+    Kotlin -->|"필수 정책 8개 + seed 또는 FULL"| Model
+    Model -->|"답변·인용"| Kotlin
+    Kotlin -->|"검증한 응답"| Client
+```
+
+새 API와 Kotlin 설명·인용 경계를 구분한 그림입니다. 런타임 모델 다운로드는 없고 검증된 source hash/revision만 인덱스에 포함합니다. 해시 검사가 내용의 진실성이나 주장의 검토 완료를 증명하지 않습니다.
+
 
 ## 📖 목차
 
@@ -211,7 +273,7 @@ flowchart TD
 | 백엔드 facts | 런타임 백엔드 조회 → 모델 `user` | 현재 코스와 사실 |
 | metadata sidecar | 빌드 → agent 서버 무결성/provenance | 서버 검증 전용, 모델 입력 아님 |
 
-[그림 명세](docs/readme-diagram-spec.md)에 새 그림의 노드와 화살표, 삽입 위치를 적었습니다. 다른 위키 구조와 저장 경계 그림은 일반적인 저장소 기능을 설명합니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
+현재 FULL 구조는 위 Mermaid 도식에, 로컬 검색 배포 준비는 별도 도식에 표시했습니다. 다른 위키 구조와 저장 경계 그림은 일반적인 저장소 기능을 설명합니다. 운영 agent가 런타임 문서 검색이나 날씨, 객체 저장소를 사용한다는 의미가 아닙니다.
 
 
 ---
@@ -359,11 +421,29 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-![한적 빌드 패키징과 모델의 두 런타임 입력](docs/images/hanjeok-two-inputs-ko.png)
+```mermaid
+flowchart LR
+    Client["브라우저 / Vercel"]
+    Agent["Kotlin 에이전트 / Cloud Run"]
+    Backend["한적 백엔드"]
+    Cache["EXPLAIN 설명 캐시"]
+    Model["LLM 프로바이더"]
+    Tools["스트리밍 조회 도구"]
+    Gate["인용 검증"]
+    Client -->|"코스·질문"| Agent
+    Agent -->|"사실 조회"| Backend
+    Backend -->|"현재 사실 데이터"| Agent
+    Agent -->|"코스 ID + 사실 해시"| Cache
+    Cache -->|"적중: 저장한 답변"| Client
+    Cache -->|"미적중"| Model
+    Agent -->|"질문·스트리밍"| Model
+    Model -->|"스트리밍만 사용"| Tools
+    Tools -->|"검증한 조회 사실"| Model
+    Model -->|"답변·인용"| Gate
+    Gate -->|"유효한 EXPLAIN만 저장"| Cache
+    Gate -->|"검증한 응답"| Client
+```
 
-[그림 확대 보기](docs/images/hanjeok-two-inputs-ko.png) · 빌드 시 무결성을 검증한 전체 매뉴얼은 system에, 현재 백엔드 facts는 user에 넣습니다. sidecar는 서버에만 남고 백엔드가 순위와 방문 순서를 결정합니다. 운영은 FULL입니다(9문서 / UTF-8 24,703 bytes). 무결성 검사는 문서 내용의 진실성을 증명하지 않습니다.
-
-새 soft-3D 그림은 [코드 기준 명세](docs/readme-diagram-spec.md)를 반영합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
 
 wiki #31과 agent #12는 머지됐습니다. [운영 검증](docs/production-verification.json)은 2026-10-09 09:13 UTC에 agent `ea47917`의 Ready와 트래픽 100%, health/readiness UP, 전체 번들/sidecar hash 일치를 확인했습니다. 프론트도 배포됐습니다. 이 검증에서는 실제 LLM을 호출하지 않았고 별도 한적 본체 DB/SMTP 배포 보류는 유지합니다. 빌드 단계에서는
 wiki의 출처 hash와 Git revision을 검사한 뒤 전체 번들 본문과 JSON sidecar를
@@ -393,13 +473,24 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 
 ### 로컬 벡터·그래프·RAGAS 실험
 
-![전체·벡터·하이브리드 관계 검색의 별도 로컬 실험](docs/images/local-retrieval-lab-ko.png)
-
-[그림 확대 보기](docs/images/local-retrieval-lab-ko.png) · 실험 전용입니다. TF-IDF 어휘 벡터와 고정 다국어 CPU 의미 임베딩은 서로 다른 검색 방식입니다. 실제 로컬 Neo4j Community 5.26.31은 출처·seed 관계를 최대 2홉/9문서로 검색하며 RAGAS 0.3.9는 문서 ID precision/recall을 평가합니다. 답변 품질 지표는 아닙니다. 필수 정책 8개를 유지하며 응답은 scripted이고 LLM 생성·심사는 미실행입니다. 운영은 FULL을 유지합니다.
+```mermaid
+flowchart LR
+    Fixture["기존 fixture 29개 + 관계 경계 6건"]
+    Index["고정·검증한 인덱스"]
+    Graph["Neo4j 검증 관계 그래프"]
+    Compare["전체·벡터·하이브리드 비교"]
+    Ragas["RAGAS 문서 ID 정밀도·재현율"]
+    Contract["정책·근거 범위·인용 검증"]
+    Fixture --> Compare
+    Index --> Compare
+    Graph -->|"검증한 출처·seed 관계"| Compare
+    Compare -->|"검색 ID·기대 ID"| Ragas
+    Compare -->|"고정 응답으로 확인"| Contract
+```
 
 소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
 
-실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로입니다. 한국어 실험 그림과 전체도는 반영했고 한국어 두 입력 상세 그림도 반영했습니다. 또한 유료 LLM/judge·외부 업로드·merge/운영 배포·별도 DB/SMTP 배포는 없습니다.
+실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로입니다. 이 lab에서 유료 LLM/judge·외부 업로드·운영 배포는 없고 별도 DB/SMTP 배포도 보류입니다.
 
 ### 오프라인 문서 선택 비교
 
