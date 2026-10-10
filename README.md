@@ -394,9 +394,15 @@ claim's meaning or attest to experiment approval. Imported claims remain
 and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main/docs/source-cache-contract/plan.md).
 
 
+### Local vector / graph / RAGAS experiment
+
+The consumer now has a separate local FULL / VECTOR / HYBRID_GRAPH lab; production still uses FULL. [Implementation status and measured limits](docs/retrieval-experiment-report.md) distinguish actual lexical TF-IDF, actual RAGAS 0.3.9 ID metrics and an in-process graph of verified provenance/declared seed relations from the mock-tested Neo4j driver adapter. A real Neo4j server, semantic embedding model and LLM faithfulness/relevancy judge were not run. No transport/weather or synthetic graph relationships were added, and this is not Microsoft's complete community GraphRAG pipeline.
+
+The preserved 29 cases plus six graph-boundary cases produce 105 arm runs. All eight policies and fixture context coverage are retained throughout. On the 24 supported retrieval attempts per arm, candidate recall is 0.395833 (VECTOR) / 0.708333 (HYBRID_GRAPH); precision is 0.431373 / 0.227941 on 17 defined rows each. Fallback, abstain and undefined empty metrics are separate. These scores do not establish response truth, and the original approximately 2.03% context-byte reduction ceiling remains. Canonical/raw records, packaged production inputs and image slots are unchanged; no paid call, new push/PR/merge or deployment was performed.
+
 ### Offline selection comparison
 
-The consumer's `SELECTED_EXPERIMENT` is an offline comparison; production keeps **FULL**. Eight policy documents stay mandatory and only `records/places/gyeongbokgung.json` is optional. Unclear questions/references fall back to the verified full bundle; corrupted body/sidecar hashes fail closed. No GraphRAG, vector database or runtime retrieval has been introduced. [Comparison and limitations](docs/context-selection-report.md): the maximum serialized system reduction is 501/24,703 = 2.03%. Scripted provider/tool outputs verify wiring only; paid-model quality, accuracy, latency, tokens and costs are unmeasured.
+The consumer's `SELECTED_EXPERIMENT` is an offline comparison; production keeps **FULL**. Eight policy documents stay mandatory and only `records/places/gyeongbokgung.json` is optional. Unclear questions/references fall back to the verified full bundle; corrupted body/sidecar hashes fail closed. Production has no vector database, GraphRAG or runtime retrieval. The separately implemented local lab is described below. [Comparison and limitations](docs/context-selection-report.md): the maximum serialized system reduction is 501/24,703 = 2.03%. Scripted provider/tool outputs verify wiring only; paid-model quality, accuracy, latency, tokens and costs are unmeasured.
 
 ### Building the Bundle
 

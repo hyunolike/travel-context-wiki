@@ -381,9 +381,15 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 [출처 판본 결정](decisions/bind-claims-to-source-versions.md)을 참고하세요.
 
 
+### 로컬 벡터·그래프·RAGAS 실험
+
+소비 코드에 별도 FULL / VECTOR / HYBRID_GRAPH lab을 구현했고 운영은 FULL입니다. [구현 상태와 측정 한계](docs/retrieval-experiment-report.md)는 실제 TF-IDF 어휘 벡터·RAGAS 0.3.9 ID 평가·검증된 출처와 seed 선언 관계의 메모리 그래프 실행을 Neo4j driver mock 계약 검증과 구분합니다. 실제 Neo4j 서버·의미 임베딩·LLM faithfulness/relevancy judge는 미실행입니다. 없는 교통/날씨나 합성 관계는 추가하지 않았고 Microsoft community GraphRAG 전체 구현도 아닙니다.
+
+기존 29건과 그래프 경계 6건을 3개 arm으로 비교해 105건을 실행했습니다. 정책 8개와 fixture 근거는 모두 유지됐습니다. 검색 허용 24건의 후보 recall은 VECTOR 0.395833 / HYBRID_GRAPH 0.708333, precision은 정의된 17건 기준 0.431373 / 0.227941입니다. fallback·abstain·빈 집합 undefined는 따로 집계합니다. 이 점수는 답변의 진실성을 뜻하지 않고 기존 약 2.03% 문서 bytes 절감 상한을 유지합니다. canonical/raw·운영 입력·새 그림 슬롯은 그대로이며 유료 호출·새 push/PR/merge·배포도 없습니다.
+
 ### 오프라인 문서 선택 비교
 
-소비 코드의 `SELECTED_EXPERIMENT`는 오프라인 비교이며 운영은 **FULL**을 유지합니다. 정책 문서 8개는 필수이고 `records/places/gyeongbokgung.json`만 선택 대상입니다. 불명확한 질문이나 참조는 검증된 전체 번들로 fallback하고 본문/sidecar hash가 손상되면 fail closed합니다. GraphRAG나 벡터 DB, 런타임 문서 검색은 도입하지 않았습니다. [비교 결과와 한계](docs/context-selection-report.md): 직렬화된 system bytes의 최대 감소는 501/24,703 = 2.03%입니다. scripted provider/tool은 배선만 확인하며 유료 모델 품질과 정확도, 지연, 토큰, 비용은 측정하지 않았습니다.
+소비 코드의 `SELECTED_EXPERIMENT`는 오프라인 비교이며 운영은 **FULL**을 유지합니다. 정책 문서 8개는 필수이고 `records/places/gyeongbokgung.json`만 선택 대상입니다. 불명확한 질문이나 참조는 검증된 전체 번들로 fallback하고 본문/sidecar hash가 손상되면 fail closed합니다. 운영에는 GraphRAG나 벡터 DB, 런타임 문서 검색이 없습니다. 별도 로컬 실험 구현은 위 상태 보고서에서 구분합니다. [비교 결과와 한계](docs/context-selection-report.md): 직렬화된 system bytes의 최대 감소는 501/24,703 = 2.03%입니다. scripted provider/tool은 배선만 확인하며 유료 모델 품질과 정확도, 지연, 토큰, 비용은 측정하지 않았습니다.
 
 ### 번들 만들기
 
