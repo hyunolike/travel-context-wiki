@@ -33,7 +33,7 @@ This 3D diagram describes the current FULL production path. The retrieval prepar
 
 ## What changed from the FULL-only baseline
 
-**Production remains FULL.** A read-only Cloud Run configuration check on 2026-10-10 still shows agent `ea47917` Ready at 100% traffic, with no retrieval runtime configuration. Agent #14/wiki #33 were externally merged; this follow-up has not been pushed or published as another PR. The separate local API/request-selection implementation is tested; cloud deployment remains held.
+**Production remains FULL.** A read-only Cloud Run configuration check on 2026-10-10 still shows agent `ea47917` Ready at 100% traffic, with no retrieval runtime configuration. Agent #14/wiki #33 were externally merged; this follow-up is on a separate feature branch for new Draft PR review. The separate local API/request-selection implementation is tested; cloud deployment remains held.
 
 | Area | Previous FULL baseline | Current local implementation |
 | --- | --- | --- |
@@ -46,11 +46,13 @@ This 3D diagram describes the current FULL production path. The retrieval prepar
 
 **Local verification completed:** Python API 19/19 and the new CPU builder 13/13 pass; JVM 339/339 (56 suites), lab 34/34 and the original 29 fixtures/58 rows remain verified. The full Linux ARM64 CPU semantic image now builds, regenerates an independent index and runs real Neo4j/HTTP/Kotlin. HYBRID and VECTOR each pass 35 fixtures/105 route checks plus actual-facts EXPLAIN: HYBRID is SELECTED; VECTOR records an exact required-seed miss and original FULL recovery. See [Linux execution and reproduction](docs/linux-semantic-followup-report.md). Earlier native/lexical and RAGAS reports remain labelled historical; no new LLM or Linux RAGAS score is claimed.
 
+**amd64 partial verification:** the existing builder image built successfully and ran x86_64 Python, `pip check` and real model-weight loading. The new amd64 index, health and final fixtures remain unconfirmed. This builder contains the old Mac index and is unsuitable for deployment. [Preserved output and recovery](docs/amd64-semantic-recovery.md) distinguish these stages.
+
 **Before deployment:** a fresh linux/amd64 image/index is required for Cloud Run. Private IAM/network routing and actual production Enterprise Neo4j reader ACL remain unverified; read-only inspection found no configured retrieval service or reader endpoint/secret. [Exact targets, order and cost prerequisites](docs/linux-semantic-followup-report.md) record the remaining work. No cloud credentials, IAM/resources, traffic switch or separate Hanjeok DB/SMTP rollout was made.
 
 **Measured limits:** only the 501-byte Gyeongbokgung seed is optional, so corpus selection can remove at most 501/24,703 = 2.03%; guards and moving evidence to user input do not prove total token/cost savings. In the preserved semantic lab, VECTOR/HYBRID candidate precision is 0.250000/0.172619 and recall 0.645833/1.000000 on 24 supported attempts; complete final coverage is 30/35 versus 35/35, including five recorded VECTOR seed omissions. The deployment guard restores FULL on an explicit required-seed miss; it does not rewrite those results. This bounded relationship retrieval is not Microsoft's complete community GraphRAG implementation and proves no improvement in answer quality. No invented transport/weather or synthetic relation enters the curated graph.
 
-Agent #14/wiki #33 publication and exact-head CI are historical merged-PR evidence; this local follow-up is unpublished. The preserved [publication preparation](docs/publication-preparation.json) and earlier verification JSON snapshots retain their original scope. [Current illustration correction](docs/readme-illustration-correction.json) restores useful existing 3D figures and removes redundant diagrams; no new image was generated.
+Agent #14/wiki #33 publication and exact-head CI are historical merged-PR evidence; this follow-up is reviewed separately in a new Draft PR. The preserved [publication preparation](docs/publication-preparation.json) and earlier verification JSON snapshots retain their original scope. [Current illustration correction](docs/readme-illustration-correction.json) restores useful existing 3D figures and removes redundant diagrams; no new image was generated.
 
 ### Local retrieval structure, not deployed
 

@@ -33,7 +33,7 @@
 
 ## 従来の FULL 方式から変わった点
 
-**運用は FULL のままです。** 2026-10-10 の読み取り専用 Cloud Run 設定確認でも agent `ea47917` が Ready・100% traffic で検索設定はありません。agent #14/wiki #33 は外部で merge 済み。この追加作業は未 push・新 PR 未公開の local branch です。API/選択実装は検証済みで cloud 展開は保留です。
+**運用は FULL のままです。** 2026-10-10 の読み取り専用 Cloud Run 設定確認でも agent `ea47917` が Ready・100% traffic で検索設定はありません。agent #14/wiki #33 は外部で merge 済み。この追加作業は別の feature branch から新 Draft PR で確認します。API/選択実装は検証済みで cloud 展開は保留です。
 
 | 項目 | 従来の FULL | 現在のローカル実装 |
 | --- | --- | --- |
@@ -46,11 +46,13 @@
 
 **ローカル検証完了:** Python API 19/19、新 CPU builder 13/13、JVM 339/339（56 suite）、lab 34/34、元の 29 fixture/58 行。全 Linux ARM64 CPU 意味 image を実際に build し、新 index・Neo4j・HTTP・Kotlin で実行しました。HYBRID/VECTOR は各 35 fixture/105 route と実 facts EXPLAIN を検証。HYBRID は SELECTED、VECTOR は必須 seed 欠落を明記して元の FULL に復帰します。[Linux 実行・再現](docs/linux-semantic-followup-report.md)。旧 native/lexical/RAGAS 記録は保存し、新しい Linux RAGAS/LLM 点数とは主張しません。
 
+**amd64 の部分検証:** 既存 builder image の build、x86_64 Python、`pip check`、実モデルの重み読み込みを確認しました。新 amd64 index、health、最終 fixture 結果は未確認です。旧 Mac index を含む builder は展開用ではありません。[保存した出力と復旧記録](docs/amd64-semantic-recovery.md)で段階を区別します。
+
 **展開前:** Cloud Run 用の新 linux/amd64 image/index、private IAM/network 経路、実 production Enterprise Neo4j reader ACL の検証が必要です。検索 service/reader endpoint/secret は確認範囲にありません。[対象・順序・費用の前提](docs/linux-semantic-followup-report.md)。credentials/IAM/resource/traffic や別 Hanjeok DB/SMTP 展開は変更していません。
 
 **限界:** 任意文書は 501-byte Gyeongbokgung seed だけなので、文書選択削減の上限は約 2.03%。総 token/費用削減や回答品質向上は未測定です。保存済み意味実験の VECTOR/HYBRID precision は 0.250000/0.172619、recall は 0.645833/1.000000（24 件）。最終根拠の完全性は 30/35 と 35/35、VECTOR の seed 欠落 5 件を保持します。新しい guard は必要 seed 欠落時に FULL へ戻し、旧指標を変更しません。Microsoft の完全な community GraphRAG ではなく、存在しない交通/天気や合成関係は curated graph に含めません。
 
-agent #14/wiki #33 とその head の CI は merge 済み PR の過去の証拠です。この追加作業は local のみ。[公開準備記録](docs/publication-preparation.json) と旧検証 JSON は当時の範囲を保存します。[現在の図修正](docs/readme-illustration-correction.json) で有用な既存 3D 図を復元し重複を削除しました。新しい画像は生成していません。
+agent #14/wiki #33 とその head の CI は merge 済み PR の過去の証拠です。この追加作業は別の Draft PR で確認します。[公開準備記録](docs/publication-preparation.json) と旧検証 JSON は当時の範囲を保存します。[現在の図修正](docs/readme-illustration-correction.json) で有用な既存 3D 図を復元し重複を削除しました。新しい画像は生成していません。
 
 ### 検索構造 — ローカル実装、未デプロイ
 
