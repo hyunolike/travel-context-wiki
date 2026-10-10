@@ -23,6 +23,14 @@
 
 ---
 
+## 한적 위키·에이전트 전체 구조
+
+![수집·빌드, 운영 서비스, 별도 로컬 실험의 전체 구조](docs/images/hanjeok-wiki-agent-overview.ko.png)
+
+[그림 확대 보기](docs/images/hanjeok-wiki-agent-overview.ko.png) · 공개 참고 자료는 원문 보존과 검토·문서화를 거치며 package가 번들 문서를 명시적으로 선택합니다. 검토 상태는 그대로 유지하며 해시·revision 검사는 진실성이나 모든 문서의 검토 완료를 증명하지 않습니다. 운영은 전체 정적 위키와 현재 백엔드 facts를 사용하고 출처 메타데이터는 서버에만 둡니다. 별도 로컬 실험은 LLM 심사 없이 검색 ID를 평가합니다. 브라우저 요청선과 캐시 세부는 생략했으며 요청 경로 그림에서 설명합니다.
+
+---
+
 ## 📖 목차
 
 - [무엇인가요?](#-무엇인가요)
@@ -351,9 +359,7 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-![한적 빌드 패키징과 모델의 두 런타임 입력](docs/images/hanjeok-two-inputs.png)
-
-[그림 확대 보기](docs/images/hanjeok-two-inputs.png) · 빌드 시 검증한 전체 매뉴얼은 system에, 현재 백엔드 facts는 user에 넣습니다. sidecar는 서버에만 남고 백엔드가 순위와 방문 순서를 결정합니다. 운영은 FULL입니다(9문서 / UTF-8 24,703 bytes).
+한국어 두 입력 상세 그림은 로컬 파일 수신·검증 후 반영합니다. 위 전체도와 아래 계약 설명을 참고하세요.
 
 새 soft-3D 그림은 [코드 기준 명세](docs/readme-diagram-spec.md)를 반영합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
 
@@ -385,9 +391,13 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 
 ### 로컬 벡터·그래프·RAGAS 실험
 
+![전체·벡터·하이브리드 관계 검색의 별도 로컬 실험](docs/images/local-retrieval-lab-ko.png)
+
+[그림 확대 보기](docs/images/local-retrieval-lab-ko.png) · 실험 전용입니다. TF-IDF 어휘 벡터와 고정 다국어 CPU 의미 임베딩은 서로 다른 검색 방식입니다. 실제 로컬 Neo4j Community 5.26.31은 출처·seed 관계를 최대 2홉/9문서로 검색하며 RAGAS 0.3.9는 문서 ID precision/recall을 평가합니다. 답변 품질 지표는 아닙니다. 필수 정책 8개를 유지하며 응답은 scripted이고 LLM 생성·심사는 미실행입니다. 운영은 FULL을 유지합니다.
+
 소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
 
-실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로이며 운영 그림을 반영했습니다. 별도 실험 그림은 준비 중이고 유료 LLM/judge·외부 업로드·merge/운영 배포·별도 DB/SMTP 배포는 없습니다.
+실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로입니다. 한국어 실험 그림과 전체도는 반영했고 한국어 두 입력 상세 그림은 수신 대기입니다. 또한 유료 LLM/judge·외부 업로드·merge/운영 배포·별도 DB/SMTP 배포는 없습니다.
 
 ### 오프라인 문서 선택 비교
 

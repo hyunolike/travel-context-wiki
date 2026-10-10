@@ -7,7 +7,11 @@
       "sha256": "96adc5b88f0498ddb3831a6d4eae77dfaec223547e072fbe9215233cc83dd00c",
       "width": 1672,
       "height": 941,
-      "visualReview": "passed"
+      "visualReview": "passed",
+      "readmeLanguages": [
+        "en",
+        "ja"
+      ]
     },
     {
       "path": "docs/images/local-retrieval-lab.png",
@@ -18,6 +22,37 @@
       "readmeLanguages": [
         "en"
       ]
+    },
+    {
+      "path": "docs/images/local-retrieval-lab-ko.png",
+      "sha256": "cac28383f6e2d701fcbfce3410fe64e4a83e8746a9a2bfcea43c462fbbf621b4",
+      "width": 1672,
+      "height": 941,
+      "visualReview": "passed",
+      "readmeLanguages": [
+        "ko"
+      ]
+    },
+    {
+      "path": "docs/images/hanjeok-wiki-agent-overview.ko.png",
+      "sha256": "db43e8ff0822978709ef354e8c350838f7c0110672c80fecd2d676f215e17c66",
+      "width": 1672,
+      "height": 941,
+      "visualReview": "passed",
+      "readmeLanguages": [
+        "ko"
+      ]
+    },
+    {
+      "path": "docs/images/hanjeok-wiki-agent-overview.en.png",
+      "sha256": "3c74eec5737f4769705b8134a044dc1cdbbe83fd401b52bf7d4dd03e4ac47c8c",
+      "width": 1672,
+      "height": 941,
+      "visualReview": "passed",
+      "readmeLanguages": [
+        "en",
+        "ja"
+      ]
     }
   ],
   "readmeLanguages": [
@@ -26,12 +61,13 @@
     "ja"
   ],
   "altAndEnlargementLinksPresent": true,
-  "operationalImageSlotsReplaced": true,
+  "operationalImageSlotsReplaced": false,
   "historicalSvgLinksPreserved": true,
-  "experimentDiagram": "English C installed and visually reviewed; Korean-labelled A/B/C and overall architecture pending receipt",
+  "experimentDiagram": "English and Korean C installed and visually reviewed",
   "productionDefault": "FULL",
   "productionSourceAndCanonicalDataUnchanged": true,
   "newLlmJudgeOrPaidCalls": false,
   "newDeployment": false,
-  "localizedImageLabels": "English installed; Korean replacements pending receipt"
+  "localizedImageLabels": "Korean B/C and overview installed; Korean A local receipt blocked after bounded attempts",
+  "overallArchitectureDiagram": "English/Korean installed; Japanese caption uses English image"
 }

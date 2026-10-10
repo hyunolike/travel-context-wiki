@@ -23,6 +23,14 @@
 
 ---
 
+## Hanjeok Wiki と Agent の全体構造
+
+![収集・ビルド、運用サービス、独立したローカル実験の全体構造](docs/images/hanjeok-wiki-agent-overview.en.png)
+
+[図を拡大](docs/images/hanjeok-wiki-agent-overview.en.png) · 公開参照資料は原文保存とレビュー・文書化を経て、package がバンドル対象を明示的に選びます。レビュー状態を保持し、hash/revision の検査は内容の真実性や全資料のレビュー完了を証明しません。運用は完全な静的 wiki と現在の backend facts を使い、出典メタデータはサーバー専用です。ローカル実験は LLM 判定なしで検索 ID を評価します。ブラウザー要求線とキャッシュ詳細は省略し、要求経路の図で説明します。
+
+---
+
 ## 📖 目次
 
 - [これは何ですか?](#-これは何ですか)
