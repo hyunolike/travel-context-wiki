@@ -385,7 +385,7 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 
 소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
 
-격리된 캐시 Neo4j Community 5.26.31 서버는 시작됐지만 실제 fixture 삽입·쿼리 통합은 자동 승인 검토가 최초 ‘통합 미실행’ 제한의 해제가 불명확하다고 판단해 차단했고 명시적 확인을 기다립니다. 준비된 실제 검사 도구와 mock 계약을 구분하며 실제 Neo4j 검색 결과라고 하지 않습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한·IMAGE SLOT은 그대로이며 유료 LLM/judge·외부 업로드·새 push/PR/merge/배포·별도 DB/SMTP 배포는 없습니다.
+실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한·IMAGE SLOT은 그대로이며 유료 LLM/judge·외부 업로드·새 push/PR/merge/배포·별도 DB/SMTP 배포는 없습니다.
 
 ### 오프라인 문서 선택 비교
 
