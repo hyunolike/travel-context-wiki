@@ -50,7 +50,7 @@ flowchart LR
 
 ## 従来の FULL 方式から変わった点
 
-**運用は FULL のままです。** 最後の運用記録は 2026-10-09 09:13 UTC の agent `ea47917` で、LLM 呼び出しはありません。新しい検索 API とリクエストごとの選択は独立したローカル branch で実装・検証し、追加 push・クラウド展開は行っていません。agent #13/wiki #32 の統合はこの作業の外で確認した状態であり、検索機能の運用反映を示しません。
+**運用は FULL のままです。** 最後の運用記録は 2026-10-09 09:13 UTC の agent `ea47917` で、LLM 呼び出しはありません。新しい検索 API とリクエストごとの選択は独立した branch で実装・検証し、新しい Draft PR への公開を承認済みです。クラウド展開は保留です。agent #13/wiki #32 の統合はこの作業の外で確認した状態であり、検索機能の運用反映を示しません。
 
 | 項目 | 従来の FULL | 現在のローカル実装 |
 | --- | --- | --- |
@@ -63,9 +63,11 @@ flowchart LR
 
 **ローカル検証完了:** Python 19/19、JVM 339/339（56 suite）、既存 29 fixture/58 行が成功。native TF-IDF、固定 CPU 意味 API、ビルド済み Linux ARM64 TF-IDF image の各経路で実際の Neo4j Community 5.26.31 を使い、35 fixture/105 route checks と実 facts EXPLAIN 1 件を確認しました。改ざん、認証、時間/本文制限と FULL 復帰の記録は [検証スナップショット](docs/retrieval-api-followup-verification.json) を参照。作成したローカル資源は削除しました。
 
-**展開前:** private Cloud Run IAM/ネットワーク/呼び出し権限と production Enterprise Neo4j reader ACL は未検証。Linux 意味 image は未実行です。公式 CPU wheel `torch 2.14.1+cpu` と保存候補の正確な `2.14.1` pin は異なるため、新しい Linux CPU 候補の検証が必要です。credentials・cloud 資源・traffic 変更、追加 push/PR/展開、別 Hanjeok DB/SMTP 展開は行っていません。[ローカル実装の記録](docs/retrieval-api-followup-report.md) を参照してください。
+**展開前:** private Cloud Run IAM/ネットワーク/呼び出し権限と production Enterprise Neo4j reader ACL は未検証。Linux 意味 image は未実行です。公式 CPU wheel `torch 2.14.1+cpu` と保存候補の正確な `2.14.1` pin は異なるため、新しい Linux CPU 候補の検証が必要です。credentials・cloud 資源・traffic 変更、運用展開、別 Hanjeok DB/SMTP 展開は行っていません。Draft PR 公開のみ承認済みです。[ローカル実装の記録](docs/retrieval-api-followup-report.md) を参照してください。
 
 **限界:** 任意文書は 501-byte Gyeongbokgung seed だけなので、文書選択削減の上限は約 2.03%。総 token/費用削減や回答品質向上は未測定です。保存済み意味実験の VECTOR/HYBRID precision は 0.250000/0.172619、recall は 0.645833/1.000000（24 件）。最終根拠の完全性は 30/35 と 35/35、VECTOR の seed 欠落 5 件を保持します。新しい guard は必要 seed 欠落時に FULL へ戻し、旧指標を変更しません。Microsoft の完全な community GraphRAG ではなく、存在しない交通/天気や合成関係は curated graph に含めません。
+
+公開範囲と保存した元 branch は [Draft PR 準備記録](docs/publication-preparation.json) を参照。検証 JSON は公開承認前のローカル実行スナップショットです。
 
 ### 検索構造 — ローカル実装、未デプロイ
 

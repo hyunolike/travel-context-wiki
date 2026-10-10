@@ -50,7 +50,7 @@ This diagram describes the current FULL production path. The retrieval preparati
 
 ## What changed from the FULL-only baseline
 
-**Production remains FULL.** The last recorded production check is agent `ea47917` at 2026-10-09 09:13 UTC; it did not call an LLM. The retrieval API and request selection below are implemented and tested on a separate local branch, with no follow-up push or cloud deployment. Earlier agent #13/wiki #32 were observed merged outside this follow-up; their merge is not evidence of a retrieval deployment.
+**Production remains FULL.** The last recorded production check is agent `ea47917` at 2026-10-09 09:13 UTC; it did not call an LLM. The retrieval API and request selection below are implemented and tested on a separate local branch, for an approved feature-branch Draft PR; cloud deployment remains held. Earlier agent #13/wiki #32 were observed merged outside this follow-up; their merge is not evidence of a retrieval deployment.
 
 | Area | Previous FULL baseline | Current local implementation |
 | --- | --- | --- |
@@ -66,6 +66,8 @@ This diagram describes the current FULL production path. The retrieval preparati
 **Before deployment:** private Cloud Run IAM/invoker/network enforcement and existing production Enterprise Neo4j reader privileges remain unverified. The full Linux semantic image was not run: official `torch 2.14.1+cpu` differs from the preserved candidate's exact `2.14.1` pin, so it needs a newly validated Linux CPU candidate. See [reproduction and release preparation](docs/retrieval-api-followup-report.md). No credentials, cloud resources, traffic changes or separate Hanjeok DB/SMTP rollout were made.
 
 **Measured limits:** only the 501-byte Gyeongbokgung seed is optional, so corpus selection can remove at most 501/24,703 = 2.03%; guards and moving evidence to user input do not prove total token/cost savings. In the preserved semantic lab, VECTOR/HYBRID candidate precision is 0.250000/0.172619 and recall 0.645833/1.000000 on 24 supported attempts; complete final coverage is 30/35 versus 35/35, including five recorded VECTOR seed omissions. The deployment guard restores FULL on an explicit required-seed miss; it does not rewrite those results. This bounded relationship retrieval is not Microsoft's complete community GraphRAG implementation and proves no improvement in answer quality. No invented transport/weather or synthetic relation enters the curated graph.
+
+Publication scope and preserved source branches: [Draft PR preparation](docs/publication-preparation.json). Verification JSON files are historical local snapshots from before publication approval.
 
 ### Local retrieval structure, not deployed
 
