@@ -352,9 +352,11 @@ flowchart TD
 
 ### Hanjeok のビルド時と実行時の契約
 
-<!-- IMAGE SLOT: docs/images/hanjeok-two-inputs.png; docs/readme-diagram-spec.md Image A -->
+![Hanjeok のビルド時パッケージと二つの実行時入力](docs/images/hanjeok-two-inputs.png)
 
-soft-3D の差し替え画像は準備中です。[コードに基づく仕様](docs/readme-diagram-spec.md)でビルドと実行時を分け、sidecar をモデル入力の外に置きます。
+[図を拡大表示](docs/images/hanjeok-two-inputs.png) · ビルド時に検証した全文マニュアルは system に、現在のバックエンド facts は user に入ります。sidecar はサーバーだけに残り、順位と訪問順序はバックエンドが決めます。運用は FULL です（9 文書 / UTF-8 24,703 bytes）。
+
+soft-3D の図を反映しました。[コードに基づく仕様](docs/readme-diagram-spec.md)でビルドと実行時を分け、sidecar をモデル入力の外に置きます。
 
 wiki #31 と agent #12 は統合済みです。[運用検証](docs/production-verification.json)は 2026-10-09 09:13 UTC に agent `ea47917` の Ready、トラフィック 100%、health/readiness UP、全文バンドルと sidecar hash の一致を確認しました。フロントもデプロイ済みです。この検証で実際の LLM 呼び出しは行っていません。別の Hanjeok DB/SMTP 展開は保留のままです。
 ビルド時に wiki の出典 hash と Git revision を検査し、全文バンドルと文書・

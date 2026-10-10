@@ -351,9 +351,11 @@ flowchart TD
 
 ### Hanjeok의 빌드 단계와 요청 처리
 
-<!-- IMAGE SLOT: docs/images/hanjeok-two-inputs.png; docs/readme-diagram-spec.md Image A -->
+![한적 빌드 패키징과 모델의 두 런타임 입력](docs/images/hanjeok-two-inputs.png)
 
-새 soft-3D 그림은 준비 중이며 [코드 기준 명세](docs/readme-diagram-spec.md)를 먼저 제공합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
+[그림 확대 보기](docs/images/hanjeok-two-inputs.png) · 빌드 시 검증한 전체 매뉴얼은 system에, 현재 백엔드 facts는 user에 넣습니다. sidecar는 서버에만 남고 백엔드가 순위와 방문 순서를 결정합니다. 운영은 FULL입니다(9문서 / UTF-8 24,703 bytes).
+
+새 soft-3D 그림은 [코드 기준 명세](docs/readme-diagram-spec.md)를 반영합니다. 빌드 패키징과 런타임 facts를 분리하고 sidecar를 모델 입력 밖에 둡니다.
 
 wiki #31과 agent #12는 머지됐습니다. [운영 검증](docs/production-verification.json)은 2026-10-09 09:13 UTC에 agent `ea47917`의 Ready와 트래픽 100%, health/readiness UP, 전체 번들/sidecar hash 일치를 확인했습니다. 프론트도 배포됐습니다. 이 검증에서는 실제 LLM을 호출하지 않았고 별도 한적 본체 DB/SMTP 배포 보류는 유지합니다. 빌드 단계에서는
 wiki의 출처 hash와 Git revision을 검사한 뒤 전체 번들 본문과 JSON sidecar를
@@ -385,7 +387,7 @@ hash와 revision 검사 및 제한된 인용 주제 검사는 문장의 의미�
 
 소비 코드의 별도 FULL / VECTOR / HYBRID_GRAPH lab은 운영 FULL과 기존 29 fixture·그래프 경계 6건을 보존합니다. [실행 상태와 한계](docs/retrieval-experiment-report.md)는 기존 TF-IDF 어휘 baseline과 실제 고정 다국어 CPU 의미 임베딩·RAGAS 0.3.9 ID 평가·출처/seed 선언 관계의 메모리 그래프를 구분합니다. 의미 VECTOR / HYBRID 후보 recall은 검색 허용 24건에서 0.645833 / 1.000000, precision은 정의된 24건에서 0.250000 / 0.172619입니다. 최종 근거가 완전한 행은 30/35 / 35/35이며 VECTOR seed 누락 5건을 기록합니다. 정책 8개 유지와 결정성은 105/105이고 답변 진실성·LLM judge 지표는 아닙니다.
 
-실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한·IMAGE SLOT은 그대로이며 유료 LLM/judge·외부 업로드·새 push/PR/merge/배포·별도 DB/SMTP 배포는 없습니다.
+실제 격리 Neo4j Community 5.26.31 통합을 완료했습니다. 시작 노드 15개가 메모리 결과와 일치하고 2홉 검색·합성 관계 배제·문서/출처 해시 변조 거부를 통과했습니다. 두 벡터 방식 각각 105개 행/210개 RAGAS sample의 별도 프로세스 bytes 재현 및 실제 Kotlin citation 계약 검증도 완료했습니다. 실제 검사와 mock 계약을 구분하며 이전 승인 차단은 해소됐습니다. 전용 bridge의 masquerading을 끄고 localhost Bolt만 게시하며 HTTP/사용량 보고를 비활성화했습니다. 소유 자원은 정리했습니다. 없는 교통/날씨나 합성 관계는 curated graph에 들어가지 않고 Microsoft community GraphRAG 전체 구현도 아닙니다. canonical/raw·운영 입력·약 2.03% 문서 bytes 절감 상한은 그대로이며 운영 그림을 반영했습니다. 별도 실험 그림은 준비 중이고 유료 LLM/judge·외부 업로드·merge/운영 배포·별도 DB/SMTP 배포는 없습니다.
 
 ### 오프라인 문서 선택 비교
 

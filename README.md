@@ -360,9 +360,11 @@ this delivery. All three methods use these two files as entry points.
 
 ### Hanjeok build-time and runtime contract
 
-<!-- IMAGE SLOT: docs/images/hanjeok-two-inputs.png; docs/readme-diagram-spec.md Image A -->
+![Hanjeok build-time packaging and two runtime model inputs](docs/images/hanjeok-two-inputs.png)
 
-The soft-3D replacement image is pending; the [code-based specification](docs/readme-diagram-spec.md) is available. It separates build-time packaging from runtime facts and keeps the sidecar outside model input.
+[Open full-size diagram](docs/images/hanjeok-two-inputs.png) · Build-time packaging keeps the verified full manual in system input and current backend facts in user input. The sidecar stays on the server; the backend determines ranking and visit order. Production remains FULL (9 docs / 24,703 UTF-8 bytes).
+
+The installed soft-3D diagram follows the [code-based specification](docs/readme-diagram-spec.md), separating build-time packaging from runtime facts and keeping the sidecar outside model input.
 
 Wiki #31 and agent #12 are merged. [Production verification](docs/production-verification.json) at 2026-10-09 09:13 UTC confirmed agent `ea47917` Ready, traffic 100%, health/readiness UP, and matching full bundle/sidecar hashes. The frontend is deployed. No actual LLM call was made in that verification; the separate Hanjeok database/SMTP rollout remains held. At build time,
 the wiki passes source hash/revision checks, then produces the full bundle text
@@ -398,7 +400,7 @@ and [the consumer contract](https://github.com/hyunolike/hanjeok-agent/blob/main
 
 The consumer's separate local FULL / VECTOR / HYBRID_GRAPH lab preserves production FULL, the 29 fixtures and six graph-boundary cases. [Execution status and limitations](docs/retrieval-experiment-report.md) separate preserved lexical TF-IDF results from actual pinned multilingual CPU semantic embeddings, actual RAGAS 0.3.9 ID metrics and the in-process provenance/declared-seed graph. Semantic VECTOR / HYBRID candidate recall is 0.645833 / 1.000000 on 24 supported attempts; precision is 0.250000 / 0.172619 on 24 defined rows. Complete final coverage is 30/35 / 35/35; five VECTOR seed omissions remain reported. All eight policies and determinism pass 105/105. Scores do not establish response truth or LLM judging.
 
-Actual isolated Neo4j Community 5.26.31 integration passes: 15 singleton traversals match the in-process graph, with two-hop retrieval, isolated synthetic-edge exclusion and real source/document hash tamper rejection. Both vector backends run 105 rows/210 RAGAS samples each, reproduce byte for byte and pass actual Kotlin citation contract checks. Live checks are separate from mock contracts; the prior approval blocker is resolved. A dedicated bridge disables masquerading, publishes only localhost Bolt and disables HTTP/usage reporting; owned resources are removed. No transport/weather facts or synthetic edges enter the curated graph, and this is not Microsoft's full community GraphRAG. Canonical/raw, operational inputs, the approximately 2.03% reduction ceiling and IMAGE SLOTs remain unchanged. No paid LLM/judge call, corpus upload, new push/PR/merge/deployment or separate DB/SMTP rollout occurred.
+Actual isolated Neo4j Community 5.26.31 integration passes: 15 singleton traversals match the in-process graph, with two-hop retrieval, isolated synthetic-edge exclusion and real source/document hash tamper rejection. Both vector backends run 105 rows/210 RAGAS samples each, reproduce byte for byte and pass actual Kotlin citation contract checks. Live checks are separate from mock contracts; the prior approval blocker is resolved. A dedicated bridge disables masquerading, publishes only localhost Bolt and disables HTTP/usage reporting; owned resources are removed. No transport/weather facts or synthetic edges enter the curated graph, and this is not Microsoft's full community GraphRAG. Canonical/raw, operational inputs, the approximately 2.03% reduction ceiling remain unchanged. The operational diagram is installed; the separate experiment diagram is pending. No paid LLM/judge call, corpus upload, merge/production deployment or separate DB/SMTP rollout occurred.
 
 ### Offline selection comparison
 
